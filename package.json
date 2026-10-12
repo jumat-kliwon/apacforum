@@ -1,0 +1,31 @@
+{
+  "name": "apcr-cms",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --bun nuxt dev",
+    "build": "bun --bun nuxt build",
+    "preview": "bun .output/server/index.mjs",
+    "postinstall": "nuxt prepare",
+    "typecheck": "nuxt typecheck",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun run server/db/migrate.ts",
+    "db:seed": "bun run server/db/seed.ts",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@nuxt/ui": "4.11.3",
+    "better-auth": "1.7.7",
+    "drizzle-orm": "0.45.4",
+    "drizzle-zod": "0.8.3",
+    "nuxt": "4.6.1",
+    "tailwindcss": "^4.3.3",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "drizzle-kit": "0.31.11",
+    "typescript": "6.0.3",
+    "vue-tsc": "^3.3.13"
+  }
+}

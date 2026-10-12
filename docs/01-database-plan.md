@@ -11,7 +11,8 @@ Stack: Bun · Nuxt 4 · PostgreSQL · Drizzle ORM (`drizzle-orm/bun-sql` + `driz
 - Driver DB: client Postgres bawaan Bun (`Bun.SQL`) lewat `drizzle-orm/bun-sql` — tanpa paket `pg`/`postgres`.
 - Migrasi & seed: `bunx drizzle-kit generate` / `bunx drizzle-kit migrate`, `bun run server/db/seed.ts`.
 - Better Auth memakai adapter Drizzle (`provider: "pg"`) di atas instance db yang sama.
-- Catatan: `drizzle-kit` menjalankan migrasi dengan driver Node miliknya sendiri; kalau `bun-sql` belum didukung di sana, migrasi dijalankan lewat `migrate()` dari `drizzle-orm/bun-sql/migrator` di script Bun.
+- Migrasi dijalankan lewat `migrate()` dari `drizzle-orm/bun-sql/migrator` (`bun run db:migrate`); `drizzle-kit` hanya dipakai untuk `generate` & `studio`.
+- Kolom `jsonb` memakai helper sendiri (`server/db/columns.ts`): `jsonb()` bawaan Drizzle + Bun.SQL menyimpan nilai sebagai string JSON.
 
 ---
 
