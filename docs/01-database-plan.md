@@ -3,7 +3,15 @@
 Sumber: desain kanvas "APCR CMS Admin Panel (Modul 4.14)" — Login, Dashboard, Peserta (daftar + detail),
 Transaksi (daftar + detail), Event (daftar, form, detail, hapus), Template email.
 
-Stack: Nuxt 4 · PostgreSQL · Drizzle ORM (`drizzle-orm/node-postgres` + `drizzle-kit`) · Better Auth · Zod · Nuxt UI.
+Stack: Bun · Nuxt 4 · PostgreSQL · Drizzle ORM (`drizzle-orm/bun-sql` + `drizzle-kit`) · Better Auth · Zod · Nuxt UI.
+
+### Runtime: Bun
+
+- Package manager & runtime: `bun install`, `bun --bun nuxt dev`, build dengan Nitro preset `bun` (`bun .output/server/index.mjs`).
+- Driver DB: client Postgres bawaan Bun (`Bun.SQL`) lewat `drizzle-orm/bun-sql` — tanpa paket `pg`/`postgres`.
+- Migrasi & seed: `bunx drizzle-kit generate` / `bunx drizzle-kit migrate`, `bun run server/db/seed.ts`.
+- Better Auth memakai adapter Drizzle (`provider: "pg"`) di atas instance db yang sama.
+- Catatan: `drizzle-kit` menjalankan migrasi dengan driver Node miliknya sendiri; kalau `bun-sql` belum didukung di sana, migrasi dijalankan lewat `migrate()` dari `drizzle-orm/bun-sql/migrator` di script Bun.
 
 ---
 
@@ -238,8 +246,9 @@ server/db/
     relations.ts
     index.ts
   migrations/        # drizzle-kit generate
-  seed.ts            # admin awal, 9 template email, data contoh dari desain
-  index.ts           # drizzle(pool, { schema })
+  seed.ts            # admin awal, 9 template email, data contoh dari desain (bun run)
+  migrate.ts         # migrate() via drizzle-orm/bun-sql/migrator
+  index.ts           # drizzle({ client: new SQL(DATABASE_URL), schema })
 shared/schemas/      # Zod (drizzle-zod + extend) dipakai server & client
 drizzle.config.ts
 ```
