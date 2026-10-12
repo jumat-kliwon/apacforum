@@ -35,8 +35,8 @@ Stack: Bun · Nuxt 4 · PostgreSQL · Drizzle ORM (`drizzle-orm/bun-sql` + `driz
 
 ```mermaid
 erDiagram
-  user ||--o{ session : has
-  user ||--o{ account : has
+  users ||--o{ sessions : has
+  users ||--o{ accounts : "has (admin saja)"
 
   events ||--o{ agenda_days : has
   events ||--o{ speakers : has
@@ -44,15 +44,20 @@ erDiagram
   events ||--o{ ticket_types : has
   agenda_days |o--o{ speakers : "sesi"
 
-  events ||--o{ participants : "pendaftaran"
+  users ||--o{ participants : "role participant: ikut event"
+  events ||--o{ participants : ""
   ticket_types ||--o{ participants : ""
-  user |o--o{ participants : "verified_by"
+  users |o--o{ participants : "verified_by (admin)"
 
+  users |o--o{ transactions : "(SET NULL)"
   participants |o--o{ transactions : "(SET NULL)"
   events |o--o{ transactions : "(SET NULL)"
 ```
 
 Total: **4 tabel auth + 7 tabel domain** (`events`, `agenda_days`, `speakers`, `partners`, `ticket_types`, `participants`, `transactions`).
+
+Admin dan peserta sama-sama ada di `users`, dibedakan dengan `role`. `participants` sekarang hanya
+menyimpan **keikutsertaan** seorang user di satu event (tipe tiket, status verifikasi, status bayar, e-tiket).
 
 ---
 
@@ -60,12 +65,38 @@ Total: **4 tabel auth + 7 tabel domain** (`events`, `agenda_days`, `speakers`, `
 
 ### 3.1 Auth (Better Auth, dibuat via `bunx @better-auth/cli generate`)
 
-`user`, `session`, `account`, `verification` — standar Better Auth.
-Plugin **admin** menambah di `user`: `role`, `banned`, `ban_reason`, `ban_expires`; di `session`: `impersonated_by`.
+`users`, `sessions`, `accounts`, `verifications` — tabel Better Auth, nama jamak lewat opsi adapter Drizzle `usePlural: true`.
+Plugin **admin** menambah di `users`: `role`, `banned`, `ban_reason`, `ban_expires`; di `sessions`: `impersonated_by`.
 
-- Login hanya email + password (layar 01). Registrasi publik **dimatikan** (`disableSignUp`); akun admin dibuat lewat seed / admin lain.
-- Role awal: `admin`. (Lihat pertanyaan terbuka #1.)
-- Peserta **bukan** user Better Auth — mereka mendaftar lewat form publik tanpa login.
+#### `users` — admin **dan** peserta
+
+| Kolom | Tipe | Catatan |
+|---|---|---|
+| id | uuid | |
+| name | varchar | nama lengkap |
+| email | citext **unik** | satu orang = satu user, dipakai lintas event |
+| email_verified | boolean | bawaan Better Auth |
+| image | text null | bawaan Better Auth |
+| role | varchar | `admin` · `participant` (plugin admin; `defaultRole: "participant"`, `adminRoles: ["admin"]`) |
+| banned / ban_reason / ban_expires | | bawaan plugin admin |
+| phone | varchar null | E.164 — field tambahan (`user.additionalFields`) |
+| organization | varchar null | "Instansi" |
+| job_title | varchar null | "Jabatan" |
+| country | char(2) null | ISO-3166 |
+| city | varchar null | |
+| tshirt_size | `tshirt_size` null | XS…XXXL |
+| meal_preference | varchar null | "Halal" |
+| referral_source | varchar null | "Sumber info" |
+| created_at / updated_at | timestamptz | "Terdaftar sejak" |
+
+Field profil peserta didaftarkan sebagai `additionalFields` dengan `input: false`, jadi hanya bisa diisi dari server (form pendaftaran / CMS), bukan dari endpoint auth.
+
+#### Aturan auth
+
+- **Admin**: login email + password (layar 01) → punya baris di `accounts` (provider `credential`). Dibuat lewat seed / admin lain. Sign-up publik **dimatikan** (`disableSignUp`).
+- **Peserta**: user dibuat **otomatis** saat mengisi form pendaftaran event (lihat §6). Tidak punya password / baris `accounts`, jadi tidak bisa login.
+- Semua route CMS (`/api/admin/**`, halaman admin) dijaga middleware: session wajib ada **dan** `role = 'admin'`.
+- Kalau nanti peserta perlu login (lihat status pendaftaran / unduh e-tiket), cukup tambah plugin magic link / email OTP — tabelnya tidak berubah.
 
 ### 3.2 `events`
 
@@ -118,38 +149,30 @@ Unik `(event_id, sort_order)`.
 
 Unik `(event_id, code)`. "Terjual" = jumlah peserta `payment_status = paid` (dihitung, tidak disimpan).
 
-### 3.7 `participants` — satu baris = satu pendaftaran ke satu event
+### 3.7 `participants` — satu baris = satu user ikut satu event
 
-Data diri dan data pendaftaran ada di tabel yang sama. Orang yang ikut 3 event punya 3 baris; halaman
-"Detail peserta" menampilkan baris lain dengan email yang sama sebagai "Event yang didaftar".
+Data diri ada di `users`; tabel ini hanya data keikutsertaan. Orang yang ikut 3 event = 1 user + 3 baris
+`participants`; halaman "Detail peserta" = satu user beserta semua barisnya ("Event yang didaftar").
 
 | Kolom | Tipe | Catatan |
 |---|---|---|
 | id | uuid | |
-| reg_no | varchar unik | `REG-APCR-26-01248` — juga ID yang ditampilkan di detail |
+| reg_no | varchar unik | `REG-APCR-26-01248` |
+| user_id | → users **CASCADE** | hapus peserta (user) = hapus semua pendaftaran & e-tiketnya |
 | event_id | → events **CASCADE** | |
 | ticket_type_id | → ticket_types **RESTRICT** | tipe tiket yang sudah dipakai tidak bisa dihapus |
-| full_name | varchar | |
-| email | citext | **tidak** unik global (lihat index) |
-| phone | varchar | E.164 |
-| organization | varchar | "Instansi" |
-| job_title | varchar | |
-| country | char(2) | ISO-3166 |
-| city | varchar | |
-| tshirt_size | `tshirt_size` null | XS…XXXL |
-| meal_preference | varchar null | "Halal" |
-| referral_source | varchar null | "Sumber info" |
-| extra | jsonb default `{}` | field form tambahan per event tanpa migrasi |
+| extra | jsonb default `{}` | jawaban form tambahan khusus event ini, tanpa migrasi |
 | status | `registration_status` | `pending_verification` · `verified` · `rejected` · `cancelled` |
 | payment_status | `payment_status` | `none` · `pending` · `paid` · `expired` · `refunded` — disalin dari transaksi terakhir |
 | rejection_reason | text null | dipakai di email "ditolak" |
-| verified_at / verified_by → user (SET NULL) | | |
+| verified_at / verified_by → users (SET NULL) | | admin yang memverifikasi |
 | rejected_at / cancelled_at | timestamptz null | |
 | ticket_code | varchar unik null | `APCR26-ID-0712`, diisi saat lunas |
 | ticket_issued_at / checked_in_at | timestamptz null | |
 | created_at / updated_at | | "Tanggal daftar" |
 
-- Partial unique index `(event_id, email) WHERE status NOT IN ('rejected','cancelled')` → satu email hanya boleh punya satu pendaftaran aktif per event, tapi bisa "daftar ulang" setelah ditolak.
+- Partial unique index `(event_id, user_id) WHERE status NOT IN ('rejected','cancelled')` → satu user hanya boleh punya satu pendaftaran aktif per event, tapi bisa "daftar ulang" setelah ditolak.
+- Tabel "Kelola peserta" = `participants` join `users` (nama, email, instansi) join `events` & `ticket_types`.
 - Label UI "Belum ditagih" / "Tidak ditagih" = `payment_status = none`, dibedakan oleh `status`.
 - `payment_status` disimpan supaya tabel peserta bisa difilter & di-sort per status bayar tanpa join; diperbarui di service yang sama yang mengubah transaksi (satu DB transaction).
 
@@ -161,9 +184,10 @@ Kolom biasa hanya untuk yang dicari, difilter, di-sort, atau dijumlah. Sisanya `
 |---|---|---|
 | id | uuid | |
 | invoice_no | varchar unik | `INV-APCR-26-01248` |
-| participant_id | → participants **SET NULL** | hapus peserta tidak menghapus transaksi |
+| user_id | → users **SET NULL** | hapus peserta tidak menghapus transaksi |
+| participant_id | → participants **SET NULL** | pendaftaran yang ditagih |
 | event_id | → events **SET NULL** | |
-| participant_name / participant_email | varchar | snapshot untuk pencarian & daftar setelah peserta dihapus |
+| participant_name / participant_email | varchar | snapshot untuk pencarian & daftar setelah user dihapus |
 | event_name / ticket_type_name | varchar | snapshot untuk kolom "Acara" & "Tipe tiket" |
 | status | `transaction_status` | `pending` · `paid` · `expired` · `refunded` |
 | method | `payment_method` null | `virtual_account` · `qris` · `credit_card` · `bank_transfer` (filter "Metode") |
@@ -225,9 +249,9 @@ Template statis di kode, satu file per template di `server/emails/`:
 
 | Tabel | Index | Untuk |
 |---|---|---|
-| participants | `(event_id, status)`, `(event_id, payment_status)`, `(created_at desc)`, `(email)` | filter & sort tabel peserta, dashboard, detail peserta lintas event |
-| participants | GIN `pg_trgm` pada `full_name`, `email`, `organization` | "Cari nama, email, atau instansi" |
-| transactions | `(status, created_at desc)`, `(event_id)`, `(participant_id)`, `(expires_at) WHERE status='pending'` | daftar transaksi, job kedaluwarsa & pengingat |
+| participants | `(event_id, status)`, `(event_id, payment_status)`, `(created_at desc)`, `(user_id)` | filter & sort tabel peserta, dashboard, detail peserta lintas event |
+| users | `(role)`; GIN `pg_trgm` pada `name`, `email`, `organization` | "Cari nama, email, atau instansi" |
+| transactions | `(status, created_at desc)`, `(event_id)`, `(user_id)`, `(participant_id)`, `(expires_at) WHERE status='pending'` | daftar transaksi, riwayat transaksi peserta, job kedaluwarsa & pengingat |
 | transactions | GIN `pg_trgm` pada `invoice_no`, `participant_name` | "Cari ID transaksi atau nama peserta" |
 
 Extension: `citext`, `pg_trgm`.
@@ -237,8 +261,24 @@ Semua angka dihitung dengan query agregat per event: total pendaftar, menunggu v
 
 ## 6. Alur status (dijaga di service layer)
 
+Pendaftaran dari form publik (satu DB transaction):
+
+1. Validasi input dengan Zod.
+2. Cari `users` berdasarkan email.
+   - Belum ada → buat user baru `role = 'participant'`, tanpa password, isi field profil.
+   - Sudah ada & `role = 'participant'` → perbarui field profil dengan data terbaru dari form.
+   - Sudah ada & `role = 'admin'` → tetap pakai user itu, profil tidak ditimpa, role tidak diubah.
+3. Tolak kalau user sudah punya pendaftaran aktif di event ini (dijamin juga oleh partial unique index).
+4. Cek event `published` + `registration_open` + belum lewat `registration_deadline`, tipe tiket `is_on_sale` dan kuota masih ada.
+5. Buat baris `participants` dengan `reg_no` dari `events.registration_seq`.
+
+Karena email user unik, siapa pun yang tahu email seseorang bisa mendaftarkan atau memperbarui profilnya.
+Dampaknya kecil selama peserta tidak bisa login, tapi pembaruan profil dari form publik sebaiknya hanya
+mengisi field yang kosong, atau perubahan dikonfirmasi lewat email — diputuskan saat implementasi form publik.
+
 ```
-Form publik ──► participant(pending_verification, payment none)   + email registration-received
+Form publik ──► user (dibuat/diperbarui) + participant(pending_verification, payment none)
+                                                                    + email registration-received
 Admin verifikasi ──► verified + transaction(pending, expires +48 jam,
                      history: created, invoice_sent)              + email registration-verified
 Admin tolak ──► rejected (+ rejection_reason)                       + email registration-rejected
@@ -255,7 +295,7 @@ Admin refund ──► transaction refunded, participant cancelled         + ema
 ```
 server/db/
   schema/
-    auth.ts          # hasil better-auth CLI
+    auth.ts          # users (+ field profil peserta), sessions, accounts, verifications — hasil better-auth CLI
     enums.ts
     events.ts        # events, agenda_days, speakers, partners, ticket_types
     participants.ts
@@ -273,7 +313,7 @@ drizzle.config.ts
 
 ## 8. Pertanyaan terbuka
 
-1. **Role admin** — cukup satu role `admin`, atau perlu dipisah (mis. `superadmin`, `finance` untuk refund, `staff` hanya verifikasi)?
+1. **Role** — rencana sekarang `admin` + `participant`. Perlu role admin tambahan (mis. `finance` untuk refund, `staff` hanya verifikasi)?
 2. **Form Registration publik & halaman event publik** — masuk scope app Nuxt ini, atau hanya CMS (modul 4.14)?
 3. **Payment gateway** — Midtrans / Xendit / lainnya? Menentukan isi `payment` json dan format webhook.
 4. **Upload file** (banner, foto speaker, logo partner) — disimpan di S3/R2 atau disk lokal?
