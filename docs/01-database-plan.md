@@ -26,7 +26,7 @@ Stack: Bun · Nuxt 4 · PostgreSQL · Drizzle ORM (`drizzle-orm/bun-sql` + `driz
 | Status | `pgEnum` + label Bahasa Indonesia di UI (map di `shared/`) | Enum DB = kontrak; label bisa berubah tanpa migrasi. |
 | Detail transaksi | Satu tabel `transactions`; rincian, info pembayaran, dan riwayat status disimpan sebagai `jsonb` | Keputusan: semua transaksi di satu tabel. Kolom yang difilter/di-sort tetap kolom biasa. |
 | Email | **Statis** — template di kode (`server/emails/*.ts`), bukan di database | Keputusan: email statis. Halaman "Template email" hanya pratinjau read-only. |
-| Hapus | Hard delete sesuai desain, **kecuali** transaksi | Desain: "Riwayat transaksi tetap tersimpan untuk laporan keuangan" → FK `SET NULL` + snapshot di json. |
+| Hapus | Hard delete (permanen, tanpa `deleted_at`), **kecuali** transaksi | Desain: "Riwayat transaksi tetap tersimpan untuk laporan keuangan" → FK `SET NULL` + snapshot di json. |
 | Validasi | Zod schema dari `drizzle-zod` (`createInsertSchema`) lalu di-extend; bentuk kolom `jsonb` juga punya schema Zod + `$type<>()` | Satu sumber kebenaran untuk server route & form Nuxt UI. |
 
 ---
@@ -114,7 +114,7 @@ Field profil peserta didaftarkan sebagai `additionalFields` dengan `input: false
 | venue_address | text null | |
 | city | varchar | "Medan" |
 | capacity | integer | 1.450 |
-| banner_url | text null | file upload 1920×1080 ≤ 5 MB |
+| banner_key | text null | object key di Cloudflare R2; upload 1920×1080 ≤ 5 MB |
 | status | `event_status` | `draft` · `published` · `archived` |
 | registration_open | boolean default true | toggle "Buka pendaftaran" |
 | timezone | varchar default `Asia/Jakarta` | |
@@ -127,10 +127,10 @@ Field profil peserta didaftarkan sebagai `additionalFields` dengan `input: false
 Unik `(event_id, sort_order)`.
 
 ### 3.4 `speakers`
-`id`, `event_id` → events **CASCADE**, `agenda_day_id` → agenda_days **SET NULL** (kolom "Sesi"), `name`, `title` ("Jabatan & institusi"), `category` `speaker_category` (`government` · `business` · `academia` · `communication`), `photo_url`, `status` `publish_status` (`draft` · `published`), `sort_order`, timestamps.
+`id`, `event_id` → events **CASCADE**, `agenda_day_id` → agenda_days **SET NULL** (kolom "Sesi"), `name`, `title` ("Jabatan & institusi"), `category` `speaker_category` (`government` · `business` · `academia` · `communication`), `photo_key` (R2), `status` `publish_status` (`draft` · `published`), `sort_order`, timestamps.
 
 ### 3.5 `partners`
-`id`, `event_id` → events **CASCADE**, `name`, `logo_url`, `category` `partner_category`
+`id`, `event_id` → events **CASCADE**, `name`, `logo_key` (R2), `category` `partner_category`
 (`academic_home` · `government_regional` · `strategic` · `business_industry` · `knowledge_research` · `technology` · `media`), `sort_order`, timestamps.
 
 ### 3.6 `ticket_types`
@@ -195,7 +195,7 @@ Kolom biasa hanya untuk yang dicari, difilter, di-sort, atau dijumlah. Sisanya `
 | currency | char(3) default `IDR` | |
 | expires_at / paid_at | timestamptz null | job kedaluwarsa & pengingat 24 jam |
 | items | jsonb | rincian tagihan |
-| payment | jsonb | info pembayaran dari gateway |
+| payment | jsonb | info pembayaran dari DOKU |
 | history | jsonb (array) | kartu "Riwayat status" |
 | created_at / updated_at | timestamptz | "Tagihan dibuat", kolom "Tanggal" |
 
@@ -212,14 +212,15 @@ Bentuk json (divalidasi Zod, diketik dengan `.$type<>()` di Drizzle):
 
 // payment
 {
-  channel?: string          // "BCA", "BNI", "Mandiri"
+  channel?: string          // "BCA", "BNI", "Mandiri" — dari notifikasi DOKU
   vaNumber?: string
-  gateway?: string          // "midtrans" | "xendit" | …
-  gatewayRef?: string       // "pg_7f3c91e2a04b"
+  dokuRequestId?: string    // Request-Id saat membuat pembayaran (idempotensi)
+  dokuPaymentUrl?: string   // URL DOKU Checkout yang dikirim ke peserta
+  dokuReference?: string    // referensi transaksi dari DOKU
   refundAmount?: number
   refundedAt?: string
   adminNote?: string
-  raw?: unknown             // payload webhook terakhir, untuk audit
+  raw?: unknown             // payload notifikasi DOKU terakhir, untuk audit
 }
 
 // history (urut waktu, append-only)
@@ -283,7 +284,7 @@ Admin verifikasi ──► verified + transaction(pending, expires +48 jam,
                      history: created, invoice_sent)              + email registration-verified
 Admin tolak ──► rejected (+ rejection_reason)                       + email registration-rejected
 Cron −24 jam ──►                                                    email payment-reminder
-Webhook gateway paid ──► transaction paid (history: paid, ticket_sent),
+Notifikasi DOKU paid ──► transaction paid (history: paid, ticket_sent),
                          participant.payment_status paid, ticket_code diisi
                                                                     + email payment-success (QR)
 Cron lewat batas ──► transaction expired, payment_status expired     + email invoice-expired
@@ -311,10 +312,43 @@ shared/schemas/      # Zod (drizzle-zod + extend, termasuk bentuk json) dipakai 
 drizzle.config.ts
 ```
 
-## 8. Pertanyaan terbuka
+## 8. Integrasi
 
-1. **Role** — rencana sekarang `admin` + `participant`. Perlu role admin tambahan (mis. `finance` untuk refund, `staff` hanya verifikasi)?
-2. **Form Registration publik & halaman event publik** — masuk scope app Nuxt ini, atau hanya CMS (modul 4.14)?
-3. **Payment gateway** — Midtrans / Xendit / lainnya? Menentukan isi `payment` json dan format webhook.
-4. **Upload file** (banner, foto speaker, logo partner) — disimpan di S3/R2 atau disk lokal?
-5. **Hapus event/peserta** — tetap hard delete seperti desain, atau soft delete (`deleted_at`) supaya bisa dipulihkan?
+### 8.1 DOKU (payment gateway)
+
+- Pakai **DOKU Checkout**: saat admin memverifikasi, server membuat pembayaran ke DOKU dengan `invoice_number = transactions.invoice_no`, `amount = total`, masa berlaku 48 jam; `dokuPaymentUrl` dikirim di email "Terverifikasi + tagihan".
+- Peserta memilih metode di halaman DOKU (VA, QRIS, kartu kredit, dll.); metode & bank yang dipakai diisi dari notifikasi → `method` + `payment.channel`.
+- Endpoint notifikasi `POST /api/payments/doku/notify`:
+  1. Verifikasi header `Signature` (HMAC-SHA256 dengan secret key DOKU) — tolak kalau tidak cocok.
+  2. Cari transaksi lewat `invoice_number`, cek jumlah sama dengan `total`.
+  3. Idempoten: kalau sudah `paid`, balas 200 tanpa mengubah apa pun.
+  4. Dalam satu DB transaction: `paid`, `paid_at`, `participants.payment_status`, `ticket_code`, append `history`; lalu kirim email e-tiket.
+- Kredensial lewat env: `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL` (sandbox / production).
+- Refund: di CMS mengubah status jadi `refunded` dan mencatat jumlah. Pengembalian dana lewat API DOKU hanya untuk metode yang didukung DOKU; untuk VA/transfer, dana dikembalikan manual oleh panitia — dicek lagi di dokumentasi DOKU saat implementasi.
+
+### 8.2 Cloudflare R2 (file upload)
+
+- Banner event, foto speaker, logo partner disimpan di bucket R2. Database hanya menyimpan **object key** (`events/<id>/banner-<uuid>.jpg`); URL publik dibentuk dari `R2_PUBLIC_URL` + key, jadi ganti domain tidak perlu migrasi data.
+- Akses lewat client S3 bawaan Bun (`Bun.S3Client`, endpoint R2) — tanpa AWS SDK.
+- Upload: browser minta presigned PUT URL ke `POST /api/admin/uploads` (admin saja; tipe & ukuran divalidasi Zod: JPG/PNG/WebP, ≤ 5 MB), lalu upload langsung ke R2.
+- Hapus event/speaker/partner atau ganti gambar → object lama ikut dihapus dari R2 setelah DB transaction berhasil.
+- Env: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
+
+### 8.3 Halaman publik (masuk scope)
+
+- `/events/[slug]` — info event, agenda, speaker berstatus `published`, partner per kategori, tipe tiket yang `is_on_sale`. Hanya event `published`.
+- `/events/[slug]/register` — form Registration (alur §6). Pilihan tipe peserta = tipe tiket event.
+- Peserta tidak login; status dikabarkan lewat email.
+
+## 9. Keputusan
+
+| # | Pertanyaan | Keputusan |
+|---|---|---|
+| 1 | Role | Hanya `admin` dan `participant` |
+| 2 | Form & halaman event publik | Masuk scope app ini |
+| 3 | Payment gateway | DOKU |
+| 4 | Penyimpanan file | Cloudflare R2 |
+| 5 | Hapus data | Permanen (hard delete); transaksi tetap disimpan |
+| – | Email | Statis di kode |
+| – | Transaksi | Satu tabel, detail dalam `jsonb` |
+| – | Admin & peserta | Satu tabel `users`, dibedakan `role`; daftar event membuat user `participant` otomatis |
