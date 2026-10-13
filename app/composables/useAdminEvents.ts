@@ -1,4 +1,12 @@
-export type AdminEventOption = { id: string, name: string, status: 'draft' | 'published' | 'archived' }
+export type AdminEventOption = {
+  id: string
+  code: string
+  name: string
+  status: 'draft' | 'published' | 'archived'
+  startDate: string
+  endDate: string
+  city: string
+}
 
 /**
  * Every event, newest first, for the event switcher and the event routes.

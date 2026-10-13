@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { FormSubmitEvent } from '@nuxt/ui'
+import type { DropdownMenuItem, FormSubmitEvent } from '@nuxt/ui'
 import * as z from 'zod'
 import { profileSchema, rejectSchema } from '~~/shared/schemas/participant'
+import type { Outcome } from '~/utils/registrationProgress'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -20,21 +21,53 @@ const latestType = computed(() => here.value[0]?.ticketTypeName)
 const latest = data.value?.registrations[0]
 if (latest && !here.value.length) await navigateTo(eventPath(latest.eventId, 'registrations', id.value), { replace: true })
 
-const info = computed(() => {
-  const u = user.value
-  if (!u) return []
-  return [
-    ['Email', u.email],
-    ['Phone', u.phone],
-    ['Organization', u.organization],
-    ['Job title', u.jobTitle],
-    ['Country', u.country ? (COUNTRIES[u.country as keyof typeof COUNTRIES] ?? u.country) : null],
-    ['City', u.city],
-    ['T-shirt size', u.tshirtSize],
-    ['Meal preference', u.mealPreference],
-    ['Heard about us from', u.referralSource]
-  ] as [string, string | null][]
+// ── this event's registration: where it stands and what to do next ──
+const reg = computed(() => here.value[0])
+/** Its invoices, newest first. */
+const regTrx = computed(() => data.value?.transactions.filter(t => t.participantId === reg.value?.id) ?? [])
+const invoice = computed(() => regTrx.value[0])
+const progress = computed(() => reg.value
+  ? registrationProgress({ ...reg.value, paidAt: regTrx.value.find(t => t.paidAt)?.paidAt ?? null })
+  : null)
+
+const NEXT_ICON: Record<Outcome, { icon: string, class: string }> = {
+  'review': { icon: 'i-lucide-user-check', class: 'text-warning' },
+  'awaiting-invoice': { icon: 'i-lucide-file-clock', class: 'text-warning' },
+  'awaiting-payment': { icon: 'i-lucide-clock', class: 'text-warning' },
+  'paid': { icon: 'i-lucide-ticket', class: 'text-info' },
+  'ticket-issued': { icon: 'i-lucide-scan-line', class: 'text-success' },
+  'checked-in': { icon: 'i-lucide-circle-check', class: 'text-success' },
+  'rejected': { icon: 'i-lucide-circle-x', class: 'text-error' },
+  'expired': { icon: 'i-lucide-clock-alert', class: 'text-error' },
+  'cancelled': { icon: 'i-lucide-ban', class: 'text-muted' }
+}
+/** Headline and detail of the next-step box. */
+const next = computed(() => {
+  const r = reg.value
+  const p = progress.value
+  const inv = invoice.value
+  if (!r || !p) return null
+  const at = (d: string | Date | null | undefined) => (d ? `${formatDateTime(d)} WIB` : null)
+  const text: Record<Outcome, [string, string | null]> = {
+    'review': ['Waiting for verification', 'Check the details, then verify or reject with a reason.'],
+    'awaiting-invoice': ['Verified, no invoice yet', 'The invoice is emailed once it is created.'],
+    'awaiting-payment': [`Waiting for payment of ${inv ? formatRupiah(inv.total) : 'the invoice'}`, [inv?.invoiceNo, inv?.expiresAt && `due ${at(inv.expiresAt)}`].filter(Boolean).join(' · ') || null],
+    'paid': ['Paid, e-ticket not issued yet', inv?.paidAt ? `Paid ${at(inv.paidAt)}` : null],
+    'ticket-issued': ['Ready for check-in', `E-ticket ${r.ticketCode}`],
+    'checked-in': ['Checked in', at(r.checkedInAt)],
+    'rejected': ['Registration rejected', r.rejectionReason],
+    'expired': ['Invoice expired before it was paid', inv?.expiresAt ? `Expired ${at(inv.expiresAt)}` : null],
+    'cancelled': [r.paymentStatus === 'refunded' ? 'Cancelled and refunded' : 'Registration cancelled', at(r.cancelledAt)]
+  }
+  const [title, detail] = text[p.outcome]
+  return { title, detail, ...NEXT_ICON[p.outcome] }
 })
+
+// rare or destructive actions live behind the ⋯ menu
+const menu = computed<DropdownMenuItem[][]>(() => [
+  [{ label: 'Send status email', icon: 'i-lucide-mail', disabled: !here.value.length, onSelect: sendEmail }],
+  [{ label: 'Delete participant', icon: 'i-lucide-trash-2', color: 'error', onSelect: () => { deleteOpen.value = true } }]
+])
 
 // ── per-registration actions ──
 const working = ref<string | null>(null)
@@ -69,7 +102,7 @@ async function submitReject(e: FormSubmitEvent<z.output<typeof rejectSchema>>) {
   }
 }
 
-const tickets = computed(() => here.value.filter(r => r.ticketCode && r.ticketQr))
+const ticket = computed(() => (reg.value?.ticketCode && reg.value.ticketQr ? reg.value : null))
 const ticketValid = (r: { status: string, paymentStatus: string }) => r.paymentStatus === 'paid' && r.status === 'verified'
 
 async function undoCheckIn(regId: string) {
@@ -134,7 +167,7 @@ async function remove() {
 }
 
 const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string | null) =>
-  method ? (method === 'virtual_account' && channel ? `VA ${channel}` : PAYMENT_METHOD[method]) : '—'
+  method ? (method === 'virtual_account' && channel ? `VA ${channel}` : PAYMENT_METHOD[method]) : null
 </script>
 
 <template>
@@ -148,185 +181,115 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
         <UBadge v-if="latestType" color="neutral" variant="outline" :label="latestType" />
       </template>
       <template #description>
-        Registered since {{ formatDate(user.createdAt) }} · {{ data.registrations.length }} event {{ data.registrations.length === 1 ? 'registration' : 'registrations' }}
+        {{ [user.organization, user.email].filter(Boolean).join(' · ') }}
       </template>
       <template #actions>
-        <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="deleteOpen = true" />
-        <UButton color="neutral" variant="outline" icon="i-lucide-mail" label="Send email" :disabled="!here.length" :loading="working?.startsWith('resend')" @click="sendEmail" />
-        <UButton icon="i-lucide-pencil" label="Edit participant" @click="openEdit" />
+        <UDropdownMenu :items="menu" :content="{ align: 'end' }">
+          <UButton color="neutral" variant="outline" icon="i-lucide-ellipsis" aria-label="More actions" />
+        </UDropdownMenu>
       </template>
     </AdminPageHeader>
 
-    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
-      <AdminPanel>
-        <div class="flex items-center gap-3">
-          <UAvatar :text="initials(user.name)" size="lg" class="bg-brand-100 text-brand-900" />
-          <div>
-            <h2 class="text-base font-semibold text-highlighted">
-              Participant details
+    <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div class="flex min-w-0 flex-col gap-6">
+        <AdminPanel v-if="reg && progress && next">
+          <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 class="text-base/6 font-semibold text-highlighted">
+              Registration
             </h2>
-            <p class="text-[13px] text-muted">
-              Filled in by the participant on the registration form
-            </p>
+            <span class="font-mono text-[13px] text-muted">{{ reg.regNo }}</span>
+            <span class="text-[13px] text-muted sm:ml-auto">Registered {{ formatDateTime(reg.createdAt) }} WIB</span>
           </div>
-        </div>
-        <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-3 text-sm">
-          <template v-for="[k, v] in info" :key="k">
-            <dt class="text-muted">
-              {{ k }}
-            </dt>
-            <dd class="break-words font-medium text-highlighted">
-              {{ v || '—' }}
-            </dd>
-          </template>
-        </dl>
-      </AdminPanel>
 
-      <div class="flex flex-col gap-6">
-        <AdminPanel title="Registration">
-          <template #actions>
-            <span class="text-[13px] text-muted">{{ here[0]?.eventName }}</span>
-          </template>
-          <UTable
-            :data="here"
-            :columns="[{ id: 'event', header: 'Event' }, { id: 'no', header: 'Registration no.' }, { id: 'reg', header: 'Registration status' }, { id: 'pay', header: 'Payment status' }, { id: 'actions', header: 'Actions' }]"
-            empty="No registrations yet."
-            class="-mx-4 sm:-mx-5"
-          >
-            <template #event-cell="{ row }">
-              <span class="font-semibold text-highlighted">{{ row.original.eventName }}</span>
-              <div class="text-xs text-muted">
-                {{ formatDateRange(row.original.startDate, row.original.endDate, 'short') }} · {{ row.original.ticketTypeName }}
-              </div>
-            </template>
-            <template #no-cell="{ row }">
-              <span class="font-mono text-[13px]">{{ row.original.regNo }}</span>
-            </template>
-            <template #reg-cell="{ row }">
-              <UBadge v-bind="REGISTRATION_STATUS[row.original.status]" />
-              <p v-if="row.original.rejectionReason" class="mt-1 max-w-56 text-xs text-muted">
-                {{ row.original.rejectionReason }}
+          <AdminRegistrationProgress :steps="progress.steps" class="py-2" />
+
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-md bg-muted p-4" role="status">
+            <UIcon :name="next.icon" class="size-5 shrink-0" :class="next.class" />
+            <div class="min-w-0 grow basis-48">
+              <p class="font-semibold text-highlighted">
+                {{ next.title }}
               </p>
-            </template>
-            <template #pay-cell="{ row }">
-              <UBadge v-bind="paymentStatusLabel(row.original.paymentStatus, row.original.status)" />
-            </template>
-            <template #actions-cell="{ row }">
-              <div class="flex flex-wrap gap-2">
-                <template v-if="row.original.status === 'pending_verification'">
-                  <UButton size="sm" color="error" variant="outline" label="Reject" @click="rejectTarget = { id: row.original.id, eventName: row.original.eventName }" />
-                  <UButton size="sm" label="Verify" :loading="working === `verify:${row.original.id}`" @click="act(row.original.id, 'verify', 'Registration verified and invoice sent')" />
-                </template>
-                <UButton
-                  v-if="row.original.ticketCode && row.original.paymentStatus === 'paid'"
-                  size="sm"
-                  color="neutral"
-                  variant="outline"
-                  icon="i-lucide-send"
-                  label="Resend e-ticket"
-                  :loading="working === `resend:${row.original.id}`"
-                  @click="act(row.original.id, 'resend', 'E-ticket sent again')"
-                />
-              </div>
-            </template>
-          </UTable>
-        </AdminPanel>
-
-        <AdminPanel v-if="tickets.length" title="E-tickets" description="The same QR code the participant received by email. The registration desk scans it with the event's scanner link.">
-          <div class="grid gap-4 sm:grid-cols-2">
-            <article v-for="t in tickets" :key="t.id" class="flex gap-4 rounded-sm border border-default p-4">
-              <img :src="t.ticketQr!" :alt="`QR code for ticket ${t.ticketCode}`" width="128" height="128" class="size-32 shrink-0 rounded-sm border border-default bg-white" :class="{ 'opacity-40 grayscale': !ticketValid(t) }">
-              <div class="flex min-w-0 flex-col gap-1.5">
-                <p class="font-mono text-sm font-medium text-highlighted">
-                  {{ t.ticketCode }}
-                </p>
-                <p class="truncate text-[13px] text-muted">
-                  {{ t.eventName }} · {{ t.ticketTypeName }}
-                </p>
-                <div>
-                  <UBadge v-if="!ticketValid(t)" color="neutral" variant="subtle" icon="i-lucide-ban" label="No longer valid" />
-                  <UBadge v-else-if="t.checkedInAt" color="success" variant="subtle" icon="i-lucide-circle-check" :label="`Checked in ${formatDateTime(t.checkedInAt)}`" />
-                  <UBadge v-else color="info" variant="subtle" icon="i-lucide-ticket" label="Not checked in yet" />
-                </div>
-                <div class="mt-auto flex flex-wrap gap-2 pt-1">
-                  <UButton :to="t.ticketQr!" :download="`${t.ticketCode}.png`" external size="xs" color="neutral" variant="outline" icon="i-lucide-download" label="Download QR" />
-                  <UButton
-                    v-if="t.checkedInAt"
-                    size="xs"
-                    color="neutral"
-                    variant="ghost"
-                    icon="i-lucide-undo-2"
-                    label="Undo check-in"
-                    :loading="working === `undo:${t.id}`"
-                    @click="undoCheckIn(t.id)"
-                  />
-                </div>
-              </div>
-            </article>
+              <p v-if="next.detail" class="break-words text-sm text-muted">
+                {{ next.detail }}
+              </p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <template v-if="progress.outcome === 'review'">
+                <UButton color="error" variant="outline" label="Reject" @click="rejectTarget = { id: reg.id, eventName: reg.eventName }" />
+                <UButton icon="i-lucide-check" label="Verify" :loading="working === `verify:${reg.id}`" @click="act(reg.id, 'verify', 'Registration verified and invoice sent')" />
+              </template>
+              <template v-else-if="progress.outcome === 'awaiting-payment'">
+                <UButton v-if="invoice" :to="eventPath(eventId, 'transactions', invoice.id)" color="neutral" variant="outline" label="View invoice" />
+                <UButton icon="i-lucide-send" label="Resend invoice" :loading="working === `resend:${reg.id}`" @click="act(reg.id, 'resend', 'Invoice sent again')" />
+              </template>
+              <UButton v-else-if="progress.outcome === 'ticket-issued'" icon="i-lucide-send" label="Resend e-ticket" :loading="working === `resend:${reg.id}`" @click="act(reg.id, 'resend', 'E-ticket sent again')" />
+              <UButton v-else-if="progress.outcome === 'checked-in'" color="neutral" variant="outline" icon="i-lucide-undo-2" label="Undo check-in" :loading="working === `undo:${reg.id}`" @click="undoCheckIn(reg.id)" />
+              <UButton v-else color="neutral" variant="outline" icon="i-lucide-mail" label="Send status email" :loading="working === `resend:${reg.id}`" @click="act(reg.id, 'resend', 'Registration status email sent')" />
+            </div>
           </div>
         </AdminPanel>
 
-        <AdminPanel v-if="elsewhere.length" title="Other events" description="Open a registration to manage it in its own event.">
-          <UTable
-            :data="elsewhere"
-            :columns="[{ id: 'event', header: 'Event' }, { id: 'no', header: 'Registration no.' }, { id: 'reg', header: 'Registration status' }, { id: 'pay', header: 'Payment status' }]"
-            class="-mx-4 sm:-mx-5"
-          >
-            <template #event-cell="{ row }">
-              <NuxtLink :to="eventPath(row.original.eventId, 'registrations', id)" class="font-semibold text-highlighted hover:underline">
-                {{ row.original.eventName }}
-              </NuxtLink>
-              <div class="text-xs text-muted">
-                {{ formatDateRange(row.original.startDate, row.original.endDate, 'short') }} · {{ row.original.ticketTypeName }}
+        <AdminPanel v-if="ticket" title="E-ticket" description="The same QR code the participant received by email. The registration desk scans it with the event's scanner link.">
+          <div class="flex flex-wrap items-center gap-5">
+            <img :src="ticket.ticketQr!" :alt="`QR code for ticket ${ticket.ticketCode}`" width="144" height="144" class="size-36 shrink-0 rounded-sm border border-default bg-white" :class="{ 'opacity-40 grayscale': !ticketValid(ticket) }">
+            <div class="flex min-w-0 flex-col gap-2">
+              <p class="font-mono text-base font-medium text-highlighted">
+                {{ ticket.ticketCode }}
+              </p>
+              <p class="text-[13px] text-muted">
+                {{ ticket.ticketTypeName }}
+              </p>
+              <div>
+                <UBadge v-if="!ticketValid(ticket)" color="neutral" variant="subtle" icon="i-lucide-ban" label="No longer valid" />
+                <UBadge v-else-if="ticket.checkedInAt" color="success" variant="subtle" icon="i-lucide-circle-check" :label="`Checked in ${formatDateTime(ticket.checkedInAt)}`" />
+                <UBadge v-else color="info" variant="subtle" icon="i-lucide-ticket" label="Not checked in yet" />
               </div>
-            </template>
-            <template #no-cell="{ row }">
-              <span class="font-mono text-[13px]">{{ row.original.regNo }}</span>
-            </template>
-            <template #reg-cell="{ row }">
-              <UBadge v-bind="REGISTRATION_STATUS[row.original.status]" />
-            </template>
-            <template #pay-cell="{ row }">
-              <UBadge v-bind="paymentStatusLabel(row.original.paymentStatus, row.original.status)" />
-            </template>
-          </UTable>
+              <div class="pt-1">
+                <UButton :to="ticket.ticketQr!" :download="`${ticket.ticketCode}.png`" external size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Download QR" />
+              </div>
+            </div>
+          </div>
         </AdminPanel>
 
-        <AdminPanel title="Transaction history">
+        <AdminPanel title="Payments">
           <template #actions>
             <span class="text-[13px] text-muted">Total paid <strong class="text-highlighted">{{ formatRupiah(data.totalPaid) }}</strong></span>
           </template>
-          <UTable
-            :data="data.transactions"
-            :columns="[{ id: 'id', header: 'Transaction ID' }, { id: 'event', header: 'Event' }, { id: 'amount', header: 'Amount' }, { id: 'method', header: 'Method' }, { id: 'status', header: 'Status' }, { id: 'date', header: 'Date' }, { id: 'actions', header: 'Actions' }]"
-            empty="No transactions yet."
-            class="-mx-4 sm:-mx-5"
-          >
-            <template #id-cell="{ row }">
-              <NuxtLink v-if="row.original.eventId" :to="eventPath(row.original.eventId, 'transactions', row.original.id)" class="font-mono text-[13px] font-medium text-primary hover:underline">
-                {{ row.original.invoiceNo }}
+          <ul v-if="data.transactions.length" class="-mx-4 divide-y divide-default border-t border-default sm:-mx-5">
+            <li v-for="t in data.transactions" :key="t.id" class="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 sm:px-5">
+              <div class="flex min-w-0 grow basis-48 flex-col">
+                <NuxtLink v-if="t.eventId" :to="eventPath(t.eventId, 'transactions', t.id)" class="font-mono text-[13px] font-medium text-primary hover:underline">
+                  {{ t.invoiceNo }}
+                </NuxtLink>
+                <span v-else class="font-mono text-[13px] font-medium">{{ t.invoiceNo }}</span>
+                <span class="text-xs text-muted">{{ [t.eventId !== eventId ? t.eventName : null, methodText(t.method, t.channel), formatDateTime(t.createdAt)].filter(Boolean).join(' · ') }}</span>
+              </div>
+              <span class="font-medium tabular-nums">{{ formatRupiah(t.total) }}</span>
+              <UBadge v-bind="TRANSACTION_STATUS[t.status]" />
+            </li>
+          </ul>
+          <p v-else class="text-sm text-muted">
+            No transactions yet.
+          </p>
+        </AdminPanel>
+      </div>
+
+      <div class="flex min-w-0 flex-col gap-6">
+        <AdminParticipantInfo :user="user" @edit="openEdit" />
+
+        <AdminPanel v-if="elsewhere.length" title="Other events" description="Open a registration to manage it in its own event.">
+          <ul class="-mx-4 divide-y divide-default border-t border-default sm:-mx-5">
+            <li v-for="r in elsewhere" :key="r.id" class="flex flex-col gap-1.5 px-4 py-3 sm:px-5">
+              <NuxtLink :to="eventPath(r.eventId, 'registrations', id)" class="font-semibold text-highlighted hover:underline">
+                {{ r.eventName }}
               </NuxtLink>
-              <span v-else class="font-mono text-[13px] font-medium">{{ row.original.invoiceNo }}</span>
-            </template>
-            <template #event-cell="{ row }">
-              {{ row.original.eventName }}
-            </template>
-            <template #amount-cell="{ row }">
-              <span class="tabular-nums">{{ formatRupiah(row.original.total) }}</span>
-            </template>
-            <template #method-cell="{ row }">
-              <span class="text-muted">{{ methodText(row.original.method, row.original.channel) }}</span>
-            </template>
-            <template #status-cell="{ row }">
-              <UBadge v-bind="TRANSACTION_STATUS[row.original.status]" />
-            </template>
-            <template #date-cell="{ row }">
-              <span class="whitespace-nowrap text-muted tabular-nums">{{ formatDateTime(row.original.createdAt) }}</span>
-            </template>
-            <template #actions-cell="{ row }">
-              <UButton v-if="row.original.eventId" :to="eventPath(row.original.eventId, 'transactions', row.original.id)" size="sm" color="neutral" variant="ghost" label="Details" />
-            </template>
-          </UTable>
+              <span class="text-xs text-muted">{{ formatDateRange(r.startDate, r.endDate, 'short') }} · {{ r.regNo }}</span>
+              <div class="flex flex-wrap gap-1.5">
+                <UBadge v-bind="REGISTRATION_STATUS[r.status]" size="sm" />
+                <UBadge v-bind="paymentStatusLabel(r.paymentStatus, r.status)" size="sm" />
+              </div>
+            </li>
+          </ul>
         </AdminPanel>
       </div>
     </div>
