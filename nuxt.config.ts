@@ -5,13 +5,13 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
   app: {
     head: {
-      htmlAttrs: { lang: 'id' },
+      htmlAttrs: { lang: 'en' },
       title: 'APCR',
       titleTemplate: '%s · APCR'
     }
   },
   routeRules: {
-    // CMS dirender di browser saja (session dicek di middleware)
+    // the CMS renders in the browser only (the session is checked in middleware)
     '/admin/**': { ssr: false },
     '/login': { ssr: false }
   },
@@ -30,11 +30,11 @@ export default defineNuxtConfig({
       tasks: true
     },
     scheduledTasks: {
-      // tagihan lewat batas → kedaluwarsa
+      // invoices past their deadline → expired
       '*/5 * * * *': ['payments:expire'],
-      // pengingat 24 jam sebelum batas bayar
+      // reminder 24 hours before the payment deadline
       '*/15 * * * *': ['payments:remind'],
-      // pengingat H-3 & terima kasih H+1, tiap pagi 08.00 WIB (01.00 UTC)
+      // 3-day reminder and next-day thank-you, every morning at 08:00 WIB (01:00 UTC)
       '0 1 * * *': ['events:notify']
     }
   },

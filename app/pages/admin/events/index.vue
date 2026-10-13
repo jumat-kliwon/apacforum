@@ -12,11 +12,11 @@ const { data, status, refresh } = await useFetch('/api/admin/events', { query, w
 type Row = NonNullable<typeof data.value>[number]
 const columns: TableColumn<Row>[] = [
   { id: 'name', header: sortHeader('name', 'Event') },
-  { id: 'date', header: sortHeader('date', 'Tanggal') },
-  { id: 'place', header: sortHeader('place', 'Lokasi') },
-  { id: 'count', header: sortHeader('count', 'Peserta') },
+  { id: 'date', header: sortHeader('date', 'Dates') },
+  { id: 'place', header: sortHeader('place', 'Venue') },
+  { id: 'count', header: sortHeader('count', 'Participants') },
   { id: 'status', header: sortHeader('status', 'Status') },
-  { id: 'actions', header: () => h('span', { class: 'sr-only' }, 'Aksi') }
+  { id: 'actions', header: () => h('span', { class: 'sr-only' }, 'Actions') }
 ]
 
 const ALL = '__all'
@@ -25,25 +25,28 @@ const statusFilter = computed({
   set: (v: string) => { filters.status = v === ALL ? undefined : v }
 })
 
-// ── hapus ──
+// ── delete ──
 const target = ref<Row | null>(null)
 const deleting = ref(false)
-const impactText = (r: Row) => {
+const plural = (n: number, one: string, many: string) => `${formatNumber(n)} ${n === 1 ? one : many}`
+function impactText(r: Row) {
   const i = r.impact
   const parts = [
-    i.days && `agenda ${i.days} hari`,
-    i.speakers && `${i.speakers} speaker`,
-    i.partners && `${i.partners} partner`,
-    i.tickets && `${i.tickets} tipe tiket`
-  ].filter(Boolean).join(', ')
-  return `${parts ? `${parts[0]!.toUpperCase()}${parts.slice(1)} ikut terhapus. ` : ''}${i.participants ? `${formatNumber(i.participants)} pendaftaran dan e-tiketnya ikut terhapus; transaksi tetap tersimpan. ` : ''}Tindakan ini tidak bisa dibatalkan.`
+    i.days && `the ${plural(i.days, 'day', 'days')} agenda`,
+    i.speakers && plural(i.speakers, 'speaker', 'speakers'),
+    i.partners && plural(i.partners, 'partner', 'partners'),
+    i.tickets && plural(i.tickets, 'ticket type', 'ticket types')
+  ].filter(Boolean)
+  const nested = parts.length ? `${parts.join(', ').replace(/^./, c => c.toUpperCase())} ${parts.length === 1 ? 'is' : 'are'} deleted too. ` : ''
+  const people = i.participants ? `${plural(i.participants, 'registration and its', 'registrations and their')} e-tickets are deleted; transactions are kept. ` : ''
+  return `${nested}${people}This cannot be undone.`
 }
 async function remove() {
   if (!target.value) return
   deleting.value = true
   try {
     await $fetch(`/api/admin/events/${target.value.id}`, { method: 'DELETE' })
-    notify.success(`Event ${target.value.name} dihapus`)
+    notify.success(`${target.value.name} deleted`)
     target.value = null
     await refresh()
   } catch (err) {
@@ -56,24 +59,24 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
 </script>
 
 <template>
-  <AdminPageHeader title="Event" description="Setiap event punya info, agenda, speaker, partner, dan tiket sendiri.">
+  <AdminPageHeader title="Events" description="Each event has its own details, agenda, speakers, partners and tickets.">
     <template #actions>
-      <UButton to="/admin/event/baru" icon="i-lucide-plus" label="Tambah event" />
+      <UButton to="/admin/events/new" icon="i-lucide-plus" label="Add event" />
     </template>
   </AdminPageHeader>
 
   <AdminPanel>
     <div class="flex flex-wrap items-center gap-3">
-      <UInput v-model="q" icon="i-lucide-search" placeholder="Cari nama event" aria-label="Cari nama event" class="w-full sm:w-80" />
-      <USelect v-model="statusFilter" :items="[{ label: 'Semua status', value: ALL }, ...toItems(EVENT_STATUS)]" icon="i-lucide-list-filter" aria-label="Filter status" class="ml-auto w-44" />
+      <UInput v-model="q" icon="i-lucide-search" placeholder="Search event name" aria-label="Search event name" class="w-full sm:w-80" />
+      <USelect v-model="statusFilter" :items="[{ label: 'All statuses', value: ALL }, ...toItems(EVENT_STATUS)]" icon="i-lucide-list-filter" aria-label="Filter by status" class="ml-auto w-44" />
     </div>
 
-    <UTable :data="data ?? []" :columns="columns" :loading="status === 'pending'" empty="Belum ada event." class="-mx-4 sm:-mx-5">
+    <UTable :data="data ?? []" :columns="columns" :loading="status === 'pending'" empty="No events yet." class="-mx-4 sm:-mx-5">
       <template #name-cell="{ row }">
         <div class="flex items-center gap-3">
           <span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-800"><UIcon name="i-lucide-calendar-days" class="size-5" /></span>
           <div class="min-w-0">
-            <NuxtLink :to="`/admin/event/${row.original.id}`" class="font-semibold text-highlighted hover:underline">{{ row.original.name }}</NuxtLink>
+            <NuxtLink :to="`/admin/events/${row.original.id}`" class="font-semibold text-highlighted hover:underline">{{ row.original.name }}</NuxtLink>
             <div class="max-w-xs truncate text-xs text-muted">{{ row.original.tagline }}</div>
           </div>
         </div>
@@ -92,22 +95,22 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       </template>
       <template #actions-cell="{ row }">
         <div class="flex items-center justify-end gap-1">
-          <UButton :to="`/admin/event/${row.original.id}`" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="Lihat" />
-          <UButton :to="`/admin/event/${row.original.id}/edit`" size="sm" color="neutral" variant="ghost" icon="i-lucide-pencil" :aria-label="`Edit ${row.original.name}`" />
-          <UButton size="sm" color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Hapus ${row.original.name}`" @click="target = row.original" />
+          <UButton :to="`/admin/events/${row.original.id}`" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="View" />
+          <UButton :to="`/admin/events/${row.original.id}/edit`" size="sm" color="neutral" variant="ghost" icon="i-lucide-pencil" :aria-label="`Edit ${row.original.name}`" />
+          <UButton size="sm" color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Delete ${row.original.name}`" @click="target = row.original" />
         </div>
       </template>
     </UTable>
     <p class="text-sm text-muted" aria-live="polite">
-      Menampilkan {{ data?.length ?? 0 }} event
+      Showing {{ data?.length ?? 0 }} {{ data?.length === 1 ? 'event' : 'events' }}
     </p>
   </AdminPanel>
 
   <AdminConfirmDialog
     v-model:open="deleteOpen"
-    :title="`Hapus event ${target?.name ?? ''}?`"
+    :title="`Delete ${target?.name ?? ''}?`"
     :description="target ? impactText(target) : ''"
-    confirm-label="Hapus event"
+    confirm-label="Delete event"
     :loading="deleting"
     @confirm="remove"
   />

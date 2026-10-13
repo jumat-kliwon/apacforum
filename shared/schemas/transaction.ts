@@ -1,6 +1,6 @@
-import { z } from 'zod'
+import * as z from 'zod'
 
-/** Rincian tagihan — kolom `transactions.items`. Nominal dalam rupiah utuh. */
+/** Invoice lines — `transactions.items`. Amounts are whole rupiah. */
 export const transactionItemsSchema = z.object({
   lines: z.array(z.object({
     description: z.string().min(1),
@@ -13,12 +13,13 @@ export const transactionItemsSchema = z.object({
   discount: z.number().int().nonnegative()
 })
 
-/** Info pembayaran dari DOKU — kolom `transactions.payment`. */
+/** Payment details from DOKU — `transactions.payment`. */
 export const transactionPaymentSchema = z.object({
   channel: z.string().optional(),
   vaNumber: z.string().optional(),
   dokuRequestId: z.string().optional(),
   dokuPaymentUrl: z.string().url().optional(),
+  dokuTokenId: z.string().optional(),
   dokuReference: z.string().optional(),
   refundAmount: z.number().int().nonnegative().optional(),
   refundedAt: z.iso.datetime({ offset: true }).optional(),
@@ -29,7 +30,7 @@ export const transactionPaymentSchema = z.object({
 
 export const transactionHistoryTypes = ['created', 'invoice_sent', 'paid', 'ticket_sent', 'expired', 'refunded', 'note'] as const
 
-/** Riwayat status, append-only — kolom `transactions.history`. */
+/** Append-only status history — `transactions.history`. */
 export const transactionHistorySchema = z.array(z.object({
   type: z.enum(transactionHistoryTypes),
   at: z.iso.datetime({ offset: true }),

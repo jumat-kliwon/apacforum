@@ -4,31 +4,33 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 const session = useAdminSession()
 const route = useRoute()
 
-const items = computed<NavigationMenuItem[]>(() => [
+const items: NavigationMenuItem[] = [
   { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/admin', exact: true },
-  { label: 'Pendaftaran', icon: 'i-lucide-users', to: '/admin/peserta' },
-  { label: 'Transaksi', icon: 'i-lucide-credit-card', to: '/admin/transaksi' },
-  { label: 'Event', icon: 'i-lucide-calendar-days', to: '/admin/event' },
-  { label: 'Template email', icon: 'i-lucide-mail', to: '/admin/template-email' }
-])
+  { label: 'Registrations', icon: 'i-lucide-users', to: '/admin/participants' },
+  { label: 'Transactions', icon: 'i-lucide-credit-card', to: '/admin/transactions' },
+  { label: 'Events', icon: 'i-lucide-calendar-days', to: '/admin/events' },
+  { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }
+]
 
 const name = computed(() => session.value.data?.user.name ?? '')
 
-async function logout() {
+async function signOut() {
   await authClient.signOut()
   await navigateTo('/login')
 }
 
-// tutup sidebar mobile saat pindah halaman
+// close the mobile drawer on navigation
 const open = ref(false)
 watch(() => route.fullPath, () => { open.value = false })
 </script>
 
 <template>
-  <UDashboardGroup unit="rem">
+  <UDashboardGroup unit="px">
     <UDashboardSidebar
       v-model:open="open"
-      :default-size="15"
+      :default-size="240"
+      :min-size="240"
+      :max-size="240"
       :ui="{ root: 'bg-default', header: 'h-16 border-b border-default', footer: 'border-t border-default' }"
     >
       <template #header>
@@ -41,7 +43,7 @@ watch(() => route.fullPath, () => { open.value = false })
         </NuxtLink>
       </template>
 
-      <p class="px-2.5 pb-1 text-xs font-medium uppercase tracking-wide text-dimmed">
+      <p class="px-2.5 pb-1 text-[11px] font-medium uppercase tracking-[1.1px] text-muted">
         Menu
       </p>
       <UNavigationMenu :items="items" orientation="vertical" :ui="{ link: 'py-2' }" />
@@ -53,7 +55,7 @@ watch(() => route.fullPath, () => { open.value = false })
             <span class="truncate text-sm font-semibold text-highlighted">{{ name }}</span>
             <span class="text-xs text-muted">Admin</span>
           </div>
-          <UButton icon="i-lucide-log-out" color="neutral" variant="ghost" aria-label="Keluar" @click="logout" />
+          <UButton icon="i-lucide-log-out" color="neutral" variant="ghost" aria-label="Sign out" @click="signOut" />
         </div>
       </template>
     </UDashboardSidebar>
@@ -67,7 +69,9 @@ watch(() => route.fullPath, () => { open.value = false })
         </UDashboardNavbar>
       </template>
       <template #body>
-        <slot />
+        <div class="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
+          <slot />
+        </div>
       </template>
     </UDashboardPanel>
   </UDashboardGroup>

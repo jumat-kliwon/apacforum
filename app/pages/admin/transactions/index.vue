@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
+import type { Component } from 'vue'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -11,24 +12,24 @@ const list = useListQuery({
 const { q, page, pageSize, filters, query, sortHeader } = list
 
 const { data, status } = await useFetch('/api/admin/transactions', { query, watch: [query] })
-const { data: options } = await useFetch('/api/admin/events/options')
+const { data: options } = await useFetch('/api/admin/event-options')
 
 const summary = computed(() => data.value?.summary)
 const stats = computed(() => [
-  { label: 'Total transaksi', value: formatNumber(summary.value?.total ?? 0), icon: 'i-lucide-receipt' },
-  { label: 'Lunas', value: formatNumber(summary.value?.paid ?? 0), icon: 'i-lucide-circle-check' },
-  { label: 'Menunggu pembayaran', value: formatNumber(summary.value?.pending ?? 0), icon: 'i-lucide-clock' },
-  { label: 'Total pendapatan', value: formatRupiah(summary.value?.revenue ?? 0), icon: 'i-lucide-wallet' }
+  { label: 'Total transactions', value: formatNumber(summary.value?.total ?? 0), icon: 'i-lucide-receipt' },
+  { label: 'Paid', value: formatNumber(summary.value?.paid ?? 0), icon: 'i-lucide-circle-check' },
+  { label: 'Awaiting payment', value: formatNumber(summary.value?.pending ?? 0), icon: 'i-lucide-clock' },
+  { label: 'Total revenue', value: formatRupiah(summary.value?.revenue ?? 0), icon: 'i-lucide-wallet' }
 ])
 
-// ── filter ──
+// ── filters ──
 const filterOpen = ref(Object.values(filters).some(Boolean))
 const draft = reactive({ ...filters })
 const ALL = '__all'
 const withAll = (label: string, items: { label: string, value: string }[]) => [{ label, value: ALL }, ...items]
-const statusItems = withAll('Semua status', toItems(TRANSACTION_STATUS))
-const eventItems = computed(() => withAll('Semua acara', (options.value?.events ?? []).map(e => ({ label: e.name, value: e.id }))))
-const methodItems = withAll('Semua metode', toItems(PAYMENT_METHOD))
+const statusItems = withAll('All statuses', toItems(TRANSACTION_STATUS))
+const eventItems = computed(() => withAll('All events', (options.value?.events ?? []).map(e => ({ label: e.name, value: e.id }))))
+const methodItems = withAll('All methods', toItems(PAYMENT_METHOD))
 const pick = (key: 'status' | 'eventId' | 'method') => computed({
   get: () => draft[key] ?? ALL,
   set: (v: string) => { draft[key] = v === ALL ? undefined : v }
@@ -43,7 +44,7 @@ function resetFilters() {
   applyFilters()
 }
 
-// ── pilihan ──
+// ── selection ──
 const rows = computed(() => data.value?.rows ?? [])
 type Row = (typeof rows.value)[number]
 const selected = ref<Set<string>>(new Set())
@@ -60,18 +61,18 @@ function toggleRow(id: string, v: boolean | 'indeterminate') {
   selected.value = s
 }
 
-const UCheckbox = resolveComponent('UCheckbox')
+const UCheckbox = resolveComponent('UCheckbox') as Component
 const columns = computed<TableColumn<Row>[]>(() => [
-  { id: 'select', header: () => h(UCheckbox, { 'modelValue': allState.value, 'onUpdate:modelValue': toggleAll, 'aria-label': 'Pilih semua transaksi di halaman ini' }), enableHiding: false },
-  { id: 'id', header: sortHeader('id', 'ID transaksi'), enableHiding: false },
-  { id: 'name', header: sortHeader('name', 'Peserta'), meta: { label: 'Peserta' } },
-  { id: 'type', header: sortHeader('type', 'Tipe tiket'), meta: { label: 'Tipe tiket' } },
-  { id: 'event', header: sortHeader('event', 'Acara'), meta: { label: 'Acara' } },
-  { id: 'amount', header: sortHeader('amount', 'Jumlah'), meta: { label: 'Jumlah', class: { th: 'text-right', td: 'text-right' } } },
-  { id: 'method', header: sortHeader('method', 'Metode'), meta: { label: 'Metode' } },
+  { id: 'select', header: () => h(UCheckbox, { 'modelValue': allState.value, 'onUpdate:modelValue': toggleAll, 'aria-label': 'Select all transactions on this page' }), enableHiding: false },
+  { id: 'id', header: sortHeader('id', 'Transaction ID'), enableHiding: false },
+  { id: 'name', header: sortHeader('name', 'Participant'), meta: { label: 'Participant' } },
+  { id: 'type', header: sortHeader('type', 'Ticket type'), meta: { label: 'Ticket type' } },
+  { id: 'event', header: sortHeader('event', 'Event'), meta: { label: 'Event' } },
+  { id: 'amount', header: sortHeader('amount', 'Amount'), meta: { label: 'Amount', class: { th: 'text-right', td: 'text-right' } } },
+  { id: 'method', header: sortHeader('method', 'Method'), meta: { label: 'Method' } },
   { id: 'status', header: sortHeader('status', 'Status'), meta: { label: 'Status' } },
-  { id: 'date', header: sortHeader('date', 'Tanggal'), meta: { label: 'Tanggal' } },
-  { id: 'actions', header: () => h('span', { class: 'sr-only' }, 'Aksi'), enableHiding: false }
+  { id: 'date', header: sortHeader('date', 'Date'), meta: { label: 'Date' } },
+  { id: 'actions', header: () => h('span', { class: 'sr-only' }, 'Actions'), enableHiding: false }
 ])
 const columnVisibility = ref<Record<string, boolean>>({})
 const columnMenu = computed<DropdownMenuItem[]>(() => columns.value
@@ -89,21 +90,21 @@ const methodText = (r: Row) => r.method ? (r.method === 'virtual_account' && r.c
 const exportUrl = (ids?: string[]) => {
   const params = new URLSearchParams(Object.entries(query.value).map(([k, v]) => [k, String(v)]))
   if (ids?.length) params.set('ids', ids.join(','))
-  return `/api/admin/transactions/export?${params}`
+  return `/api/admin/exports/transactions?${params}`
 }
 
 const total = computed(() => data.value?.total ?? 0)
 const rangeText = computed(() => {
-  if (!total.value) return 'Tidak ada transaksi'
+  if (!total.value) return 'No transactions'
   const from = (page.value - 1) * pageSize.value + 1
-  return `Menampilkan ${formatNumber(from)}–${formatNumber(Math.min(total.value, page.value * pageSize.value))} dari ${formatNumber(total.value)} transaksi`
+  return `Showing ${formatNumber(from)}–${formatNumber(Math.min(total.value, page.value * pageSize.value))} of ${formatNumber(total.value)} transactions`
 })
 </script>
 
 <template>
-  <AdminPageHeader title="Transaksi" description="Pembayaran tiket dari peserta yang mendaftar.">
+  <AdminPageHeader title="Transactions" description="Ticket payments from registered participants.">
     <template #actions>
-      <UButton :to="exportUrl()" external download color="neutral" variant="outline" icon="i-lucide-download" label="Ekspor CSV" />
+      <UButton :to="exportUrl()" external download color="neutral" variant="outline" icon="i-lucide-download" label="Export CSV" />
     </template>
   </AdminPageHeader>
 
@@ -113,53 +114,53 @@ const rangeText = computed(() => {
 
   <AdminPanel>
     <div class="flex flex-wrap items-center gap-3">
-      <UInput v-model="q" icon="i-lucide-search" placeholder="Cari ID transaksi atau nama peserta" aria-label="Cari ID transaksi atau nama peserta" class="w-full sm:w-80" />
+      <UInput v-model="q" icon="i-lucide-search" placeholder="Search transaction ID or participant" aria-label="Search transaction ID or participant" class="w-full sm:w-80" />
       <div class="ml-auto flex gap-2">
-        <UButton color="neutral" variant="outline" icon="i-lucide-list-filter" :label="activeFilters ? `Filter (${activeFilters})` : 'Filter'" :aria-expanded="filterOpen" aria-controls="filter-transaksi" @click="filterOpen = !filterOpen" />
+        <UButton color="neutral" variant="outline" icon="i-lucide-list-filter" :label="activeFilters ? `Filters (${activeFilters})` : 'Filters'" :aria-expanded="filterOpen" aria-controls="transaction-filters" @click="filterOpen = !filterOpen" />
         <UDropdownMenu :items="columnMenu" :content="{ align: 'end' }">
-          <UButton color="neutral" variant="outline" icon="i-lucide-columns-3" label="Kolom" />
+          <UButton color="neutral" variant="outline" icon="i-lucide-columns-3" label="Columns" />
         </UDropdownMenu>
       </div>
     </div>
 
-    <div v-if="filterOpen" id="filter-transaksi" class="grid gap-3 rounded-xl bg-muted p-4 sm:grid-cols-2 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto]">
+    <div v-if="filterOpen" id="transaction-filters" class="grid gap-3 rounded-xl bg-muted p-4 sm:grid-cols-2 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto]">
       <UFormField label="Status">
         <USelect v-model="fStatus" :items="statusItems" class="w-full" />
       </UFormField>
-      <UFormField label="Acara">
+      <UFormField label="Event">
         <USelect v-model="fEvent" :items="eventItems" class="w-full" />
       </UFormField>
-      <UFormField label="Metode">
+      <UFormField label="Method">
         <USelect v-model="fMethod" :items="methodItems" class="w-full" />
       </UFormField>
-      <UFormField label="Dari tanggal">
+      <UFormField label="From">
         <UInput v-model="draft.from" type="date" class="w-full" />
       </UFormField>
-      <UFormField label="Sampai tanggal">
+      <UFormField label="To">
         <UInput v-model="draft.to" type="date" class="w-full" />
       </UFormField>
       <div class="flex items-end gap-2">
         <UButton color="neutral" variant="ghost" label="Reset" @click="resetFilters" />
-        <UButton label="Terapkan" @click="applyFilters" />
+        <UButton label="Apply" @click="applyFilters" />
       </div>
     </div>
 
-    <div v-if="selected.size" role="region" aria-label="Aksi massal" class="flex flex-wrap items-center gap-2 rounded-xl bg-brand-50 px-4 py-2.5">
-      <span aria-live="polite" class="text-sm font-semibold text-brand-950">{{ selected.size }} transaksi dipilih</span>
-      <UButton class="ml-auto" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Ekspor" :to="exportUrl([...selected])" external download />
+    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center gap-2 rounded-xl bg-brand-50 px-4 py-2.5 dark:bg-[#2e2a18]">
+      <span aria-live="polite" class="text-sm font-semibold text-highlighted">{{ selected.size }} selected</span>
+      <UButton class="ml-auto" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
     </div>
 
-    <UTable v-model:column-visibility="columnVisibility" :data="rows" :columns="columns" :loading="status === 'pending'" empty="Tidak ada transaksi yang cocok." class="-mx-4 sm:-mx-5">
+    <UTable v-model:column-visibility="columnVisibility" :data="rows" :columns="columns" :loading="status === 'pending'" empty="No transactions match these filters." class="-mx-4 sm:-mx-5">
       <template #select-cell="{ row }">
-        <UCheckbox :model-value="selected.has(row.original.id)" :aria-label="`Pilih ${row.original.invoiceNo}`" @update:model-value="toggleRow(row.original.id, $event)" />
+        <UCheckbox :model-value="selected.has(row.original.id)" :aria-label="`Select ${row.original.invoiceNo}`" @update:model-value="toggleRow(row.original.id, $event)" />
       </template>
       <template #id-cell="{ row }">
-        <NuxtLink :to="`/admin/transaksi/${row.original.id}`" class="font-mono text-[13px] font-medium text-primary hover:underline">
+        <NuxtLink :to="`/admin/transactions/${row.original.id}`" class="font-mono text-[13px] font-medium text-primary hover:underline">
           {{ row.original.invoiceNo }}
         </NuxtLink>
       </template>
       <template #name-cell="{ row }">
-        <NuxtLink v-if="row.original.userId" :to="`/admin/peserta/${row.original.userId}`" class="font-semibold text-highlighted hover:underline">
+        <NuxtLink v-if="row.original.userId" :to="`/admin/participants/${row.original.userId}`" class="font-semibold text-highlighted hover:underline">
           {{ row.original.participantName }}
         </NuxtLink>
         <span v-else class="font-semibold text-highlighted">{{ row.original.participantName }}</span>
@@ -181,11 +182,11 @@ const rangeText = computed(() => {
         <UBadge v-bind="TRANSACTION_STATUS[row.original.status]" />
       </template>
       <template #date-cell="{ row }">
-        <span class="whitespace-nowrap text-muted">{{ formatDateTime(row.original.createdAt) }}</span>
+        <span class="whitespace-nowrap text-muted tabular-nums">{{ formatDateTime(row.original.createdAt) }}</span>
       </template>
       <template #actions-cell="{ row }">
         <div class="text-right">
-          <UButton :to="`/admin/transaksi/${row.original.id}`" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="Detail" />
+          <UButton :to="`/admin/transactions/${row.original.id}`" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="Details" />
         </div>
       </template>
     </UTable>

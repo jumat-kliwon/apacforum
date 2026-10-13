@@ -1,7 +1,11 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
-/* Token desain APCR CMS (Core Design System): brand emas, netral slate. */
+/*
+ * Core Design System → Nuxt UI.
+ * Gold brand (#ECBD56) as the single accent with ink text on it, slate neutrals,
+ * Rethink Sans for UI and JetBrains Mono for IDs and codes.
+ */
 @theme static {
   --font-sans: 'Rethink Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
@@ -17,30 +21,66 @@
   --color-brand-800: #8a6410;
   --color-brand-900: #6b4d0a;
   --color-brand-950: #4a3506;
+
+  /* shadow-xs … shadow-xl from the design system */
+  --shadow-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-sm: 0px 1px 3px 0px rgba(0, 0, 0, 0.10), 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0px 4px 6px -1px rgba(0, 0, 0, 0.10), 0px 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-xl: 0px 20px 25px -5px rgba(0, 0, 0, 0.10), 0px 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 :root {
-  /* emas terang tidak cukup kontras sebagai warna teks di latar putih → aksen teks pakai 800 */
+  /* text-brand-primary (#8A6410, 5.4:1 on white); gold-400 is too light for text */
   --ui-primary: var(--ui-color-primary-800);
-  --ui-radius: 0.5rem;
-  --ui-bg: var(--color-white);
-  --ui-bg-muted: var(--ui-color-neutral-50);
-  /* teks di atas tombol emas */
+  /* text-on-brand: ink on gold, 10.7:1 */
   --brand-ink: #111216;
+  /* border-focus-ring: keyboard focus is blue, not gold */
+  --focus-ring: #1d4ed8;
+  --ui-radius: 0.5rem;
+
+  --ui-bg: #ffffff;
+  --ui-bg-muted: #f8fafc;
+  --ui-bg-elevated: #f1f5f9;
+  --ui-border: #e2e8f0;
+  --ui-border-accented: #cbd5e1;
+  --ui-text: #334155;
+  --ui-text-highlighted: #0f172a;
+  --ui-text-muted: #64748b;
+  --ui-text-dimmed: #64748b;
 }
 
 .dark {
   --ui-primary: var(--ui-color-primary-400);
+  --focus-ring: #60a5fa;
   --ui-bg: #1a1d21;
   --ui-bg-muted: #222529;
   --ui-bg-elevated: #292c30;
   --ui-border: #303236;
+  --ui-border-accented: #3e4045;
+  --ui-text: #abadb1;
+  --ui-text-highlighted: #d1d2d3;
+  --ui-text-muted: #94969b;
+  --ui-text-dimmed: #8a8d93;
 }
 
-body {
-  font-feature-settings: "tnum" 0;
+/* Keyboard focus: 2px blue ring with a 2px offset (Core DS global convention). */
+:where(a, button, [role="button"], [role="menuitem"], [role="tab"], summary):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Modal scrim from the design system. */
+[data-slot="overlay"] {
+  background-color: rgba(15, 23, 42, 0.55);
 }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

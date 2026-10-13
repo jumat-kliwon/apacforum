@@ -1,33 +1,52 @@
 # APCR CMS
 
-Admin panel + halaman event publik APCR. Bun · Nuxt 4 · Nuxt UI · PostgreSQL · Drizzle · Better Auth · Zod.
+Admin panel and public event pages for the ASEAN Public Communication & Reputation Forum.
+Bun · Nuxt 4 · Nuxt UI · PostgreSQL · Drizzle · Better Auth · Zod · DOKU Checkout · Cloudflare R2.
 
-Rencana database: [`docs/01-database-plan.md`](docs/01-database-plan.md).
+Database design and flows: [`docs/01-database-plan.md`](docs/01-database-plan.md).
 
-## Setup lokal
+## Local setup
 
 ```bash
 bun install
-cp .env.example .env          # isi DATABASE_URL, BETTER_AUTH_SECRET, SEED_ADMIN_*
-bun run db:migrate            # buat tabel (termasuk extension citext & pg_trgm)
-bun run db:seed               # admin + data contoh dari desain (menghapus data event/peserta/transaksi!)
-bun run dev                   # http://localhost:3000
+cp .env.example .env          # fill in DATABASE_URL, BETTER_AUTH_SECRET, SEED_ADMIN_*
+bun run db:migrate            # creates the tables (and the citext + pg_trgm extensions)
+bun run db:seed               # admin + sample data from the design (wipes events/participants/transactions!)
+bun run dev                   # http://localhost:3000 — CMS at /admin, sign in at /login
 ```
 
-## Script
+Without `DOKU_*` the payment link is simulated, without `SMTP_URL` emails are only logged, and without `R2_*`
+image uploads are disabled — every other flow still works.
 
-| Script | Fungsi |
+## Scripts
+
+| Script | What it does |
 |---|---|
-| `bun run dev` | Dev server (runtime Bun) |
-| `bun run build` / `bun run preview` | Build Nitro preset `bun` / jalankan hasil build |
-| `bun run typecheck` | Cek tipe (vue-tsc) |
-| `bun run db:generate` | Buat file migrasi dari perubahan `server/db/schema` |
-| `bun run db:migrate` | Jalankan migrasi (migrator `drizzle-orm/bun-sql`) |
-| `bun run db:seed` | Isi ulang data development |
+| `bun run dev` | Dev server (Bun runtime) |
+| `bun run build` / `bun run preview` | Build with the Nitro `bun` preset / run the build |
+| `bun run typecheck` | Type check (vue-tsc) |
+| `bun run db:generate` | Create a migration from changes in `server/db/schema` |
+| `bun run db:migrate` | Apply migrations (`drizzle-orm/bun-sql` migrator) |
+| `bun run db:seed` | Refill development data |
 | `bun run db:studio` | Drizzle Studio |
 
-## Catatan
+## Structure
 
-- Kolom `jsonb` memakai helper `jsonb<T>()` dari `server/db/columns.ts`, **bukan** `jsonb()` bawaan Drizzle: dengan driver Bun.SQL, versi bawaan menyimpan nilai sebagai string JSON.
-- TypeScript dipin ke 6.x karena vue-tsc belum mendukung TypeScript 7.
-- Di environment tanpa IPv6, `bun run dev` gagal dengan "Unable to find a random port"; jalankan `HOST=127.0.0.1 bun run dev`.
+| Path | What |
+|---|---|
+| `app/pages/admin/**` | CMS: dashboard, participants, transactions, events, email templates |
+| `app/pages/events/**`, `app/pages/index.vue` | Public event pages and registration form |
+| `app/assets/css/main.css`, `app/app.config.ts` | Core Design System tokens mapped onto Nuxt UI |
+| `server/api/admin/**` | Admin API (every route calls `requireAdmin`) |
+| `server/api/public/**` | Public event data and registration |
+| `server/api/payments/doku/notify.post.ts` | DOKU payment notifications |
+| `server/services/` | Registration, payment, events, DOKU, R2 and email logic |
+| `server/tasks/` | Scheduled jobs: expire invoices, payment reminders, event emails |
+| `shared/` | Zod schemas, labels and formatters used by both sides |
+
+## Notes
+
+- `jsonb` columns use the `jsonb<T>()` helper from `server/db/columns.ts`, **not** Drizzle's built-in `jsonb()`: with the Bun.SQL driver the built-in one stores values as JSON strings. Inside `sql` expressions use `jsonParam()`.
+- TypeScript is pinned to 6.x because vue-tsc does not support TypeScript 7 yet.
+- In environments without IPv6, `bun run dev` fails with "Unable to find a random port"; run `HOST=127.0.0.1 bun run dev`.
+- DOKU: set the notification URL path (`/api/payments/doku/notify`) in the DOKU Back Office as well.

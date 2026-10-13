@@ -9,7 +9,7 @@ import { pgError } from '../utils/db-error'
 
 type Actor = { id: string }
 
-/** Sinkronkan baris anak: hapus yang dibuang, update yang ada, insert yang baru. */
+/** Syncs child rows: delete removed ones, update existing ones, insert new ones. */
 async function syncChildren<T extends { id?: string }>(
   tx: Tx,
   table: typeof agendaDays | typeof speakers | typeof partners | typeof ticketTypes,
@@ -26,7 +26,7 @@ async function syncChildren<T extends { id?: string }>(
     const row = { ...toRow(item, i), eventId }
     if (item.id) {
       const [u] = await tx.update(table).set(row).where(and(eq(table.id, item.id), eq(table.eventId, eventId))).returning({ id: table.id })
-      if (!u) throw createError({ statusCode: 422, statusMessage: 'Data turunan tidak cocok dengan event ini' })
+      if (!u) throw createError({ statusCode: 422, statusMessage: 'A nested item does not belong to this event' })
       ids.push(u.id)
     } else {
       const [n] = await tx.insert(table).values(row as never).returning({ id: table.id })
@@ -61,9 +61,9 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
       let id = eventId
       if (id) {
         const [prev] = await tx.select().from(events).where(eq(events.id, id)).for('update')
-        if (!prev) throw createError({ statusCode: 404, statusMessage: 'Event tidak ditemukan' })
+        if (!prev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
         if (prev.code !== form.code && prev.registrationSeq > 0) {
-          throw createError({ statusCode: 409, statusMessage: 'Kode event tidak bisa diubah setelah ada pendaftar' })
+          throw createError({ statusCode: 409, statusMessage: 'The event code cannot change once people have registered' })
         }
         if (prev.bannerKey !== values.bannerKey) staleKeys.push(prev.bannerKey)
         await tx.update(events).set({
@@ -79,7 +79,7 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
         id = created!.id
       }
 
-      // (event_id, sort_order) unik: negatifkan dulu supaya penomoran ulang tidak bentrok
+      // (event_id, sort_order) is unique: negate first so renumbering cannot collide
       await tx.update(agendaDays).set({ sortOrder: sql`-${agendaDays.sortOrder}` }).where(eq(agendaDays.eventId, id))
       const days = await syncChildren(tx, agendaDays, id, form.agendaDays, (d, i) => ({
         sortOrder: i + 1, label: d.label, date: d.date, theme: d.theme, body: d.body
@@ -98,7 +98,7 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
         code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale, sortOrder: i + 1
       }))
 
-      // file lama yang diganti / dibuang
+      // old files that were replaced or removed
       const newPhotos = new Set(form.speakers.map(s => s.photoKey))
       const newLogos = new Set(form.partners.map(p => p.logoKey))
       staleKeys.push(...oldSpeakers.map(s => s.photoKey).filter(k => k && !newPhotos.has(k)))
@@ -112,17 +112,17 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
   }
 }
 
-/** Pesan yang bisa dibaca admin untuk pelanggaran constraint. */
+/** Readable messages for constraint violations. */
 function translateDbError(err: unknown) {
   if ((err as { statusCode?: number }).statusCode) return err
   const { code, constraint = '' } = pgError(err)
   if (code === '23505') {
-    if (constraint.includes('slug')) return createError({ statusCode: 409, statusMessage: 'Slug sudah dipakai event lain' })
-    if (constraint.includes('code')) return createError({ statusCode: 409, statusMessage: 'Kode sudah dipakai' })
-    return createError({ statusCode: 409, statusMessage: 'Data duplikat' })
+    if (constraint.includes('slug')) return createError({ statusCode: 409, statusMessage: 'Another event already uses this slug' })
+    if (constraint.includes('code')) return createError({ statusCode: 409, statusMessage: 'This code is already used' })
+    return createError({ statusCode: 409, statusMessage: 'Duplicate data' })
   }
   if (code === '23503') {
-    return createError({ statusCode: 409, statusMessage: 'Tipe tiket yang sudah dipakai peserta tidak bisa dihapus. Matikan "Dijual" saja.' })
+    return createError({ statusCode: 409, statusMessage: 'A ticket type that participants already use cannot be deleted. Turn off "On sale" instead.' })
   }
   return err
 }
@@ -130,13 +130,13 @@ function translateDbError(err: unknown) {
 export async function deleteEvent(id: string) {
   const keys = await db.transaction(async (tx) => {
     const [ev] = await tx.select().from(events).where(eq(events.id, id))
-    if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event tidak ditemukan' })
+    if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
     const files = [
       ev.bannerKey,
       ...(await tx.select({ k: speakers.photoKey }).from(speakers).where(eq(speakers.eventId, id))).map(r => r.k),
       ...(await tx.select({ k: partners.logoKey }).from(partners).where(eq(partners.eventId, id))).map(r => r.k)
     ]
-    // peserta dulu: ticket_types → participants memakai RESTRICT
+    // participants first: ticket_types → participants is RESTRICT
     await tx.delete(participants).where(eq(participants.eventId, id))
     await tx.delete(events).where(eq(events.id, id))
     return files
@@ -144,7 +144,7 @@ export async function deleteEvent(id: string) {
   await deleteObjects(keys)
 }
 
-/** Jumlah data yang ikut terhapus — untuk teks dialog konfirmasi. */
+/** How much data a delete removes — for the confirmation dialog. */
 export async function deleteImpact(ids: string[]) {
   if (!ids.length) return new Map<string, { days: number, speakers: number, partners: number, tickets: number, participants: number }>()
   const count = (table: typeof agendaDays | typeof speakers | typeof partners | typeof ticketTypes | typeof participants) =>

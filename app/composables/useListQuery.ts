@@ -2,8 +2,8 @@ import { h } from 'vue'
 import SortButton from '~/components/admin/SortButton.vue'
 
 /**
- * State daftar (cari, filter, sort, halaman) yang disinkronkan ke URL query,
- * supaya filter tetap ada saat kembali dari halaman detail.
+ * List state (search, filters, sort, page) synced to the URL query,
+ * so filters survive a round trip to a detail page.
  */
 export function useListQuery<F extends Record<string, string | undefined>>(defaults: { sort: string, dir: 'asc' | 'desc', filters: F }) {
   const route = useRoute()
@@ -39,7 +39,7 @@ export function useListQuery<F extends Record<string, string | undefined>>(defau
     }
   }
 
-  /** Header kolom yang bisa diurutkan, untuk `columns[].header` UTable. */
+  /** Sortable column header, for UTable `columns[].header`. */
   const sortHeader = (key: string, label: string) => () =>
     h(SortButton, { label, active: sort.value === key, dir: dir.value, onToggle: () => toggleSort(key) })
 

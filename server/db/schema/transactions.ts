@@ -8,13 +8,13 @@ import { events } from './events'
 import { participants } from './participants'
 
 /**
- * Semua transaksi. Kolom biasa hanya untuk yang dicari/difilter/di-sort/dijumlah;
- * rincian, info DOKU, dan riwayat status disimpan sebagai jsonb.
- * FK `set null` + kolom snapshot: transaksi tetap ada setelah peserta/event dihapus.
+ * Every transaction. Plain columns only for what is searched, filtered, sorted or summed;
+ * invoice lines, DOKU details and the status history live in jsonb.
+ * FKs are `set null` plus snapshot columns, so a transaction survives deleting its participant or event.
  */
 export const transactions = pgTable('transactions', {
   id: id(),
-  /** `INV-APCR-26-01248` — juga `invoice_number` di DOKU. */
+  /** `INV-APCR-26-01248` — also DOKU's `invoice_number`. */
   invoiceNo: varchar({ length: 32 }).notNull().unique(),
   userId: uuid().references(() => users.id, { onDelete: 'set null' }),
   participantId: uuid().references(() => participants.id, { onDelete: 'set null' }),

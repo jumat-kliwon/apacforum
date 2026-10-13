@@ -4,7 +4,7 @@ import type { z } from 'zod'
 function fail(error: z.ZodError): never {
   throw createError({
     statusCode: 422,
-    statusMessage: error.issues[0]?.message ?? 'Data tidak valid',
+    statusMessage: error.issues[0]?.message ?? 'Invalid data',
     data: { issues: error.issues.map(i => ({ path: i.path.join('.'), message: i.message })) }
   })
 }
@@ -22,15 +22,15 @@ export function parseQuery<S extends z.ZodType>(event: H3Event, schema: S): z.ou
 export function parseId(event: H3Event, name = 'id') {
   const id = getRouterParam(event, name) ?? ''
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-    throw createError({ statusCode: 404, statusMessage: 'Tidak ditemukan' })
+    throw createError({ statusCode: 404, statusMessage: 'Not found' })
   }
   return id
 }
 
-/** Escape `%`, `_`, `\` untuk pola ILIKE. */
+/** Escapes `%`, `_`, `\` for ILIKE patterns. */
 export const likePattern = (q: string) => `%${q.replace(/[\\%_]/g, m => `\\${m}`)}%`
 
-/** Satu baris CSV (RFC 4180) + netralkan formula Excel. */
+/** One CSV row (RFC 4180), neutralising spreadsheet formulas. */
 export function csvRow(values: unknown[]) {
   return values.map((v) => {
     let s = v == null ? '' : String(v)

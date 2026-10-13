@@ -4,12 +4,12 @@ import { agendaDays, events, partners, participants, speakers, ticketTypes, tran
 import { deleteImpact } from '~~/server/services/events'
 import { publicUrl } from '~~/server/services/storage'
 
-/** Event lengkap: dipakai halaman detail & form edit. */
+/** Full event: used by the detail page and the edit form. */
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const id = parseId(event)
   const [ev] = await db.select().from(events).where(eq(events.id, id))
-  if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event tidak ditemukan' })
+  if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
 
   const [days, sp, pa, tickets, sold, [stats], [revenue], impact] = await Promise.all([
     db.select().from(agendaDays).where(eq(agendaDays.eventId, id)).orderBy(asc(agendaDays.sortOrder)),
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   return {
     event: {
       ...ev,
-      // form memakai tanggal; batas berlaku sampai 23.59 WIB
+      // the form uses a date; registration closes at 23:59 WIB
       registrationDeadlineDate: new Date(ev.registrationDeadline.getTime() + 7 * 3600_000).toISOString().slice(0, 10),
       bannerUrl: publicUrl(ev.bannerKey)
     },

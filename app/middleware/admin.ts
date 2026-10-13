@@ -1,4 +1,4 @@
-/** Halaman CMS: wajib login sebagai admin. */
+/** CMS pages require an admin session. */
 export default defineNuxtRouteMiddleware(async (to) => {
   const { data } = await authClient.getSession()
   if (!data || (data.user as { role?: string }).role !== 'admin') {

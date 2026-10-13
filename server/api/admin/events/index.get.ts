@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, ilike, sql } from 'drizzle-orm'
-import { z } from 'zod'
+import * as z from 'zod'
 import { db } from '~~/server/db'
 import { events, participants } from '~~/server/db/schema'
 import { deleteImpact } from '~~/server/services/events'

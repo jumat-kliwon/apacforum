@@ -6,7 +6,7 @@ import { eventStatus, partnerCategory, publishStatus, speakerCategory } from './
 
 export const events = pgTable('events', {
   id: id(),
-  /** Prefix nomor REG/INV/e-tiket, mis. `APCR`. */
+  /** Prefix of REG/INV/e-ticket numbers, e.g. `APCR`. */
   code: varchar({ length: 8 }).notNull().unique(),
   slug: varchar({ length: 120 }).notNull().unique(),
   name: varchar({ length: 200 }).notNull(),
@@ -19,7 +19,7 @@ export const events = pgTable('events', {
   venueAddress: text(),
   city: varchar({ length: 120 }).notNull(),
   capacity: integer().notNull(),
-  /** Object key di Cloudflare R2. */
+  /** Object key in Cloudflare R2. */
   bannerKey: text(),
   status: eventStatus().notNull().default('draft'),
   registrationOpen: boolean().notNull().default(true),
@@ -51,10 +51,10 @@ export const agendaDays = pgTable('agenda_days', {
 export const speakers = pgTable('speakers', {
   id: id(),
   eventId: uuid().notNull().references(() => events.id, { onDelete: 'cascade' }),
-  /** Kolom "Sesi". */
+  /** The "Session" column. */
   agendaDayId: uuid().references(() => agendaDays.id, { onDelete: 'set null' }),
   name: varchar({ length: 200 }).notNull(),
-  /** "Jabatan & institusi". */
+  /** "Position & institution". */
   title: varchar({ length: 255 }).notNull(),
   category: speakerCategory().notNull(),
   photoKey: text(),
@@ -80,7 +80,7 @@ export const partners = pgTable('partners', {
 export const ticketTypes = pgTable('ticket_types', {
   id: id(),
   eventId: uuid().notNull().references(() => events.id, { onDelete: 'cascade' }),
-  /** Bagian kode e-tiket, mis. `ID` → `APCR26-ID-0712`. */
+  /** Part of the e-ticket code, e.g. `ID` → `APCR26-ID-0712`. */
   code: varchar({ length: 6 }).notNull(),
   name: varchar({ length: 120 }).notNull(),
   price: bigint({ mode: 'number' }).notNull(),

@@ -7,7 +7,7 @@ import { db, schema } from '../db'
 export const ROLES = ['admin', 'participant'] as const
 export type Role = typeof ROLES[number]
 
-/** Field profil peserta: hanya diisi dari server (form pendaftaran / CMS). */
+/** Participant profile fields: only set on the server (registration form / CMS). */
 const profileField = { type: 'string', required: false, input: false } as const
 
 export const auth = betterAuth({
@@ -19,7 +19,7 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    // akun admin dibuat lewat seed / admin lain; peserta dibuat otomatis saat mendaftar event
+    // admins are created by the seed or another admin; participants are created when they register for an event
     disableSignUp: true
   },
   user: {

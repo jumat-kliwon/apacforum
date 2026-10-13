@@ -11,27 +11,27 @@ import { activeCount, createInvoice, ensureCheckout, logInvoiceSent } from './pa
 type Actor = { id: string, name: string }
 type RegistrationData = z.output<typeof registrationSchema>
 
-/** Batas pendaftaran = akhir hari tanggal itu di WIB. */
+/** Registration deadline = end of that day in WIB. */
 export const deadlineFromDate = (isoDate: string) => new Date(`${isoDate}T23:59:59+07:00`)
 
 /**
- * Form Registration publik: buat/temukan user `participant`, lalu satu baris `participants`.
+ * Public registration form: find or create the `participant` user, then add one `participants` row.
  */
 export async function registerParticipant(slug: string, input: RegistrationData) {
   const participantId = await db.transaction(async (tx) => {
     const [event] = await tx.select().from(events).where(eq(events.slug, slug))
-    if (!event || event.status !== 'published') throw createError({ statusCode: 404, statusMessage: 'Event tidak ditemukan' })
+    if (!event || event.status !== 'published') throw createError({ statusCode: 404, statusMessage: 'Event not found' })
     if (!event.registrationOpen || event.registrationDeadline < new Date()) {
-      throw createError({ statusCode: 409, statusMessage: 'Pendaftaran untuk event ini sudah ditutup' })
+      throw createError({ statusCode: 409, statusMessage: 'Registration for this event is closed' })
     }
 
-    // kunci baris tipe tiket supaya cek kuota tidak balapan
+    // lock the ticket type row so concurrent quota checks cannot race
     const [ticket] = await tx.select().from(ticketTypes)
       .where(and(eq(ticketTypes.id, input.ticketTypeId), eq(ticketTypes.eventId, event.id)))
       .for('update')
-    if (!ticket || !ticket.isOnSale) throw createError({ statusCode: 422, statusMessage: 'Tipe peserta tidak tersedia' })
+    if (!ticket || !ticket.isOnSale) throw createError({ statusCode: 422, statusMessage: 'This participant type is not available' })
     if (await activeCount(tx, ticket.id) >= ticket.quota) {
-      throw createError({ statusCode: 409, statusMessage: `Kuota ${ticket.name} sudah penuh` })
+      throw createError({ statusCode: 409, statusMessage: `${ticket.name} is sold out` })
     }
 
     const profile = {
@@ -51,8 +51,8 @@ export async function registerParticipant(slug: string, input: RegistrationData)
       userId = u!.id
     } else {
       userId = existing.id
-      // Form publik tidak terautentikasi: hanya mengisi field yang masih kosong,
-      // supaya orang lain tidak bisa menimpa profil seseorang hanya dengan tahu emailnya.
+      // The public form is unauthenticated: only fill fields that are still empty,
+      // so nobody can overwrite someone's profile just by knowing their email.
       if (existing.role === 'participant') {
         const fill = Object.fromEntries(
           Object.entries(profile).filter(([k, v]) => v != null && existing[k as keyof typeof profile] == null)
@@ -66,7 +66,7 @@ export async function registerParticipant(slug: string, input: RegistrationData)
       eq(participants.userId, userId),
       sql`${participants.status} not in ('rejected', 'cancelled')`
     ))
-    if (active) throw createError({ statusCode: 409, statusMessage: 'Email ini sudah terdaftar di event ini' })
+    if (active) throw createError({ statusCode: 409, statusMessage: 'This email is already registered for this event' })
 
     const [seq] = await tx.update(events)
       .set({ registrationSeq: sql`${events.registrationSeq} + 1` })
@@ -86,7 +86,7 @@ export async function registerParticipant(slug: string, input: RegistrationData)
   return { participantId, regNo: data?.regNo }
 }
 
-/** Verifikasi → tagihan + link DOKU + email. Mengembalikan jumlah yang diverifikasi. */
+/** Verify → invoice + DOKU link + email. Returns how many were verified. */
 export async function verifyParticipants(ids: string[], actor: Actor) {
   const created = await db.transaction(async (tx) => {
     const rows = await tx.update(participants)
@@ -103,7 +103,7 @@ export async function verifyParticipants(ids: string[], actor: Actor) {
 
   for (const c of created) {
     if (!c.free) {
-      await ensureCheckout(c.transactionId).catch(err => console.error('[doku] gagal membuat checkout', err))
+      await ensureCheckout(c.transactionId).catch(err => console.error('[doku] could not create checkout', err))
     }
     const data = await loadMailData(c.participantId)
     if (!data) continue
@@ -118,18 +118,18 @@ export async function rejectParticipant(id: string, reason: string, actor: Actor
     .set({ status: 'rejected', rejectionReason: reason, rejectedAt: new Date(), verifiedBy: actor.id })
     .where(and(eq(participants.id, id), eq(participants.status, 'pending_verification')))
     .returning({ id: participants.id })
-  if (!row) throw createError({ statusCode: 409, statusMessage: 'Hanya pendaftaran yang menunggu verifikasi yang bisa ditolak' })
+  if (!row) throw createError({ statusCode: 409, statusMessage: 'Only registrations pending verification can be rejected' })
   const data = await loadMailData(id)
   if (data) await sendTemplateSafe('registration-rejected', data)
 }
 
 /**
- * "Kirim email" dari CMS: kirim ulang email yang sesuai status pendaftaran sekarang.
- * Mengembalikan template yang dikirim.
+ * "Send email" in the CMS: resends the email that matches the registration's current status.
+ * Returns the template that was sent.
  */
 export async function resendStatusEmail(id: string) {
   const [p] = await db.select().from(participants).where(eq(participants.id, id))
-  if (!p) throw createError({ statusCode: 404, statusMessage: 'Peserta tidak ditemukan' })
+  if (!p) throw createError({ statusCode: 404, statusMessage: 'Participant not found' })
 
   if (p.status === 'verified' && p.paymentStatus === 'pending') {
     const [trx] = await db.select({ id: transactions.id }).from(transactions)
@@ -137,7 +137,7 @@ export async function resendStatusEmail(id: string) {
     if (trx) await ensureCheckout(trx.id)
   }
   const data = await loadMailData(id)
-  if (!data) throw createError({ statusCode: 404, statusMessage: 'Peserta tidak ditemukan' })
+  if (!data) throw createError({ statusCode: 404, statusMessage: 'Participant not found' })
 
   const key = p.status === 'pending_verification'
     ? 'registration-received'

@@ -2,7 +2,7 @@ import { asc, desc } from 'drizzle-orm'
 import { db } from '~~/server/db'
 import { events, ticketTypes } from '~~/server/db/schema'
 
-/** Pilihan event & tipe tiket untuk filter. */
+/** Event and ticket type options for filters. */
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const [evs, tts] = await Promise.all([

@@ -4,7 +4,7 @@ import { db } from '~~/server/db'
 import { participants } from '~~/server/db/schema'
 import { resendStatusEmail, verifyParticipants } from '~~/server/services/registration'
 
-/** Aksi massal di tabel peserta. `delete` menghapus pendaftaran (transaksi tetap tersimpan). */
+/** Bulk actions in the participant table. `delete` removes registrations (transactions are kept). */
 export default defineEventHandler(async (event) => {
   const admin = await requireAdmin(event)
   const { action, ids } = await parseBody(event, bulkParticipantSchema)

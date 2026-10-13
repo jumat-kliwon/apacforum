@@ -4,11 +4,11 @@ import { agendaDays, events, partners, speakers, ticketTypes } from '~~/server/d
 import { activeCount } from '~~/server/services/payment'
 import { publicUrl } from '~~/server/services/storage'
 
-/** Halaman event publik: hanya event published, speaker published, tiket yang dijual. */
+/** Public event page: published events, published speakers and tickets on sale only. */
 export default defineEventHandler(async (event) => {
   const slug = getRouterParam(event, 'slug') ?? ''
   const [ev] = await db.select().from(events).where(and(eq(events.slug, slug), eq(events.status, 'published')))
-  if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event tidak ditemukan' })
+  if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
 
   const [days, sp, pa, tickets] = await Promise.all([
     db.select().from(agendaDays).where(eq(agendaDays.eventId, ev.id)).orderBy(asc(agendaDays.sortOrder)),

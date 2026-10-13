@@ -2,9 +2,9 @@ import { sql } from 'drizzle-orm'
 import { customType, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 /**
- * jsonb untuk driver Bun.SQL. `jsonb()` bawaan Drizzle mengirim `JSON.stringify(value)`, lalu Bun.SQL
- * meng-encode string itu lagi → tersimpan sebagai *string* JSON, bukan objek. Bun.SQL sudah meng-encode
- * objek/array sendiri, jadi nilai diteruskan apa adanya.
+ * jsonb for the Bun.SQL driver. Drizzle's built-in `jsonb()` sends `JSON.stringify(value)` and Bun.SQL
+ * encodes that string again, so it is stored as a JSON *string* instead of an object. Bun.SQL already
+ * encodes objects and arrays itself, so values are passed through as they are.
  */
 export const jsonb = <T>() => customType<{ data: T, driverData: T }>({
   dataType: () => 'jsonb',
@@ -12,12 +12,12 @@ export const jsonb = <T>() => customType<{ data: T, driverData: T }>({
   fromDriver: value => (typeof value === 'string' ? JSON.parse(value) : value) as T
 })()
 
-/** Teks case-insensitive (extension `citext`) — dipakai untuk email. */
+/** Case-insensitive text (`citext` extension) — used for emails. */
 export const citext = customType<{ data: string }>({
   dataType: () => 'citext'
 })
 
-/** UUID v7: urut waktu, jadi index B-tree tetap rapat. */
+/** UUID v7: time-ordered, so B-tree indexes stay compact. */
 export function uuidv7(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16))
   const ms = BigInt(Date.now())
@@ -36,7 +36,7 @@ export const timestamps = {
 }
 
 /**
- * Nilai jsonb di dalam ekspresi `sql` (mis. `kolom || ...`). Dikirim sebagai teks lalu di-cast di Postgres;
- * tanpa `::text`, Bun.SQL meng-encode string itu sebagai string JSON.
+ * A jsonb value inside an `sql` expression (e.g. `column || ...`). Sent as text and cast in Postgres;
+ * without `::text`, Bun.SQL would encode the string as a JSON string.
  */
 export const jsonParam = (value: unknown) => sql`(${JSON.stringify(value)}::text)::jsonb`

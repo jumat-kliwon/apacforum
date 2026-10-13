@@ -12,10 +12,10 @@ const stats = computed(() => {
   const s = data.value?.stats
   if (!s) return []
   return [
-    { label: 'Total pendaftar', value: formatNumber(s.total), note: `+${formatNumber(s.today)} hari ini`, icon: 'i-lucide-users' },
-    { label: 'Menunggu verifikasi', value: formatNumber(s.pending), note: 'Perlu ditinjau admin', icon: 'i-lucide-clock' },
-    { label: 'Pembayaran lunas', value: formatNumber(s.paid), note: s.total ? `${Math.round((s.paid / s.total) * 100)}% dari pendaftar` : '—', icon: 'i-lucide-circle-check' },
-    { label: 'Total pendapatan', value: formatRupiahShort(s.revenue), note: formatRupiah(s.revenue), icon: 'i-lucide-credit-card' }
+    { label: 'Total registrations', value: formatNumber(s.total), note: `+${formatNumber(s.today)} today`, icon: 'i-lucide-users' },
+    { label: 'Pending verification', value: formatNumber(s.pending), note: 'Needs an admin review', icon: 'i-lucide-clock' },
+    { label: 'Paid', value: formatNumber(s.paid), note: s.total ? `${Math.round((s.paid / s.total) * 100)}% of registrations` : '—', icon: 'i-lucide-circle-check' },
+    { label: 'Total revenue', value: formatRupiahShort(s.revenue), note: formatRupiah(s.revenue), icon: 'i-lucide-credit-card' }
   ]
 })
 
@@ -33,16 +33,16 @@ const total14 = computed(() => bars.value.reduce((s, b) => s + b.n, 0))
 const chartLabel = computed(() => {
   const b = bars.value
   if (!b.length) return ''
-  return `Grafik batang pendaftaran harian 14 hari terakhir, dari ${b[0]!.n} pada ${formatIsoDate(b[0]!.day)} sampai ${b.at(-1)!.n} pada ${formatIsoDate(b.at(-1)!.day)}, total ${total14.value}`
+  return `Bar chart of daily registrations over the last 14 days, from ${b[0]!.n} on ${formatIsoDate(b[0]!.day)} to ${b.at(-1)!.n} on ${formatIsoDate(b.at(-1)!.day)}, ${total14.value} in total`
 })
 
 const payItems = computed(() => {
-  const p = data.value?.payStatus ?? {}
+  const p = data.value?.payStatus
   return [
-    { label: 'Lunas', value: p.paid ?? 0, color: 'success' as const },
-    { label: 'Menunggu', value: p.pending ?? 0, color: 'warning' as const },
-    { label: 'Kedaluwarsa', value: p.expired ?? 0, color: 'error' as const },
-    { label: 'Refund', value: p.refunded ?? 0, color: 'neutral' as const }
+    { label: 'Paid', value: p?.paid ?? 0, color: 'success' as const },
+    { label: 'Awaiting', value: p?.pending ?? 0, color: 'warning' as const },
+    { label: 'Expired', value: p?.expired ?? 0, color: 'error' as const },
+    { label: 'Refunded', value: p?.refunded ?? 0, color: 'neutral' as const }
   ]
 })
 
@@ -52,15 +52,15 @@ const now = new Date()
 <template>
   <AdminPageHeader title="Dashboard">
     <template #description>
-      Ringkasan {{ eventName }} · data per {{ formatDateWithDay(now) }} pukul {{ formatDateTime(now).split(', ').at(-1) }} WIB
+      {{ eventName }} overview · as of {{ formatDateWithDay(now) }}, {{ formatTime(now) }} WIB
     </template>
     <template #actions>
-      <USelect v-model="eventId" :items="eventItems" icon="i-lucide-calendar-days" aria-label="Pilih event" class="min-w-56" />
+      <USelect v-model="eventId" :items="eventItems" icon="i-lucide-calendar-days" aria-label="Choose an event" class="min-w-56" />
     </template>
   </AdminPageHeader>
 
   <div v-if="!data?.stats && status !== 'pending'" class="rounded-2xl border border-default bg-default p-10">
-    <UEmpty icon="i-lucide-calendar-plus" title="Belum ada event" description="Buat event pertama untuk mulai menerima pendaftaran." :actions="[{ label: 'Tambah event', to: '/admin/event/baru', icon: 'i-lucide-plus' }]" />
+    <UEmpty icon="i-lucide-calendar-plus" title="No events yet" description="Create the first event to start taking registrations." :actions="[{ label: 'Add event', to: '/admin/events/new', icon: 'i-lucide-plus' }]" />
   </div>
 
   <template v-else>
@@ -69,9 +69,9 @@ const now = new Date()
     </div>
 
     <div class="grid items-start gap-6 xl:grid-cols-2">
-      <AdminPanel title="Pendaftaran 14 hari terakhir">
+      <AdminPanel title="Registrations, last 14 days">
         <template #actions>
-          <span class="text-[13px] font-medium text-muted">{{ formatNumber(total14) }} pendaftar</span>
+          <span class="text-[13px] font-medium text-muted">{{ formatNumber(total14) }} registrations</span>
         </template>
         <div role="img" :aria-label="chartLabel">
           <div class="flex h-56 items-end gap-2 border-b border-default pt-4">
@@ -86,17 +86,17 @@ const now = new Date()
         </div>
       </AdminPanel>
 
-      <AdminPanel title="Kuota tiket per tipe peserta">
+      <AdminPanel title="Ticket quota per participant type">
         <div class="flex flex-col gap-4">
           <div v-for="q in data?.quotas" :key="q.name" class="flex flex-col gap-1.5">
             <div class="flex justify-between gap-3 text-sm font-medium">
               <span>{{ q.name }}</span>
               <span class="text-muted tabular-nums">{{ formatNumber(q.sold) }} / {{ formatNumber(q.quota) }}</span>
             </div>
-            <UProgress :model-value="q.quota ? Math.min(100, (q.sold / q.quota) * 100) : 0" size="sm" :ui="{ indicator: 'bg-brand-400' }" :aria-label="`${q.name}: ${q.sold} dari ${q.quota} terjual`" />
+            <UProgress :model-value="q.quota ? Math.min(100, (q.sold / q.quota) * 100) : 0" size="sm" :ui="{ indicator: 'bg-brand-400' }" :aria-label="`${q.name}: ${q.sold} of ${q.quota} sold`" />
           </div>
           <p v-if="!data?.quotas.length" class="text-sm text-muted">
-            Belum ada tipe tiket.
+            No ticket types yet.
           </p>
         </div>
         <div class="grid grid-cols-2 gap-3 border-t border-default pt-4">
@@ -108,9 +108,9 @@ const now = new Date()
       </AdminPanel>
     </div>
 
-    <AdminPanel title="Pendaftar terbaru">
+    <AdminPanel title="Latest registrations">
       <template #actions>
-        <UButton :to="{ path: '/admin/peserta', query: { eventId } }" color="neutral" variant="ghost" size="sm" trailing-icon="i-lucide-chevron-right" label="Lihat semua peserta" />
+        <UButton :to="{ path: '/admin/participants', query: { eventId } }" color="neutral" variant="ghost" size="sm" trailing-icon="i-lucide-chevron-right" label="See all participants" />
       </template>
       <AdminParticipantMiniTable :rows="data?.recent ?? []" />
     </AdminPanel>

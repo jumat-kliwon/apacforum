@@ -1,5 +1,5 @@
 <script setup lang="ts">
-/** Dialog konfirmasi tindakan berbahaya (hapus, refund). */
+/** Confirmation dialog for destructive actions (delete, refund). */
 const open = defineModel<boolean>('open', { default: false })
 defineProps<{
   title: string
@@ -32,7 +32,7 @@ const emit = defineEmits<{ confirm: [] }>()
     </template>
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <UButton color="neutral" variant="outline" label="Batalkan" @click="open = false" />
+        <UButton color="neutral" variant="outline" label="Cancel" @click="open = false" />
         <UButton :color="color ?? 'error'" :label="confirmLabel" :loading="loading" @click="emit('confirm')" />
       </div>
     </template>

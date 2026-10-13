@@ -20,7 +20,7 @@ export const tshirtSize = pgEnum('tshirt_size', ['XS', 'S', 'M', 'L', 'XL', 'XXL
 
 export const registrationStatus = pgEnum('registration_status', ['pending_verification', 'verified', 'rejected', 'cancelled'])
 
-/** Disalin dari transaksi terakhir peserta; `none` = belum/tidak ditagih. */
+/** Copied from the participant's latest transaction; `none` = not invoiced (yet). */
 export const paymentStatus = pgEnum('payment_status', ['none', 'pending', 'paid', 'expired', 'refunded'])
 
 export const transactionStatus = pgEnum('transaction_status', ['pending', 'paid', 'expired', 'refunded'])

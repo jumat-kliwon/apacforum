@@ -12,18 +12,18 @@ type Row = {
 defineProps<{ rows: Row[] }>()
 
 const columns = [
-  { accessorKey: 'name', header: 'Peserta' },
-  { accessorKey: 'ticketTypeName', header: 'Tipe peserta' },
-  { accessorKey: 'status', header: 'Status pendaftaran' },
-  { accessorKey: 'paymentStatus', header: 'Status pembayaran' },
-  { accessorKey: 'createdAt', header: 'Waktu daftar' }
+  { accessorKey: 'name', header: 'Participant' },
+  { accessorKey: 'ticketTypeName', header: 'Participant type' },
+  { accessorKey: 'status', header: 'Registration status' },
+  { accessorKey: 'paymentStatus', header: 'Payment status' },
+  { accessorKey: 'createdAt', header: 'Registered' }
 ]
 </script>
 
 <template>
-  <UTable :data="rows" :columns="columns" empty="Belum ada pendaftar." class="-mx-4 sm:-mx-5">
+  <UTable :data="rows" :columns="columns" empty="No registrations yet." class="-mx-4 sm:-mx-5">
     <template #name-cell="{ row }">
-      <NuxtLink :to="`/admin/peserta/${row.original.userId}`" class="flex items-center gap-3">
+      <NuxtLink :to="`/admin/participants/${row.original.userId}`" class="flex items-center gap-3">
         <UAvatar :text="initials(row.original.name)" size="sm" class="bg-brand-50 text-brand-900" />
         <div class="min-w-0">
           <div class="font-medium text-highlighted">{{ row.original.name }}</div>

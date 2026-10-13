@@ -5,7 +5,7 @@ import { db } from '../db'
 import { jsonParam } from '../db/columns'
 import { events, participants, ticketTypes, transactions, users } from '../db/schema'
 import { loadMailData, siteUrl, type Tx } from './context'
-import { createCheckout, mapChannel, type DokuNotification } from './doku'
+import { createCheckout, mapChannel, NOTIFY_PATH, type DokuNotification } from './doku'
 import { sendTemplateSafe } from './mail/send'
 
 export const PAYMENT_WINDOW_HOURS = 48
@@ -14,13 +14,13 @@ const now = () => new Date()
 const entry = (type: TransactionHistoryEntry['type'], extra: Partial<TransactionHistoryEntry> = {}): TransactionHistoryEntry =>
   ({ type, at: now().toISOString(), actor: null, ...extra })
 
-/** Tambah entri riwayat di SQL supaya tidak menimpa update lain yang berjalan bersamaan. */
+/** Appends history entries in SQL so concurrent updates are not overwritten. */
 const appendHistory = (...items: TransactionHistoryEntry[]) =>
   sql`${transactions.history} || ${jsonParam(items)}`
 
 /**
- * Buat tagihan untuk peserta yang baru diverifikasi (dalam transaksi DB pemanggil).
- * Tiket gratis langsung dianggap lunas.
+ * Creates the invoice for a newly verified participant (inside the caller's DB transaction).
+ * Free tickets are marked paid straight away.
  */
 export async function createInvoice(tx: Tx, participantId: string, actor: { id: string, name: string }) {
   const [row] = await tx.select({ p: participants, u: users, e: events, t: ticketTypes })
@@ -29,7 +29,7 @@ export async function createInvoice(tx: Tx, participantId: string, actor: { id: 
     .innerJoin(events, eq(events.id, participants.eventId))
     .innerJoin(ticketTypes, eq(ticketTypes.id, participants.ticketTypeId))
     .where(eq(participants.id, participantId))
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'Peserta tidak ditemukan' })
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'Participant not found' })
 
   const [seq] = await tx.update(events)
     .set({ invoiceSeq: sql`${events.invoiceSeq} + 1` })
@@ -52,11 +52,11 @@ export async function createInvoice(tx: Tx, participantId: string, actor: { id: 
     expiresAt: free ? null : new Date(issuedAt.getTime() + PAYMENT_WINDOW_HOURS * 3600_000),
     paidAt: free ? issuedAt : null,
     items: {
-      lines: [{ description: `Tiket ${row.t.name}`, note: row.e.name, qty: 1, unitPrice: row.t.price, subtotal: row.t.price }],
+      lines: [{ description: `${row.t.name} ticket`, note: row.e.name, qty: 1, unitPrice: row.t.price, subtotal: row.t.price }],
       subtotal: row.t.price,
       discount: 0
     },
-    history: [entry('created', { description: `oleh ${actor.name} setelah verifikasi`, actor })]
+    history: [entry('created', { description: `by ${actor.name} after verification`, actor })]
   }).returning()
 
   await tx.update(participants).set({ paymentStatus: free ? 'paid' : 'pending' }).where(eq(participants.id, participantId))
@@ -64,7 +64,7 @@ export async function createInvoice(tx: Tx, participantId: string, actor: { id: 
   return trx!
 }
 
-/** Buat link DOKU Checkout untuk tagihan yang belum punya link. */
+/** Creates a DOKU Checkout link for an invoice that has none yet. */
 export async function ensureCheckout(transactionId: string) {
   const [row] = await db.select({ trx: transactions, u: users })
     .from(transactions)
@@ -78,17 +78,18 @@ export async function ensureCheckout(transactionId: string) {
     invoiceNo: row.trx.invoiceNo,
     amount: row.trx.total,
     dueMinutes,
-    callbackUrl: `${siteUrl()}/pembayaran/selesai`,
-    customer: { name: row.trx.participantName, email: row.trx.participantEmail, phone: row.u?.phone },
+    callbackUrl: `${siteUrl()}/payment/finish?invoice=${encodeURIComponent(row.trx.invoiceNo)}`,
+    notificationUrl: `${siteUrl()}${NOTIFY_PATH}`,
+    customer: { id: row.trx.userId ?? row.trx.invoiceNo, name: row.trx.participantName, email: row.trx.participantEmail, phone: row.u?.phone },
     lineItems: row.trx.items.lines.filter(l => l.subtotal > 0).map(l => ({ name: l.description, price: l.unitPrice, quantity: l.qty }))
   })
   const [updated] = await db.update(transactions).set({
-    payment: sql`${transactions.payment} || ${jsonParam({ dokuPaymentUrl: checkout.url, dokuRequestId: checkout.requestId })}`
+    payment: sql`${transactions.payment} || ${jsonParam({ dokuPaymentUrl: checkout.url, dokuRequestId: checkout.requestId, ...(checkout.tokenId && { dokuTokenId: checkout.tokenId }) })}`
   }).where(eq(transactions.id, transactionId)).returning()
   return updated!
 }
 
-/** Kode e-tiket dari counter tipe tiket. */
+/** E-ticket code from the ticket type's counter. */
 async function issueTicket(tx: Tx, participantId: string) {
   const [row] = await tx.select({ p: participants, e: events, t: ticketTypes })
     .from(participants)
@@ -105,17 +106,17 @@ async function issueTicket(tx: Tx, participantId: string) {
   return code
 }
 
-/** Notifikasi DOKU sukses → lunas + e-tiket. Idempoten. */
+/** Successful DOKU notification → paid + e-ticket. Idempotent. */
 export async function markPaid(notification: DokuNotification) {
   const invoiceNo = notification.order?.invoice_number
-  if (!invoiceNo) throw createError({ statusCode: 400, statusMessage: 'invoice_number kosong' })
+  if (!invoiceNo) throw createError({ statusCode: 400, statusMessage: 'invoice_number is missing' })
 
   const result = await db.transaction(async (tx) => {
     const [trx] = await tx.select().from(transactions).where(eq(transactions.invoiceNo, invoiceNo)).for('update')
-    if (!trx) throw createError({ statusCode: 404, statusMessage: 'Tagihan tidak ditemukan' })
+    if (!trx) throw createError({ statusCode: 404, statusMessage: 'Invoice not found' })
     if (trx.status === 'paid' || trx.status === 'refunded') return { trx, changed: false, ticketCode: null }
     if (Number(notification.order?.amount) !== trx.total) {
-      throw createError({ statusCode: 400, statusMessage: 'Jumlah pembayaran tidak sesuai tagihan' })
+      throw createError({ statusCode: 400, statusMessage: 'Paid amount does not match the invoice' })
     }
 
     const { method, channel } = mapChannel(notification)
@@ -128,7 +129,7 @@ export async function markPaid(notification: DokuNotification) {
         ...(channel && { channel }),
         ...(notification.virtual_account_info?.virtual_account_number && { vaNumber: notification.virtual_account_info.virtual_account_number }),
         dokuReference: notification.transaction?.original_request_id,
-        adminNote: 'Pembayaran otomatis terkonfirmasi oleh DOKU.',
+        adminNote: 'Payment confirmed automatically by DOKU.',
         raw: notification
       })}`,
       history: appendHistory(entry('paid', { description: [method === 'virtual_account' ? 'VA' : null, channel].filter(Boolean).join(' ') || undefined }))
@@ -153,7 +154,7 @@ export async function markPaid(notification: DokuNotification) {
   return result
 }
 
-/** Tagihan yang lewat batas → kedaluwarsa. */
+/** Invoices past their deadline → expired. */
 export async function expireDue() {
   const expired = await db.transaction(async (tx) => {
     const rows = await tx.update(transactions)
@@ -183,7 +184,7 @@ async function remainingSeats(participantId: string) {
   return Math.max(0, row.quota - await activeCount(db, row.ticketTypeId))
 }
 
-/** Pendaftaran yang memakan kuota: semua kecuali ditolak/dibatalkan/kedaluwarsa. */
+/** Registrations that take a seat: everything except rejected, cancelled, expired or refunded. */
 export async function activeCount(d: typeof db | Tx, ticketTypeId: string) {
   const [r] = await d.select({ n: sql<number>`count(*)::int` }).from(participants).where(and(
     eq(participants.ticketTypeId, ticketTypeId),
@@ -193,7 +194,7 @@ export async function activeCount(d: typeof db | Tx, ticketTypeId: string) {
   return r?.n ?? 0
 }
 
-/** Pengingat 24 jam sebelum batas bayar, sekali per tagihan. */
+/** Reminder 24 hours before the payment deadline, once per invoice. */
 export async function remindDue() {
   const rows = await db.update(transactions)
     .set({ payment: sql`${transactions.payment} || ${jsonParam({ reminderSentAt: now().toISOString() })}` })
@@ -213,12 +214,12 @@ export async function remindDue() {
   return rows.length
 }
 
-/** Refund oleh admin: tagihan → refund, pendaftaran → dibatalkan, e-tiket tidak berlaku. */
+/** Refund by an admin: invoice → refunded, registration → cancelled, e-ticket no longer valid. */
 export async function refund(transactionId: string, actor: { id: string, name: string }, note?: string) {
   const trx = await db.transaction(async (tx) => {
     const [t] = await tx.select().from(transactions).where(eq(transactions.id, transactionId)).for('update')
-    if (!t) throw createError({ statusCode: 404, statusMessage: 'Transaksi tidak ditemukan' })
-    if (t.status !== 'paid') throw createError({ statusCode: 409, statusMessage: 'Hanya transaksi lunas yang bisa direfund' })
+    if (!t) throw createError({ statusCode: 404, statusMessage: 'Transaction not found' })
+    if (t.status !== 'paid') throw createError({ statusCode: 409, statusMessage: 'Only paid transactions can be refunded' })
     const at = now().toISOString()
     const [updated] = await tx.update(transactions).set({
       status: 'refunded',
@@ -239,7 +240,7 @@ export async function refund(transactionId: string, actor: { id: string, name: s
   return trx
 }
 
-/** Catat pengiriman email tagihan di riwayat. */
+/** Records the invoice email in the history. */
 export async function logInvoiceSent(transactionId: string) {
   await db.update(transactions).set({ history: appendHistory(entry('invoice_sent')) }).where(eq(transactions.id, transactionId))
 }

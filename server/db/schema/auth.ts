@@ -4,8 +4,8 @@ import { citext, id, timestamps } from '../columns'
 import { tshirtSize } from './enums'
 
 /**
- * Tabel Better Auth (nama jamak, adapter `usePlural: true`) + kolom plugin admin.
- * `users` berisi admin dan peserta, dibedakan oleh `role`.
+ * Better Auth tables (plural names via the adapter's `usePlural: true`) plus admin plugin columns.
+ * `users` holds both admins and participants, told apart by `role`.
  */
 export const users = pgTable('users', {
   id: id(),
@@ -13,12 +13,12 @@ export const users = pgTable('users', {
   email: citext().notNull().unique(),
   emailVerified: boolean().notNull().default(false),
   image: text(),
-  // plugin admin
+  // admin plugin
   role: varchar({ length: 20 }).notNull().default('participant'),
   banned: boolean().default(false),
   banReason: text(),
   banExpires: timestamp({ withTimezone: true }),
-  // profil peserta (Better Auth `additionalFields`, input: false)
+  // participant profile (Better Auth `additionalFields`, input: false)
   phone: varchar({ length: 32 }),
   organization: varchar({ length: 200 }),
   jobTitle: varchar({ length: 200 }),
@@ -30,7 +30,7 @@ export const users = pgTable('users', {
   ...timestamps
 }, t => [
   index().on(t.role),
-  // pencarian "nama, email, atau instansi" (ILIKE)
+  // "name, email or organization" search (ILIKE)
   index('users_name_trgm').using('gin', sql`${t.name} gin_trgm_ops`),
   index('users_email_trgm').using('gin', sql`(${t.email}::text) gin_trgm_ops`),
   index('users_organization_trgm').using('gin', sql`${t.organization} gin_trgm_ops`)

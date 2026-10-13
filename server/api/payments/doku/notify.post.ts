@@ -2,23 +2,23 @@ import { markPaid } from '~~/server/services/payment'
 import { verifyNotification, type DokuNotification } from '~~/server/services/doku'
 
 /**
- * Notifikasi pembayaran dari DOKU. Signature diverifikasi dari body mentah.
- * Status selain SUCCESS dicatat dan diabaikan (kedaluwarsa ditangani task terjadwal).
+ * Payment notification from DOKU. The signature is verified against the raw body.
+ * Statuses other than SUCCESS are logged and ignored (expiry is handled by a scheduled task).
  */
 export default defineEventHandler(async (event) => {
   const raw = (await readRawBody(event, 'utf8')) ?? ''
   if (!verifyNotification(event.headers, raw)) {
-    throw createError({ statusCode: 401, statusMessage: 'Signature tidak valid' })
+    throw createError({ statusCode: 401, statusMessage: 'Invalid signature' })
   }
   let body: DokuNotification
   try {
     body = JSON.parse(raw)
   } catch {
-    throw createError({ statusCode: 400, statusMessage: 'Body bukan JSON' })
+    throw createError({ statusCode: 400, statusMessage: 'Body is not JSON' })
   }
   const status = body.transaction?.status?.toUpperCase()
   if (status !== 'SUCCESS') {
-    console.info('[doku] notifikasi diabaikan', body.order?.invoice_number, status)
+    console.info('[doku] notification ignored', body.order?.invoice_number, status)
     return { ok: true }
   }
   await markPaid(body)

@@ -4,7 +4,7 @@ import { events, participants } from '../../db/schema'
 import { loadMailData } from '../../services/context'
 import { sendTemplateSafe } from '../../services/mail/send'
 
-/** Tanggal WIB `YYYY-MM-DD` digeser n hari. */
+/** WIB date `YYYY-MM-DD` shifted by n days. */
 const wibDate = (offsetDays: number) =>
   new Date(Date.now() + 7 * 3600_000 + offsetDays * 86_400_000).toISOString().slice(0, 10)
 
@@ -20,7 +20,7 @@ async function notify(dateColumn: typeof events.startDate | typeof events.endDat
 }
 
 export default defineTask({
-  meta: { name: 'events:notify', description: 'Pengingat H-3 dan email terima kasih H+1 (jalan sekali sehari)' },
+  meta: { name: 'events:notify', description: '3-day reminder and next-day thank-you emails (runs once a day)' },
   async run() {
     const reminded = await notify(events.startDate, wibDate(3), 'event-reminder-h3')
     const thanked = await notify(events.endDate, wibDate(-1), 'event-thank-you')

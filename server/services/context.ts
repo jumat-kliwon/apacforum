@@ -13,7 +13,7 @@ export const siteUrl = () =>
 export const methodLabel = (method: keyof typeof PAYMENT_METHOD | null, channel?: string) =>
   method ? `${method === 'virtual_account' && channel ? 'VA' : PAYMENT_METHOD[method]}${channel ? ` ${channel}` : ''}` : null
 
-/** Semua data yang dibutuhkan template email untuk satu pendaftaran. */
+/** Everything the email templates need for one registration. */
 export async function loadMailData(participantId: string, d: Db = db): Promise<MailData | null> {
   const [row] = await d.select({ p: participants, u: users, e: events, t: ticketTypes })
     .from(participants)

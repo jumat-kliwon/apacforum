@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     .leftJoin(participants, eq(participants.id, transactions.participantId))
     .leftJoin(events, eq(events.id, transactions.eventId))
     .where(eq(transactions.id, id))
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'Transaksi tidak ditemukan' })
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'Transaction not found' })
   const { raw: _raw, ...payment } = row.trx.payment
   return { ...row, trx: { ...row.trx, payment } }
 })

@@ -1,50 +1,50 @@
-/** Label Bahasa Indonesia + warna badge untuk semua enum. Dipakai UI dan email. */
+/** Display labels and badge colors for every enum. Used by the UI and emails. */
 
 export type BadgeColor = 'primary' | 'success' | 'warning' | 'error' | 'info' | 'neutral'
 type Label = { label: string, color: BadgeColor }
 
 export const REGISTRATION_STATUS = {
-  pending_verification: { label: 'Menunggu verifikasi', color: 'warning' },
-  verified: { label: 'Terverifikasi', color: 'success' },
-  rejected: { label: 'Ditolak', color: 'error' },
-  cancelled: { label: 'Dibatalkan', color: 'neutral' }
+  pending_verification: { label: 'Pending verification', color: 'warning' },
+  verified: { label: 'Verified', color: 'success' },
+  rejected: { label: 'Rejected', color: 'error' },
+  cancelled: { label: 'Cancelled', color: 'neutral' }
 } as const satisfies Record<string, Label>
 
-/** Status bayar di tabel peserta. `none` dibedakan oleh status pendaftaran. */
+/** Payment status in the participant table. `none` is told apart by the registration status. */
 export const PAYMENT_STATUS = {
-  none: { label: 'Belum ditagih', color: 'neutral' },
-  pending: { label: 'Menunggu pembayaran', color: 'warning' },
-  paid: { label: 'Lunas', color: 'success' },
-  expired: { label: 'Kedaluwarsa', color: 'error' },
-  refunded: { label: 'Refund', color: 'neutral' }
+  none: { label: 'Not invoiced yet', color: 'neutral' },
+  pending: { label: 'Awaiting payment', color: 'warning' },
+  paid: { label: 'Paid', color: 'success' },
+  expired: { label: 'Expired', color: 'error' },
+  refunded: { label: 'Refunded', color: 'neutral' }
 } as const satisfies Record<string, Label>
 
 export function paymentStatusLabel(payment: keyof typeof PAYMENT_STATUS, registration?: keyof typeof REGISTRATION_STATUS): Label {
   if (payment === 'none' && (registration === 'rejected' || registration === 'cancelled')) {
-    return { label: 'Tidak ditagih', color: 'neutral' }
+    return { label: 'Not invoiced', color: 'neutral' }
   }
   return PAYMENT_STATUS[payment]
 }
 
 export const TRANSACTION_STATUS = {
-  pending: { label: 'Menunggu pembayaran', color: 'warning' },
-  paid: { label: 'Lunas', color: 'success' },
-  expired: { label: 'Kedaluwarsa', color: 'error' },
-  refunded: { label: 'Refund', color: 'neutral' }
+  pending: { label: 'Awaiting payment', color: 'warning' },
+  paid: { label: 'Paid', color: 'success' },
+  expired: { label: 'Expired', color: 'error' },
+  refunded: { label: 'Refunded', color: 'neutral' }
 } as const satisfies Record<string, Label>
 
 export const PAYMENT_METHOD = {
-  virtual_account: 'Virtual Account',
+  virtual_account: 'Virtual account',
   qris: 'QRIS',
-  credit_card: 'Kartu kredit',
-  bank_transfer: 'Transfer bank',
+  credit_card: 'Credit card',
+  bank_transfer: 'Bank transfer',
   e_wallet: 'E-wallet'
 } as const
 
 export const EVENT_STATUS = {
   draft: { label: 'Draft', color: 'neutral' },
   published: { label: 'Published', color: 'success' },
-  archived: { label: 'Arsip', color: 'neutral' }
+  archived: { label: 'Archived', color: 'neutral' }
 } as const satisfies Record<string, Label>
 
 export const PUBLISH_STATUS = {
@@ -71,16 +71,32 @@ export const PARTNER_CATEGORY = {
 
 export const TSHIRT_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'] as const
 
-export const HISTORY_LABEL = {
-  created: 'Tagihan dibuat',
-  invoice_sent: 'Email tagihan terkirim',
-  paid: 'Pembayaran diterima',
-  ticket_sent: 'E-tiket terkirim',
-  expired: 'Tagihan kedaluwarsa',
-  refunded: 'Refund diproses',
-  note: 'Catatan'
+export const COUNTRIES = {
+  ID: 'Indonesia',
+  MY: 'Malaysia',
+  SG: 'Singapore',
+  TH: 'Thailand',
+  VN: 'Vietnam',
+  PH: 'Philippines',
+  BN: 'Brunei',
+  KH: 'Cambodia',
+  LA: 'Laos',
+  MM: 'Myanmar',
+  TL: 'Timor-Leste'
 } as const
 
-/** Ubah map label jadi `items` untuk USelect. */
-export const toItems = <T extends Record<string, string | Label>>(map: T) =>
-  Object.entries(map).map(([value, v]) => ({ value: value as keyof T & string, label: typeof v === 'string' ? v : v.label }))
+export const HISTORY_LABEL = {
+  created: 'Invoice created',
+  invoice_sent: 'Invoice email sent',
+  paid: 'Payment received',
+  ticket_sent: 'E-ticket sent',
+  expired: 'Invoice expired',
+  refunded: 'Refund processed',
+  note: 'Note'
+} as const
+
+/** Turns a label map into `items` for USelect. */
+export const toItems = (map: Record<string, string | Label>): { value: string, label: string }[] =>
+  Object.entries(map).map(([value, v]) => ({ value, label: typeof v === 'string' ? v : v.label }))
+
+export const TSHIRT_ITEMS: string[] = [...TSHIRT_SIZES]

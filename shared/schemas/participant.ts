@@ -1,25 +1,25 @@
-import { z } from 'zod'
+import * as z from 'zod'
 import { PAYMENT_STATUS, REGISTRATION_STATUS, TSHIRT_SIZES, TRANSACTION_STATUS, PAYMENT_METHOD } from '../utils/labels'
 
-const optional = (max: number) => z.string().trim().max(max).optional().transform(v => v || null)
+const optional = (max: number) => z.string().trim().max(max).nullish().transform(v => v || null)
 
-/** Data diri peserta — form Registration publik & "Edit data peserta" di CMS. */
+/** Participant profile — public registration form and "Edit participant" in the CMS. */
 export const profileSchema = z.object({
-  name: z.string().trim().min(2, 'Wajib diisi').max(200),
-  phone: z.string().trim().regex(/^\+?[0-9\s-]{8,20}$/, 'Nomor telepon tidak valid'),
-  organization: z.string().trim().min(1, 'Wajib diisi').max(200),
-  jobTitle: z.string().trim().min(1, 'Wajib diisi').max(200),
-  country: z.string().trim().length(2, 'Pilih negara').toUpperCase(),
-  city: z.string().trim().min(1, 'Wajib diisi').max(120),
+  name: z.string().trim().min(2, 'Required').max(200),
+  phone: z.string().trim().regex(/^\+?[0-9\s-]{8,20}$/, 'Enter a valid phone number'),
+  organization: z.string().trim().min(1, 'Required').max(200),
+  jobTitle: z.string().trim().min(1, 'Required').max(200),
+  country: z.string().trim().length(2, 'Choose a country').toUpperCase(),
+  city: z.string().trim().min(1, 'Required').max(120),
   tshirtSize: z.enum(TSHIRT_SIZES).nullish().transform(v => v ?? null),
   mealPreference: optional(60),
   referralSource: optional(120)
 })
 
 export const registrationSchema = profileSchema.extend({
-  email: z.email('Email tidak valid').trim().toLowerCase().max(320),
-  ticketTypeId: z.uuid('Pilih tipe peserta'),
-  agree: z.literal(true, { error: 'Wajib disetujui' })
+  email: z.email('Enter a valid email').trim().toLowerCase().max(320),
+  ticketTypeId: z.uuid('Choose a participant type'),
+  agree: z.literal(true, { error: 'You need to agree to continue' })
 })
 
 export type RegistrationInput = z.input<typeof registrationSchema>
@@ -57,7 +57,7 @@ export const bulkParticipantSchema = z.object({
 })
 
 export const rejectSchema = z.object({
-  reason: z.string().trim().min(3, 'Tulis alasan penolakan').max(1000)
+  reason: z.string().trim().min(3, 'Write the reason for rejecting').max(1000)
 })
 
 export const refundSchema = z.object({

@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { z } from 'zod'
+import * as z from 'zod'
 import type { FormSubmitEvent } from '@nuxt/ui'
 
 definePageMeta({ layout: false })
-useHead({ title: 'Login admin' })
+useHead({ title: 'Admin sign in' })
 
 const schema = z.object({
-  email: z.email('Email tidak valid'),
-  password: z.string().min(1, 'Masukkan password')
+  email: z.email('Enter a valid email'),
+  password: z.string().min(1, 'Enter your password')
 })
 type Schema = z.output<typeof schema>
 
@@ -23,12 +23,12 @@ async function onSubmit(e: FormSubmitEvent<Schema>) {
   const { data, error: err } = await authClient.signIn.email({ email: e.data.email, password: e.data.password })
   loading.value = false
   if (err || !data) {
-    error.value = err?.status === 401 ? 'Email atau password salah' : (err?.message ?? 'Gagal masuk')
+    error.value = err?.status === 401 ? 'Wrong email or password' : (err?.message ?? 'Could not sign in')
     return
   }
   if ((data.user as { role?: string }).role !== 'admin') {
     await authClient.signOut()
-    error.value = 'Akun ini tidak punya akses admin'
+    error.value = 'This account has no admin access'
     return
   }
   const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin') ? route.query.redirect : '/admin'
@@ -47,7 +47,7 @@ async function onSubmit(e: FormSubmitEvent<Schema>) {
               APCR CMS
             </h1>
             <p class="text-sm text-muted">
-              Kelola peserta, transaksi, dan event APCR.
+              Manage APCR participants, transactions and events.
             </p>
           </div>
         </div>
@@ -59,21 +59,21 @@ async function onSubmit(e: FormSubmitEvent<Schema>) {
             <UInput v-model="state.email" type="email" icon="i-lucide-mail" placeholder="admin@apcrforum.com" autocomplete="email" size="lg" class="w-full" />
           </UFormField>
           <UFormField label="Password" name="password">
-            <UInput v-model="state.password" :type="show ? 'text' : 'password'" icon="i-lucide-lock" placeholder="Masukkan password" autocomplete="current-password" size="lg" class="w-full">
+            <UInput v-model="state.password" :type="show ? 'text' : 'password'" icon="i-lucide-lock" placeholder="Enter your password" autocomplete="current-password" size="lg" class="w-full">
               <template #trailing>
                 <UButton
                   color="neutral"
                   variant="link"
                   size="sm"
                   :icon="show ? 'i-lucide-eye-off' : 'i-lucide-eye'"
-                  :aria-label="show ? 'Sembunyikan password' : 'Tampilkan password'"
+                  :aria-label="show ? 'Hide password' : 'Show password'"
                   :aria-pressed="show"
                   @click="show = !show"
                 />
               </template>
             </UInput>
           </UFormField>
-          <UButton type="submit" label="Masuk" size="lg" block :loading="loading" />
+          <UButton type="submit" label="Sign in" size="lg" block :loading="loading" />
         </UForm>
       </div>
     </UCard>

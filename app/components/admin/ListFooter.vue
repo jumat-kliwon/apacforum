@@ -8,8 +8,8 @@ defineProps<{ total: number, rangeText: string }>()
   <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-muted">
     <div class="flex flex-wrap items-center gap-4">
       <label class="flex items-center gap-2">
-        <span>Baris per halaman</span>
-        <USelect v-model="pageSize" :items="[10, 25, 50, 100]" size="sm" class="w-20" aria-label="Baris per halaman" />
+        <span>Rows per page</span>
+        <USelect v-model="pageSize" :items="[10, 25, 50, 100]" size="sm" class="w-20" aria-label="Rows per page" />
       </label>
       <span aria-live="polite">{{ rangeText }}</span>
     </div>

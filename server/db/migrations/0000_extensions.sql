@@ -1,3 +1,3 @@
--- Extension dibutuhkan sebelum tabel: citext (email) dan pg_trgm (pencarian ILIKE).
+-- Extensions needed before the tables: citext (emails) and pg_trgm (ILIKE search).
 CREATE EXTENSION IF NOT EXISTS citext;--> statement-breakpoint
 CREATE EXTENSION IF NOT EXISTS pg_trgm;

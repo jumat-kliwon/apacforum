@@ -2,7 +2,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import { db } from '~~/server/db'
 import { events, participants, ticketTypes, transactions, users } from '~~/server/db/schema'
 
-/** Detail peserta: profil, semua pendaftaran event, riwayat transaksi. */
+/** Participant detail: profile, every event registration, transaction history. */
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const id = parseId(event)
@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     jobTitle: users.jobTitle, country: users.country, city: users.city, tshirtSize: users.tshirtSize,
     mealPreference: users.mealPreference, referralSource: users.referralSource, role: users.role, createdAt: users.createdAt
   }).from(users).where(and(eq(users.id, id), eq(users.role, 'participant')))
-  if (!user) throw createError({ statusCode: 404, statusMessage: 'Peserta tidak ditemukan' })
+  if (!user) throw createError({ statusCode: 404, statusMessage: 'Participant not found' })
 
   const [registrations, trx] = await Promise.all([
     db.select({

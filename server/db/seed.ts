@@ -1,6 +1,6 @@
 /**
- * Seed development: akun admin + data contoh dari desain APCR CMS.
- * Menghapus SEMUA data event, peserta, dan transaksi lalu mengisi ulang.
+ * Development seed: admin account + sample data from the APCR CMS design.
+ * Deletes ALL events, participants and transactions, then fills them again.
  *
  *   bun run db:seed
  */
@@ -12,23 +12,23 @@ import { client, db } from './index'
 import * as s from './schema'
 
 if (process.env.NODE_ENV === 'production') {
-  throw new Error('Seed tidak boleh dijalankan di production')
+  throw new Error('Refusing to seed a production database')
 }
 
 const adminEmail = process.env.SEED_ADMIN_EMAIL
 const adminPassword = process.env.SEED_ADMIN_PASSWORD
 const adminName = process.env.SEED_ADMIN_NAME ?? 'Admin APCR'
 if (!adminEmail || !adminPassword) {
-  throw new Error('SEED_ADMIN_EMAIL dan SEED_ADMIN_PASSWORD wajib diset (lihat .env.example)')
+  throw new Error('SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set (see .env.example)')
 }
 
-/** Waktu WIB → Date. */
+/** WIB local time → Date. */
 const wib = (isoLocal: string) => new Date(`${isoLocal}+07:00`)
 
 await db.transaction(async (tx) => {
   // ── reset ─────────────────────────────────────────────────────────
   await tx.delete(s.transactions)
-  await tx.delete(s.events) // cascade: agenda, speaker, partner, tiket, peserta
+  await tx.delete(s.events) // cascades to agenda, speakers, partners, tickets, participants
   await tx.delete(s.users).where(eq(s.users.role, 'participant'))
 
   // ── admin ─────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ await db.transaction(async (tx) => {
       slug: 'apcr-2026',
       name: 'APCR 2026',
       tagline: 'Building Trust. Shaping Reputation. Connecting ASEAN.',
-      description: 'ASEAN Public Communication & Reputation Forum (APCR) 2026 mempertemukan pemimpin pemerintahan, bisnis, akademisi, dan praktisi komunikasi dari seluruh ASEAN selama tiga hari di Medan untuk membahas kepercayaan publik, reputasi, dan komunikasi di era AI.',
+      description: 'The ASEAN Public Communication & Reputation Forum (APCR) 2026 brings together government, business, academic and communication leaders from across ASEAN for three days in Medan to discuss public trust, reputation and communication in the age of AI.',
       startDate: '2026-12-02',
       endDate: '2026-12-04',
       registrationDeadline: wib('2026-11-25T23:59:00'),
@@ -89,11 +89,11 @@ await db.transaction(async (tx) => {
       code: 'ATR',
       slug: 'asean-trust-room-roundtable',
       name: 'ASEAN Trust Room Roundtable',
-      tagline: 'Closed-door dialogue pemimpin komunikasi publik',
+      tagline: 'A closed-door dialogue for public communication leaders',
       startDate: '2027-01-21',
       endDate: '2027-01-21',
       registrationDeadline: wib('2027-01-14T23:59:00'),
-      venueName: '[Venue belum ditentukan]',
+      venueName: '[Venue to be confirmed]',
       city: 'Kuala Lumpur',
       capacity: 40,
       status: 'draft',
@@ -102,21 +102,21 @@ await db.transaction(async (tx) => {
   ]).returning()
 
   const days = await tx.insert(s.agendaDays).values([
-    { eventId: apcr!.id, sortOrder: 1, label: 'SUMATRA', date: '2026-12-02', theme: 'Building Trust from the Regions. Sumatra toward ASEAN Bridge.', body: 'Leadership, reputasi kota dan daerah, institusi publik, BUMD, reputasi destinasi, komunikasi publik.' },
+    { eventId: apcr!.id, sortOrder: 1, label: 'SUMATRA', date: '2026-12-02', theme: 'Building Trust from the Regions. Sumatra toward ASEAN Bridge.', body: 'Leadership, city and regional reputation, public institutions, regional state-owned enterprises, destination reputation, public communication.' },
     { eventId: apcr!.id, sortOrder: 2, label: 'ASEAN BUSINESS', date: '2026-12-03', theme: 'Turning Trust into Economic Value.', body: 'ASEAN Cross-Border Business & Leaders Dialogue • Energy & Transition • Financial Inclusion • Infrastructure & Public Transportation • Food Security & Halal Economy • Aviation & Tourism • Sustainable Industry • Telecommunication & Digital • Big Data & AI.' },
-    { eventId: apcr!.id, sortOrder: 3, label: 'ASEAN KNOWLEDGE', date: '2026-12-04', theme: 'Building the Science of Trust & Reputation', body: 'Public trust, AI dan disinformasi, krisis dan leadership, reputasi, riset, pengukuran, pengembangan talenta, kolaborasi akademik–industri.' }
+    { eventId: apcr!.id, sortOrder: 3, label: 'ASEAN KNOWLEDGE', date: '2026-12-04', theme: 'Building the Science of Trust & Reputation', body: 'Public trust, AI and disinformation, crisis and leadership, reputation, research, measurement, talent development, academic–industry collaboration.' }
   ]).returning()
 
   await tx.insert(s.speakers).values([
-    { eventId: apcr!.id, agendaDayId: days[0]!.id, name: 'Dr. Hendra Siregar', title: 'Kepala Biro Komunikasi Publik, Pemprov Sumatera Utara', category: 'government', status: 'published', sortOrder: 1 },
+    { eventId: apcr!.id, agendaDayId: days[0]!.id, name: 'Dr. Hendra Siregar', title: 'Head of Public Communications Bureau, North Sumatra Provincial Government', category: 'government', status: 'published', sortOrder: 1 },
     { eventId: apcr!.id, agendaDayId: days[1]!.id, name: 'Lim Pei Shan', title: 'Chief Communications Officer, Straits Capital Group', category: 'business', status: 'published', sortOrder: 2 },
-    { eventId: apcr!.id, agendaDayId: days[2]!.id, name: 'Prof. Ayu Wulandari', title: 'Guru Besar Komunikasi, Universitas Nusantara', category: 'academia', status: 'draft', sortOrder: 3 },
+    { eventId: apcr!.id, agendaDayId: days[2]!.id, name: 'Prof. Ayu Wulandari', title: 'Professor of Communication, Universitas Nusantara', category: 'academia', status: 'draft', sortOrder: 3 },
     { eventId: apcr!.id, agendaDayId: days[0]!.id, name: 'Thanawat Rattanakul', title: 'Director of Public Affairs, Bangkok Media Council', category: 'communication', status: 'published', sortOrder: 4 }
   ])
 
   await tx.insert(s.partners).values([
     { eventId: apcr!.id, name: 'Universitas Nusantara Medan', category: 'academic_home', sortOrder: 1 },
-    { eventId: apcr!.id, name: 'Pemerintah Provinsi Sumatera Utara', category: 'government_regional', sortOrder: 2 },
+    { eventId: apcr!.id, name: 'North Sumatra Provincial Government', category: 'government_regional', sortOrder: 2 },
     { eventId: apcr!.id, name: 'ASEAN Communication Network', category: 'strategic', sortOrder: 3 },
     { eventId: apcr!.id, name: 'PT Sumatra Energi Nusantara', category: 'business_industry', sortOrder: 4 },
     { eventId: apcr!.id, name: 'Trust & Reputation Lab', category: 'knowledge_research', sortOrder: 5 },
@@ -134,7 +134,7 @@ await db.transaction(async (tx) => {
   ]).returning()
   const ticket = (event: typeof apcr, code: string) => tickets.find(t => t.eventId === event!.id && t.code === code)!
 
-  // ── peserta + transaksi ───────────────────────────────────────────
+  // ── participants + transactions ───────────────────────────────────
   type Pay = 'paid' | 'pending' | 'expired' | 'refunded' | null
   type Row = {
     user: string, event: typeof apcr, ticket: string, regSeq: number, invSeq?: number,
@@ -144,14 +144,14 @@ await db.transaction(async (tx) => {
   }
 
   const people: Record<string, typeof s.users.$inferInsert> = {
-    dimas: { name: 'Dimas Saputra', email: 'dimas.saputra@pemkomedan.go.id', phone: '+6281260341187', organization: 'Pemerintah Kota Medan', jobTitle: 'Kepala Bagian Protokol dan Komunikasi Pimpinan', country: 'ID', city: 'Medan', tshirtSize: 'L', mealPreference: 'Halal', referralSource: 'Undangan instansi', createdAt: wib('2026-09-28T10:00:00') },
+    dimas: { name: 'Dimas Saputra', email: 'dimas.saputra@pemkomedan.go.id', phone: '+6281260341187', organization: 'Medan City Government', jobTitle: 'Head of Protocol and Leadership Communications', country: 'ID', city: 'Medan', tshirtSize: 'L', mealPreference: 'Halal', referralSource: 'Institutional invitation', createdAt: wib('2026-09-28T10:00:00') },
     nguyen: { name: 'Nguyen Thi Lan', email: 'lan.nguyen@vci.edu.vn', organization: 'Vietnam Communication Institute', country: 'VN' },
     ahmad: { name: 'Ahmad Hidayat', email: 'ahmad.h@sumatraenergi.co.id', organization: 'PT Sumatra Energi Nusantara', country: 'ID', city: 'Medan' },
     maria: { name: 'Maria Santos', email: 'm.santos@manilapao.gov.ph', organization: 'Manila Public Affairs Office', country: 'PH', city: 'Manila' },
     putri: { name: 'Putri Lestari', email: 'putri.lestari@unandraya.ac.id', organization: 'Universitas Andalas Raya', country: 'ID' },
     wan: { name: 'Wan Khairul Anuar', email: 'khairul@kl-reputation.my', organization: 'KL Reputation Advisory', country: 'MY', city: 'Kuala Lumpur' },
     siti: { name: 'Siti Rahmawati', email: 'siti.rahma@bankdeltasumut.co.id', organization: 'Bank Delta Sumut', country: 'ID', city: 'Medan' },
-    budi: { name: 'Budi Wicaksono', email: 'budi.w@kominfo-sumut.go.id', organization: 'Dinas Kominfo Sumatera Utara', country: 'ID', city: 'Medan' },
+    budi: { name: 'Budi Wicaksono', email: 'budi.w@kominfo-sumut.go.id', organization: 'North Sumatra Communications and Informatics Office', country: 'ID', city: 'Medan' },
     rizky: { name: 'Rizky Nasution', email: 'rizky.nasution@usuraya.ac.id', organization: 'Universitas Sumatera Raya', country: 'ID', city: 'Medan' },
     jonathan: { name: 'Jonathan Tan', email: 'jonathan.tan@sgcomms.sg', organization: 'SG Comms Collective', country: 'SG', city: 'Singapore' }
   }
@@ -205,20 +205,20 @@ await db.transaction(async (tx) => {
     const issuedAt = verifiedAt!
     const expiresAt = new Date(issuedAt.getTime() + 48 * 60 * 60 * 1000)
     const items: TransactionItems = {
-      lines: [{ description: `Tiket ${tt.name}`, note: `${event.name}`, qty: 1, unitPrice: tt.price, subtotal: tt.price }],
+      lines: [{ description: `${tt.name} ticket`, note: `${event.name}`, qty: 1, unitPrice: tt.price, subtotal: tt.price }],
       subtotal: tt.price,
       discount: 0
     }
     if (r.method === 'virtual_account' && r.channel === 'BCA') {
-      items.lines.push({ description: 'Biaya layanan VA', note: 'Ditanggung panitia', qty: 1, unitPrice: 4440, subtotal: 0 })
+      items.lines.push({ description: 'VA service fee', note: 'Covered by the organizers', qty: 1, unitPrice: 4440, subtotal: 0 })
     }
     const payment: TransactionPayment = {
       ...(r.channel && { channel: r.channel }),
-      ...(r.pay === 'refunded' && { refundAmount: tt.price, refundedAt: wib('2026-10-10T09:00:00').toISOString(), adminNote: 'Pembatalan disetujui panitia.' }),
-      ...(r.pay === 'paid' && { adminNote: 'Pembayaran otomatis terkonfirmasi oleh DOKU.' })
+      ...(r.pay === 'refunded' && { refundAmount: tt.price, refundedAt: wib('2026-10-10T09:00:00').toISOString(), adminNote: 'Cancellation approved by the organizers.' }),
+      ...(r.pay === 'paid' && { adminNote: 'Payment confirmed automatically by DOKU.' })
     }
     const history: TransactionHistory = [
-      { type: 'created', at: issuedAt.toISOString(), description: 'oleh sistem setelah verifikasi', actor: null },
+      { type: 'created', at: issuedAt.toISOString(), description: 'by the system after verification', actor: null },
       { type: 'invoice_sent', at: issuedAt.toISOString(), actor: null }
     ]
     if (paidAt) {
@@ -249,7 +249,7 @@ await db.transaction(async (tx) => {
     })
   }
 
-  // counter mengikuti nomor terbesar yang dipakai seed
+  // counters continue from the highest number used by the seed
   const maxBy = (event: typeof apcr, key: 'regSeq' | 'invSeq') =>
     Math.max(0, ...rows.filter(r => r.event === event).map(r => r[key] ?? 0))
   for (const event of [apcr, pre, atr]) {
@@ -263,5 +263,5 @@ await db.transaction(async (tx) => {
   }
 })
 
-console.log(`Seed selesai. Login admin: ${adminEmail}`)
+console.log(`Seed done. Admin login: ${adminEmail}`)
 await client.close()

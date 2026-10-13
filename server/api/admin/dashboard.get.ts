@@ -1,5 +1,5 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
-import { z } from 'zod'
+import * as z from 'zod'
 import { db } from '~~/server/db'
 import { events, participants, ticketTypes, transactions, users } from '~~/server/db/schema'
 
@@ -11,13 +11,13 @@ export default defineEventHandler(async (event) => {
 
   const evs = await db.select({ id: events.id, name: events.name, timezone: events.timezone }).from(events).orderBy(desc(events.startDate))
   if (!eventId) {
-    // default: event dengan pendaftar terbanyak
+    // default: the event with the most registrations
     const [top] = await db.select({ id: participants.eventId }).from(participants)
       .groupBy(participants.eventId).orderBy(desc(sql`count(*)`)).limit(1)
     eventId = top?.id ?? evs[0]?.id
   }
   const ev = evs.find(e => e.id === eventId)
-  if (!ev) return { events: evs, eventId: null, stats: null, daily: [], quotas: [], payStatus: {}, recent: [] }
+  if (!ev) return { events: evs, eventId: null, stats: null, daily: [], quotas: [], payStatus: { pending: 0, paid: 0, expired: 0, refunded: 0 }, recent: [] }
 
   const byEvent = eq(participants.eventId, ev.id)
   const tz = ev.timezone
@@ -74,9 +74,14 @@ export default defineEventHandler(async (event) => {
     events: evs,
     eventId: ev.id,
     stats: { ...stats!, revenue: Number(revenue?.sum ?? 0) },
-    daily: [...daily].map(r => ({ day: r.day, n: Number(r.n) })),
+    daily: [...daily].map(r => ({ day: String(r.day), n: Number(r.n) })),
     quotas,
-    payStatus: Object.fromEntries(payRows.map(r => [r.status, r.n])) as Partial<Record<'pending' | 'paid' | 'expired' | 'refunded', number>>,
+    payStatus: {
+      pending: payRows.find(r => r.status === 'pending')?.n ?? 0,
+      paid: payRows.find(r => r.status === 'paid')?.n ?? 0,
+      expired: payRows.find(r => r.status === 'expired')?.n ?? 0,
+      refunded: payRows.find(r => r.status === 'refunded')?.n ?? 0
+    },
     recent
   }
 })

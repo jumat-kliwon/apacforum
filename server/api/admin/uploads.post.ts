@@ -1,14 +1,14 @@
-import { z } from 'zod'
+import * as z from 'zod'
 import { uuidv7 } from '~~/server/db/columns'
 import { MAX_UPLOAD_BYTES, presignUpload, publicUrl, UPLOAD_TYPES } from '~~/server/services/storage'
 
 const schema = z.object({
   folder: z.enum(['events', 'speakers', 'partners']),
-  contentType: z.enum(Object.keys(UPLOAD_TYPES) as [keyof typeof UPLOAD_TYPES], { error: 'Hanya JPG, PNG, atau WebP' }),
-  size: z.number().int().positive().max(MAX_UPLOAD_BYTES, 'Ukuran maksimal 5 MB')
+  contentType: z.enum(Object.keys(UPLOAD_TYPES) as [keyof typeof UPLOAD_TYPES], { error: 'Only JPG, PNG or WebP' }),
+  size: z.number().int().positive().max(MAX_UPLOAD_BYTES, '5 MB at most')
 })
 
-/** URL upload langsung ke R2. Browser lalu `PUT` file ke `uploadUrl`, dan menyimpan `key` di form. */
+/** Direct-to-R2 upload URL. The browser then `PUT`s the file to `uploadUrl` and keeps `key` in the form. */
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const { folder, contentType } = await parseBody(event, schema)

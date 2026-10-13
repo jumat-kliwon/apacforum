@@ -1,51 +1,50 @@
-# APCR CMS — Rencana Database
+# APCR CMS — Database design
 
-Sumber: desain kanvas "APCR CMS Admin Panel (Modul 4.14)" — Login, Dashboard, Peserta (daftar + detail),
-Transaksi (daftar + detail), Event (daftar, form, detail, hapus), Template email.
+Source: the "APCR CMS Admin Panel (Module 4.14)" design canvas — Login, Dashboard, Participants (list + detail),
+Transactions (list + detail), Events (list, form, detail, delete), Email templates.
 
 Stack: Bun · Nuxt 4 · PostgreSQL · Drizzle ORM (`drizzle-orm/bun-sql` + `drizzle-kit`) · Better Auth · Zod · Nuxt UI.
 
 ### Runtime: Bun
 
-- Package manager & runtime: `bun install`, `bun --bun nuxt dev`, build dengan Nitro preset `bun` (`bun .output/server/index.mjs`).
-- Driver DB: client Postgres bawaan Bun (`Bun.SQL`) lewat `drizzle-orm/bun-sql` — tanpa paket `pg`/`postgres`.
-- Migrasi & seed: `bunx drizzle-kit generate` / `bunx drizzle-kit migrate`, `bun run server/db/seed.ts`.
-- Better Auth memakai adapter Drizzle (`provider: "pg"`) di atas instance db yang sama.
-- Migrasi dijalankan lewat `migrate()` dari `drizzle-orm/bun-sql/migrator` (`bun run db:migrate`); `drizzle-kit` hanya dipakai untuk `generate` & `studio`.
-- Kolom `jsonb` memakai helper sendiri (`server/db/columns.ts`): `jsonb()` bawaan Drizzle + Bun.SQL menyimpan nilai sebagai string JSON.
+- Package manager and runtime: `bun install`, `bun --bun nuxt dev`, built with the Nitro `bun` preset (`bun .output/server/index.mjs`).
+- Database driver: Bun's built-in Postgres client (`Bun.SQL`) through `drizzle-orm/bun-sql` — no `pg`/`postgres` package.
+- Migrations run through `migrate()` from `drizzle-orm/bun-sql/migrator` (`bun run db:migrate`); `drizzle-kit` is only used for `generate` and `studio`.
+- `jsonb` columns use our own helper (`server/db/columns.ts`): Drizzle's built-in `jsonb()` together with Bun.SQL stores values as JSON strings.
+- Better Auth uses the Drizzle adapter (`provider: "pg"`) on the same database instance.
 
 ---
 
-## 1. Prinsip
+## 1. Principles
 
-| Keputusan | Pilihan | Alasan |
+| Decision | Choice | Why |
 |---|---|---|
-| Primary key | `uuid` (v7, digenerate di app) | Urut waktu → index B-tree tetap rapi; aman diekspos di URL. Better Auth diset `generateId: "uuid"` supaya seragam. |
-| Kode yang dilihat manusia | Kolom terpisah, unik: `REG-APCR-26-01248`, `INV-APCR-26-01248`, `APCR26-ID-0712` | Desain menampilkan kode ini di tabel, email, dan pencarian. |
-| Uang | `bigint` rupiah utuh (tanpa desimal), `currency` default `IDR` | Semua harga di desain bulat rupiah; hindari float. |
-| Waktu | `timestamptz`; tanggal acara `date`; `events.timezone` default `Asia/Jakarta` | Desain menampilkan "WIB"; peserta lintas ASEAN. |
-| Status | `pgEnum` + label Bahasa Indonesia di UI (map di `shared/`) | Enum DB = kontrak; label bisa berubah tanpa migrasi. |
-| Detail transaksi | Satu tabel `transactions`; rincian, info pembayaran, dan riwayat status disimpan sebagai `jsonb` | Keputusan: semua transaksi di satu tabel. Kolom yang difilter/di-sort tetap kolom biasa. |
-| Email | **Statis** — template di kode (`server/emails/*.ts`), bukan di database | Keputusan: email statis. Halaman "Template email" hanya pratinjau read-only. |
-| Hapus | Hard delete (permanen, tanpa `deleted_at`), **kecuali** transaksi | Desain: "Riwayat transaksi tetap tersimpan untuk laporan keuangan" → FK `SET NULL` + snapshot di json. |
-| Validasi | Zod schema dari `drizzle-zod` (`createInsertSchema`) lalu di-extend; bentuk kolom `jsonb` juga punya schema Zod + `$type<>()` | Satu sumber kebenaran untuk server route & form Nuxt UI. |
+| Primary keys | `uuid` (v7, generated in the app) | Time-ordered, so B-tree indexes stay compact; safe to expose in URLs. Better Auth uses the same generator. |
+| Human-facing codes | Separate unique columns: `REG-APCR-26-01248`, `INV-APCR-26-01248`, `APCR26-ID-0712` | The design shows these codes in tables, emails and search. |
+| Money | `bigint` whole rupiah, `currency` defaults to `IDR` | Every price in the design is whole rupiah; no floats. |
+| Time | `timestamptz`; event days as `date`; `events.timezone` defaults to `Asia/Jakarta` | The design shows WIB; participants come from across ASEAN. |
+| Statuses | `pgEnum` + display labels in `shared/utils/labels.ts` | The enum is the contract; labels can change without a migration. |
+| Transaction details | One `transactions` table; invoice lines, payment details and status history in `jsonb` | Decision: every transaction in one table. Filtered/sorted/summed values stay plain columns. |
+| Emails | **Static** — templates in code (`server/services/mail/templates.ts`), not in the database | Decision: static emails. The "Email templates" page is a read-only preview. |
+| Deletes | Hard delete, **except** transactions | "Transaction history is kept for financial reporting" → FK `SET NULL` + snapshot columns. |
+| Validation | Zod schemas in `shared/schemas/`, shared by server routes and Nuxt UI forms; `jsonb` shapes also have Zod schemas and `$type<>()` | One source of truth. |
 
 ---
 
-## 2. Diagram relasi
+## 2. Relationships
 
 ```mermaid
 erDiagram
   users ||--o{ sessions : has
-  users ||--o{ accounts : "has (admin saja)"
+  users ||--o{ accounts : "has (admins only)"
 
   events ||--o{ agenda_days : has
   events ||--o{ speakers : has
   events ||--o{ partners : has
   events ||--o{ ticket_types : has
-  agenda_days |o--o{ speakers : "sesi"
+  agenda_days |o--o{ speakers : "session"
 
-  users ||--o{ participants : "role participant: ikut event"
+  users ||--o{ participants : "role participant: attends"
   events ||--o{ participants : ""
   ticket_types ||--o{ participants : ""
   users |o--o{ participants : "verified_by (admin)"
@@ -55,80 +54,80 @@ erDiagram
   events |o--o{ transactions : "(SET NULL)"
 ```
 
-Total: **4 tabel auth + 7 tabel domain** (`events`, `agenda_days`, `speakers`, `partners`, `ticket_types`, `participants`, `transactions`).
+Total: **4 auth tables + 7 domain tables** (`events`, `agenda_days`, `speakers`, `partners`, `ticket_types`, `participants`, `transactions`).
 
-Admin dan peserta sama-sama ada di `users`, dibedakan dengan `role`. `participants` sekarang hanya
-menyimpan **keikutsertaan** seorang user di satu event (tipe tiket, status verifikasi, status bayar, e-tiket).
+Admins and participants both live in `users`, told apart by `role`. `participants` only stores a user's
+**attendance** of one event (ticket type, verification status, payment status, e-ticket).
 
 ---
 
-## 3. Tabel
+## 3. Tables
 
-### 3.1 Auth (Better Auth, dibuat via `bunx @better-auth/cli generate`)
+### 3.1 Auth (Better Auth)
 
-`users`, `sessions`, `accounts`, `verifications` — tabel Better Auth, nama jamak lewat opsi adapter Drizzle `usePlural: true`.
-Plugin **admin** menambah di `users`: `role`, `banned`, `ban_reason`, `ban_expires`; di `sessions`: `impersonated_by`.
+`users`, `sessions`, `accounts`, `verifications` — Better Auth tables with plural names (Drizzle adapter `usePlural: true`).
+The **admin** plugin adds `role`, `banned`, `ban_reason`, `ban_expires` to `users` and `impersonated_by` to `sessions`.
 
-#### `users` — admin **dan** peserta
+#### `users` — admins **and** participants
 
-| Kolom | Tipe | Catatan |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid | |
-| name | varchar | nama lengkap |
-| email | citext **unik** | satu orang = satu user, dipakai lintas event |
-| email_verified | boolean | bawaan Better Auth |
-| image | text null | bawaan Better Auth |
-| role | varchar | `admin` · `participant` (plugin admin; `defaultRole: "participant"`, `adminRoles: ["admin"]`) |
-| banned / ban_reason / ban_expires | | bawaan plugin admin |
-| phone | varchar null | E.164 — field tambahan (`user.additionalFields`) |
-| organization | varchar null | "Instansi" |
-| job_title | varchar null | "Jabatan" |
+| name | varchar | full name |
+| email | citext **unique** | one person = one user across events |
+| email_verified | boolean | Better Auth |
+| image | text null | Better Auth |
+| role | varchar | `admin` · `participant` (admin plugin; `defaultRole: "participant"`, `adminRoles: ["admin"]`) |
+| banned / ban_reason / ban_expires | | admin plugin |
+| phone | varchar null | E.164 — extra field (`user.additionalFields`) |
+| organization | varchar null | |
+| job_title | varchar null | |
 | country | char(2) null | ISO-3166 |
 | city | varchar null | |
 | tshirt_size | `tshirt_size` null | XS…XXXL |
-| meal_preference | varchar null | "Halal" |
-| referral_source | varchar null | "Sumber info" |
-| created_at / updated_at | timestamptz | "Terdaftar sejak" |
+| meal_preference | varchar null | |
+| referral_source | varchar null | |
+| created_at / updated_at | timestamptz | |
 
-Field profil peserta didaftarkan sebagai `additionalFields` dengan `input: false`, jadi hanya bisa diisi dari server (form pendaftaran / CMS), bukan dari endpoint auth.
+Profile fields are registered as `additionalFields` with `input: false`, so only the server (registration form / CMS) can set them.
 
-#### Aturan auth
+#### Auth rules
 
-- **Admin**: login email + password (layar 01) → punya baris di `accounts` (provider `credential`). Dibuat lewat seed / admin lain. Sign-up publik **dimatikan** (`disableSignUp`).
-- **Peserta**: user dibuat **otomatis** saat mengisi form pendaftaran event (lihat §6). Tidak punya password / baris `accounts`, jadi tidak bisa login.
-- Semua route CMS (`/api/admin/**`, halaman admin) dijaga middleware: session wajib ada **dan** `role = 'admin'`.
-- Kalau nanti peserta perlu login (lihat status pendaftaran / unduh e-tiket), cukup tambah plugin magic link / email OTP — tabelnya tidak berubah.
+- **Admins** sign in with email + password (screen 01) → they have an `accounts` row (provider `credential`). Created by the seed or another admin. Public sign-up is **disabled** (`disableSignUp`).
+- **Participants** are created **automatically** when they submit an event registration form (see §6). They have no password or `accounts` row, so they cannot sign in.
+- Every CMS route (`/api/admin/**`, admin pages) requires a session **and** `role = 'admin'`.
+- If participants ever need to sign in (check status, download e-ticket), add the magic link / email OTP plugin — the tables stay the same.
 
 ### 3.2 `events`
 
-| Kolom | Tipe | Catatan |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid PK | |
-| code | varchar(8) unik | `APCR`, `PRE`, `ATR` — prefix nomor REG/INV/tiket |
-| slug | varchar unik | untuk "Lihat di website" |
+| code | varchar(8) unique | `APCR`, `PRE`, `ATR` — prefix of REG/INV/ticket numbers |
+| slug | varchar unique | public page `/events/<slug>` |
 | name | varchar(200) | "APCR 2026" |
-| tagline | varchar(255) null | opsional |
+| tagline | varchar(255) null | |
 | description | text | |
 | start_date / end_date | date | check `end_date >= start_date` |
-| registration_deadline | timestamptz | "25 November 2026, 23.59 WIB" |
-| venue_name | varchar | "Santika Premiere Dyandra" |
+| registration_deadline | timestamptz | closes at 23:59 WIB on the chosen day |
+| venue_name | varchar | |
 | venue_address | text null | |
-| city | varchar | "Medan" |
-| capacity | integer | 1.450 |
-| banner_key | text null | object key di Cloudflare R2; upload 1920×1080 ≤ 5 MB |
+| city | varchar | |
+| capacity | integer | |
+| banner_key | text null | object key in Cloudflare R2 |
 | status | `event_status` | `draft` · `published` · `archived` |
-| registration_open | boolean default true | toggle "Buka pendaftaran" |
+| registration_open | boolean default true | "Open registration" switch |
 | timezone | varchar default `Asia/Jakarta` | |
-| registration_seq / invoice_seq | integer default 0 | counter nomor; di-increment `UPDATE … RETURNING` dalam transaksi DB |
-| created_by | uuid → user (SET NULL) | |
+| registration_seq / invoice_seq | integer default 0 | number counters, incremented with `UPDATE … RETURNING` inside the DB transaction |
+| created_by | uuid → users (SET NULL) | |
 | created_at / updated_at / published_at | timestamptz | |
 
 ### 3.3 `agenda_days`
 `id`, `event_id` → events **CASCADE**, `sort_order` int, `label` ("SUMATRA"), `date` date, `theme` varchar, `body` text.
-Unik `(event_id, sort_order)`.
+Unique `(event_id, sort_order)`.
 
 ### 3.4 `speakers`
-`id`, `event_id` → events **CASCADE**, `agenda_day_id` → agenda_days **SET NULL** (kolom "Sesi"), `name`, `title` ("Jabatan & institusi"), `category` `speaker_category` (`government` · `business` · `academia` · `communication`), `photo_key` (R2), `status` `publish_status` (`draft` · `published`), `sort_order`, timestamps.
+`id`, `event_id` → events **CASCADE**, `agenda_day_id` → agenda_days **SET NULL** (the "Session" column), `name`, `title` ("Position & institution"), `category` `speaker_category` (`government` · `business` · `academia` · `communication`), `photo_key` (R2), `status` `publish_status` (`draft` · `published`), `sort_order`, timestamps.
 
 ### 3.5 `partners`
 `id`, `event_id` → events **CASCADE**, `name`, `logo_key` (R2), `category` `partner_category`
@@ -136,71 +135,70 @@ Unik `(event_id, sort_order)`.
 
 ### 3.6 `ticket_types`
 
-| Kolom | Tipe | Catatan |
+| Column | Type | Notes |
 |---|---|---|
 | id, event_id → events CASCADE | | |
-| code | varchar(6) | `ID`, `INT`, `CORP` → kode e-tiket `APCR26-ID-0712` |
+| code | varchar(6) | `ID`, `INT`, `CORP` → e-ticket code `APCR26-ID-0712` |
 | name | varchar | "Indonesia Delegate" |
 | price | bigint | rupiah |
-| pax_per_ticket | smallint default 1 | Corporate = 5 ("Rp 15.000.000 / 5 orang") |
+| pax_per_ticket | smallint default 1 | Corporate = 5 ("Rp 15,000,000 / 5 people") |
 | quota | integer | |
-| ticket_seq | integer default 0 | counter kode e-tiket |
-| is_on_sale | boolean | toggle "Dijual" |
+| ticket_seq | integer default 0 | e-ticket counter |
+| is_on_sale | boolean | "On sale" switch |
 | sort_order, timestamps | | |
 
-Unik `(event_id, code)`. "Terjual" = jumlah peserta `payment_status = paid` (dihitung, tidak disimpan).
+Unique `(event_id, code)`. "Sold" = participants with `payment_status = paid` (computed, not stored).
 
-### 3.7 `participants` — satu baris = satu user ikut satu event
+### 3.7 `participants` — one row = one user attending one event
 
-Data diri ada di `users`; tabel ini hanya data keikutsertaan. Orang yang ikut 3 event = 1 user + 3 baris
-`participants`; halaman "Detail peserta" = satu user beserta semua barisnya ("Event yang didaftar").
+Personal details live in `users`; this table only holds attendance. Someone attending 3 events = 1 user + 3
+`participants` rows; the "Participant detail" page = one user with all their rows ("Registered events").
 
-| Kolom | Tipe | Catatan |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid | |
-| reg_no | varchar unik | `REG-APCR-26-01248` |
-| user_id | → users **CASCADE** | hapus peserta (user) = hapus semua pendaftaran & e-tiketnya |
+| reg_no | varchar unique | `REG-APCR-26-01248` |
+| user_id | → users **CASCADE** | deleting a participant (user) deletes all their registrations and e-tickets |
 | event_id | → events **CASCADE** | |
-| ticket_type_id | → ticket_types **RESTRICT** | tipe tiket yang sudah dipakai tidak bisa dihapus |
-| extra | jsonb default `{}` | jawaban form tambahan khusus event ini, tanpa migrasi |
+| ticket_type_id | → ticket_types **RESTRICT** | a ticket type in use cannot be deleted |
+| extra | jsonb default `{}` | answers to extra, event-specific form fields |
 | status | `registration_status` | `pending_verification` · `verified` · `rejected` · `cancelled` |
-| payment_status | `payment_status` | `none` · `pending` · `paid` · `expired` · `refunded` — disalin dari transaksi terakhir |
-| rejection_reason | text null | dipakai di email "ditolak" |
-| verified_at / verified_by → users (SET NULL) | | admin yang memverifikasi |
+| payment_status | `payment_status` | `none` · `pending` · `paid` · `expired` · `refunded` — copied from the latest transaction |
+| rejection_reason | text null | used in the "rejected" email |
+| verified_at / verified_by → users (SET NULL) | | the admin who verified |
 | rejected_at / cancelled_at | timestamptz null | |
-| ticket_code | varchar unik null | `APCR26-ID-0712`, diisi saat lunas |
+| ticket_code | varchar unique null | `APCR26-ID-0712`, set once paid |
 | ticket_issued_at / checked_in_at | timestamptz null | |
-| created_at / updated_at | | "Tanggal daftar" |
+| created_at / updated_at | | "Registered" |
 
-- Partial unique index `(event_id, user_id) WHERE status NOT IN ('rejected','cancelled')` → satu user hanya boleh punya satu pendaftaran aktif per event, tapi bisa "daftar ulang" setelah ditolak.
-- Tabel "Kelola peserta" = `participants` join `users` (nama, email, instansi) join `events` & `ticket_types`.
-- Label UI "Belum ditagih" / "Tidak ditagih" = `payment_status = none`, dibedakan oleh `status`.
-- `payment_status` disimpan supaya tabel peserta bisa difilter & di-sort per status bayar tanpa join; diperbarui di service yang sama yang mengubah transaksi (satu DB transaction).
+- Partial unique index `(event_id, user_id) WHERE status NOT IN ('rejected','cancelled')` → one active registration per user per event, while re-registering after a rejection is allowed.
+- The "Not invoiced yet" / "Not invoiced" labels = `payment_status = none`, told apart by `status`.
+- `payment_status` is stored so the participant table can filter and sort by payment status without a join; it is updated in the same DB transaction that changes the transaction.
 
-### 3.8 `transactions` — semua transaksi, detail dalam `jsonb`
+### 3.8 `transactions` — every transaction, details in `jsonb`
 
-Kolom biasa hanya untuk yang dicari, difilter, di-sort, atau dijumlah. Sisanya `jsonb`.
+Plain columns only for what is searched, filtered, sorted or summed. Everything else is `jsonb`.
 
-| Kolom | Tipe | Catatan |
+| Column | Type | Notes |
 |---|---|---|
 | id | uuid | |
-| invoice_no | varchar unik | `INV-APCR-26-01248` |
-| user_id | → users **SET NULL** | hapus peserta tidak menghapus transaksi |
-| participant_id | → participants **SET NULL** | pendaftaran yang ditagih |
+| invoice_no | varchar unique | `INV-APCR-26-01248`, also DOKU's `invoice_number` |
+| user_id | → users **SET NULL** | deleting a participant keeps the transaction |
+| participant_id | → participants **SET NULL** | the invoiced registration |
 | event_id | → events **SET NULL** | |
-| participant_name / participant_email | varchar | snapshot untuk pencarian & daftar setelah user dihapus |
-| event_name / ticket_type_name | varchar | snapshot untuk kolom "Acara" & "Tipe tiket" |
+| participant_name / participant_email | varchar | snapshot for search and lists after the user is deleted |
+| event_name / ticket_type_name | varchar | snapshot for the "Event" and "Ticket type" columns |
 | status | `transaction_status` | `pending` · `paid` · `expired` · `refunded` |
-| method | `payment_method` null | `virtual_account` · `qris` · `credit_card` · `bank_transfer` (filter "Metode") |
-| total | bigint | "Jumlah", dipakai untuk total pendapatan |
+| method | `payment_method` null | `virtual_account` · `qris` · `credit_card` · `bank_transfer` · `e_wallet` |
+| total | bigint | "Amount", summed for revenue |
 | currency | char(3) default `IDR` | |
-| expires_at / paid_at | timestamptz null | job kedaluwarsa & pengingat 24 jam |
-| items | jsonb | rincian tagihan |
-| payment | jsonb | info pembayaran dari DOKU |
-| history | jsonb (array) | kartu "Riwayat status" |
-| created_at / updated_at | timestamptz | "Tagihan dibuat", kolom "Tanggal" |
+| expires_at / paid_at | timestamptz null | expiry job and 24-hour reminder |
+| items | jsonb | invoice lines |
+| payment | jsonb | DOKU payment details |
+| history | jsonb (array) | the "Status history" card |
+| created_at / updated_at | timestamptz | "Invoice created", "Date" column |
 
-Bentuk json (divalidasi Zod, diketik dengan `.$type<>()` di Drizzle):
+JSON shapes (`shared/schemas/transaction.ts`, typed with `.$type<>()`):
 
 ```ts
 // items
@@ -208,148 +206,138 @@ Bentuk json (divalidasi Zod, diketik dengan `.$type<>()` di Drizzle):
   lines: { description: string; note?: string; qty: number; unitPrice: number; subtotal: number }[]
   subtotal: number
   discount: number
-  // contoh baris: "Biaya layanan VA" unitPrice 4440, subtotal 0, note "Ditanggung panitia"
+  // e.g. "VA service fee", unitPrice 4440, subtotal 0, note "Covered by the organizers"
 }
 
 // payment
 {
-  channel?: string          // "BCA", "BNI", "Mandiri" — dari notifikasi DOKU
+  channel?: string          // "BCA", "BNI", "Mandiri" — from the DOKU notification
   vaNumber?: string
-  dokuRequestId?: string    // Request-Id saat membuat pembayaran (idempotensi)
-  dokuPaymentUrl?: string   // URL DOKU Checkout yang dikirim ke peserta
-  dokuReference?: string    // referensi transaksi dari DOKU
+  dokuRequestId?: string    // Request-Id used to create the checkout
+  dokuPaymentUrl?: string   // DOKU Checkout URL sent to the participant
+  dokuTokenId?: string
+  dokuReference?: string
   refundAmount?: number
   refundedAt?: string
   adminNote?: string
-  raw?: unknown             // payload notifikasi DOKU terakhir, untuk audit
+  reminderSentAt?: string
+  raw?: unknown             // latest DOKU notification payload, for auditing
 }
 
-// history (urut waktu, append-only)
+// history (chronological, append-only)
 {
   type: 'created' | 'invoice_sent' | 'paid' | 'ticket_sent' | 'expired' | 'refunded' | 'note'
   at: string                // ISO
   description?: string      // "VA BCA", "APCR26-ID-0712"
-  actor?: { id: string; name: string } | null   // null = sistem
+  actor?: { id: string; name: string } | null   // null = system
 }[]
 ```
 
-Konsekuensi yang perlu diingat: isi `items`/`payment`/`history` tidak bisa difilter efisien; kalau suatu saat perlu (mis. filter per bank), field itu dipindah jadi kolom biasa.
+Trade-off: values inside `items`/`payment`/`history` cannot be filtered efficiently; if that is ever needed (e.g. filter by bank), move the field to a plain column.
 
-### 3.9 Email (tanpa tabel)
+### 3.9 Emails (no table)
 
-Template statis di kode, satu file per template di `server/emails/`:
+Static templates in code (`server/services/mail/templates.ts`):
 `registration-received`, `registration-verified`, `registration-rejected`, `payment-reminder`, `payment-success`,
 `invoice-expired`, `refund-processed`, `event-reminder-h3`, `event-thank-you`.
 
-- Isi diambil dari 9 template di desain; variabel diisi dari data peserta/transaksi/event.
-- Halaman "Template email" di CMS merender template yang sama sebagai pratinjau (read-only).
-- Pengiriman email yang terkait transaksi dicatat sebagai entri `history` (`invoice_sent`, `ticket_sent`). Tidak ada log email terpisah; status "dibuka" tidak dilacak.
+- Content comes from the 9 templates in the design; values are filled from participant/transaction/event data.
+- The CMS "Email templates" page renders the same templates as a read-only preview.
+- Sending is recorded in the transaction `history` (`invoice_sent`, `ticket_sent`). There is no separate email log; opens are not tracked.
 
 ---
 
-## 4. Index
+## 4. Indexes
 
-| Tabel | Index | Untuk |
+| Table | Index | For |
 |---|---|---|
-| participants | `(event_id, status)`, `(event_id, payment_status)`, `(created_at desc)`, `(user_id)` | filter & sort tabel peserta, dashboard, detail peserta lintas event |
-| users | `(role)`; GIN `pg_trgm` pada `name`, `email`, `organization` | "Cari nama, email, atau instansi" |
-| transactions | `(status, created_at desc)`, `(event_id)`, `(user_id)`, `(participant_id)`, `(expires_at) WHERE status='pending'` | daftar transaksi, riwayat transaksi peserta, job kedaluwarsa & pengingat |
-| transactions | GIN `pg_trgm` pada `invoice_no`, `participant_name` | "Cari ID transaksi atau nama peserta" |
+| participants | `(event_id, status)`, `(event_id, payment_status)`, `(created_at desc)`, `(user_id)` | participant table filters and sorting, dashboard, participant detail |
+| users | `(role)`; GIN `pg_trgm` on `name`, `email::text`, `organization` | "Search name, email or organization" |
+| transactions | `(status, created_at desc)`, `(event_id)`, `(user_id)`, `(participant_id)`, `(expires_at) WHERE status='pending'` | transaction list, participant history, expiry and reminder jobs |
+| transactions | GIN `pg_trgm` on `invoice_no`, `participant_name` | "Search transaction ID or participant" |
 
-Extension: `citext`, `pg_trgm`.
+Extensions: `citext`, `pg_trgm`.
 
-## 5. Dashboard (tanpa tabel tambahan)
-Semua angka dihitung dengan query agregat per event: total pendaftar, menunggu verifikasi, lunas, total pendapatan (`sum(total) where status='paid'`), pendaftaran 14 hari (`date_trunc('day', created_at at time zone tz)`), kuota per tipe tiket, sebaran status bayar. Kalau nanti lambat → materialized view.
+## 5. Dashboard (no extra tables)
+Every number is an aggregate query per event: total registrations, pending verification, paid, total revenue (`sum(total) where status='paid'`), registrations over 14 days (`(created_at at time zone tz)::date`), quota per ticket type, payment status breakdown. If this gets slow → materialized view.
 
-## 6. Alur status (dijaga di service layer)
+## 6. Status flow (enforced in `server/services/`)
 
-Pendaftaran dari form publik (satu DB transaction):
+Public registration (one DB transaction):
 
-1. Validasi input dengan Zod.
-2. Cari `users` berdasarkan email.
-   - Belum ada → buat user baru `role = 'participant'`, tanpa password, isi field profil.
-   - Sudah ada & `role = 'participant'` → perbarui field profil dengan data terbaru dari form.
-   - Sudah ada & `role = 'admin'` → tetap pakai user itu, profil tidak ditimpa, role tidak diubah.
-3. Tolak kalau user sudah punya pendaftaran aktif di event ini (dijamin juga oleh partial unique index).
-4. Cek event `published` + `registration_open` + belum lewat `registration_deadline`, tipe tiket `is_on_sale` dan kuota masih ada.
-5. Buat baris `participants` dengan `reg_no` dari `events.registration_seq`.
-
-Karena email user unik, siapa pun yang tahu email seseorang bisa mendaftarkan atau memperbarui profilnya.
-Dampaknya kecil selama peserta tidak bisa login, tapi pembaruan profil dari form publik sebaiknya hanya
-mengisi field yang kosong, atau perubahan dikonfirmasi lewat email — diputuskan saat implementasi form publik.
+1. Validate the input with Zod.
+2. Look up `users` by email.
+   - Not found → create a user with `role = 'participant'`, no password, with the profile fields.
+   - Found with `role = 'participant'` → fill only the profile fields that are still empty (the form is unauthenticated, so nobody can overwrite someone's profile just by knowing their email).
+   - Found with `role = 'admin'` → use that user; the profile and role are not touched.
+3. Reject if the user already has an active registration for this event (also enforced by the partial unique index).
+4. Check the event is `published` + `registration_open` + before `registration_deadline`, and the ticket type is `is_on_sale` with quota left (the ticket type row is locked `FOR UPDATE`).
+5. Insert the `participants` row with `reg_no` from `events.registration_seq`.
 
 ```
-Form publik ──► user (dibuat/diperbarui) + participant(pending_verification, payment none)
-                                                                    + email registration-received
-Admin verifikasi ──► verified + transaction(pending, expires +48 jam,
-                     history: created, invoice_sent)              + email registration-verified
-Admin tolak ──► rejected (+ rejection_reason)                       + email registration-rejected
-Cron −24 jam ──►                                                    email payment-reminder
-Notifikasi DOKU paid ──► transaction paid (history: paid, ticket_sent),
-                         participant.payment_status paid, ticket_code diisi
-                                                                    + email payment-success (QR)
-Cron lewat batas ──► transaction expired, payment_status expired     + email invoice-expired
-Admin refund ──► transaction refunded, participant cancelled         + email refund-processed
+Public form ──► user (created/filled) + participant(pending_verification, payment none)
+                                                                  + email registration-received
+Admin verifies ──► verified + transaction(pending, expires in 48 hours,
+                   history: created, invoice_sent) + DOKU Checkout link
+                                                                  + email registration-verified
+Admin rejects ──► rejected (+ rejection_reason)                    + email registration-rejected
+Every 15 min, 24 h before deadline ──►                             email payment-reminder
+DOKU notification SUCCESS ──► transaction paid (history: paid, ticket_sent),
+                              participant.payment_status paid, ticket_code set
+                                                                  + email payment-success (QR)
+Every 5 min, past deadline ──► transaction expired, payment_status expired
+                                                                  + email invoice-expired
+Admin refunds ──► transaction refunded, participant cancelled      + email refund-processed
+Daily 08:00 WIB ──► 3 days before start: event-reminder-h3; 1 day after end: event-thank-you
 ```
 
-## 7. Struktur file
+## 7. Integrations
 
-```
-server/db/
-  schema/
-    auth.ts          # users (+ field profil peserta), sessions, accounts, verifications — hasil better-auth CLI
-    enums.ts
-    events.ts        # events, agenda_days, speakers, partners, ticket_types
-    participants.ts
-    transactions.ts  # + tipe json (TransactionItems, TransactionPayment, TransactionHistory)
-    relations.ts
-    index.ts
-  migrations/        # bunx drizzle-kit generate
-  migrate.ts         # migrate() via drizzle-orm/bun-sql/migrator
-  seed.ts            # admin awal + data contoh dari desain (bun run)
-  index.ts           # drizzle({ client: new SQL(DATABASE_URL), schema })
-server/emails/       # 9 template statis
-shared/schemas/      # Zod (drizzle-zod + extend, termasuk bentuk json) dipakai server & client
-drizzle.config.ts
-```
+### 7.1 DOKU Checkout (payments)
 
-## 8. Integrasi
+Docs: https://docs.doku.com/accept-payments/integration-tools/doku-checkout
 
-### 8.1 DOKU (payment gateway)
+- When an admin verifies a registration, the server calls `POST {DOKU_BASE_URL}/checkout/v1/payment` with
+  `order.invoice_number = transactions.invoice_no`, `order.amount = total`, `order.line_items`, `order.callback_url`
+  (`/payment/finish`), `payment.payment_due_date` (minutes left until `expires_at`), `customer`, and
+  `additional_info.override_notification_url` (`/api/payments/doku/notify`).
+- The returned `response.payment.url` is stored in `payment.dokuPaymentUrl` and sent in the "Verified + invoice" email.
+- The participant picks a method on the DOKU page (VA, QRIS, credit card, e-wallet…); the method and bank come from the notification → `method` + `payment.channel`.
+- Notification endpoint `POST /api/payments/doku/notify`:
+  1. Verify the `Signature` header (HMAC-SHA256 with the DOKU secret key, Request-Target = the notification path) — reject on mismatch.
+  2. Find the transaction by `order.invoice_number`, check the amount equals `total`.
+  3. Idempotent: if already `paid`, answer 200 without changes.
+  4. In one DB transaction: `paid`, `paid_at`, `participants.payment_status`, `ticket_code`, append `history`; then send the e-ticket email.
+- Credentials via env: `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL` (sandbox `https://api-sandbox.doku.com` / production `https://api.doku.com`). The notification URL path must also be set in the DOKU Back Office (the override only changes the domain).
+- Refunds: the CMS marks the transaction `refunded` and records the amount. Returning the money through DOKU depends on the payment method; for VA/bank transfer the organizers return it manually.
 
-- Pakai **DOKU Checkout**: saat admin memverifikasi, server membuat pembayaran ke DOKU dengan `invoice_number = transactions.invoice_no`, `amount = total`, masa berlaku 48 jam; `dokuPaymentUrl` dikirim di email "Terverifikasi + tagihan".
-- Peserta memilih metode di halaman DOKU (VA, QRIS, kartu kredit, dll.); metode & bank yang dipakai diisi dari notifikasi → `method` + `payment.channel`.
-- Endpoint notifikasi `POST /api/payments/doku/notify`:
-  1. Verifikasi header `Signature` (HMAC-SHA256 dengan secret key DOKU) — tolak kalau tidak cocok.
-  2. Cari transaksi lewat `invoice_number`, cek jumlah sama dengan `total`.
-  3. Idempoten: kalau sudah `paid`, balas 200 tanpa mengubah apa pun.
-  4. Dalam satu DB transaction: `paid`, `paid_at`, `participants.payment_status`, `ticket_code`, append `history`; lalu kirim email e-tiket.
-- Kredensial lewat env: `DOKU_CLIENT_ID`, `DOKU_SECRET_KEY`, `DOKU_BASE_URL` (sandbox / production).
-- Refund: di CMS mengubah status jadi `refunded` dan mencatat jumlah. Pengembalian dana lewat API DOKU hanya untuk metode yang didukung DOKU; untuk VA/transfer, dana dikembalikan manual oleh panitia — dicek lagi di dokumentasi DOKU saat implementasi.
+### 7.2 Cloudflare R2 (uploads)
 
-### 8.2 Cloudflare R2 (file upload)
-
-- Banner event, foto speaker, logo partner disimpan di bucket R2. Database hanya menyimpan **object key** (`events/<id>/banner-<uuid>.jpg`); URL publik dibentuk dari `R2_PUBLIC_URL` + key, jadi ganti domain tidak perlu migrasi data.
-- Akses lewat client S3 bawaan Bun (`Bun.S3Client`, endpoint R2) — tanpa AWS SDK.
-- Upload: browser minta presigned PUT URL ke `POST /api/admin/uploads` (admin saja; tipe & ukuran divalidasi Zod: JPG/PNG/WebP, ≤ 5 MB), lalu upload langsung ke R2.
-- Hapus event/speaker/partner atau ganti gambar → object lama ikut dihapus dari R2 setelah DB transaction berhasil.
+- Event banners, speaker photos and partner logos live in an R2 bucket. The database only stores the **object key** (`events/<uuid>.jpg`); the public URL is `R2_PUBLIC_URL` + key, so changing domains needs no data migration.
+- Access through Bun's built-in S3 client (`Bun.S3Client`, R2 endpoint) — no AWS SDK.
+- Upload: the browser asks `POST /api/admin/uploads` for a presigned PUT URL (admins only; type and size validated with Zod: JPG/PNG/WebP, ≤ 5 MB), then uploads straight to R2.
+- Deleting an event/speaker/partner or replacing an image deletes the old object after the DB transaction succeeds.
 - Env: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_URL`.
 
-### 8.3 Halaman publik (masuk scope)
+### 7.3 Public pages
 
-- `/events/[slug]` — info event, agenda, speaker berstatus `published`, partner per kategori, tipe tiket yang `is_on_sale`. Hanya event `published`.
-- `/events/[slug]/register` — form Registration (alur §6). Pilihan tipe peserta = tipe tiket event.
-- Peserta tidak login; status dikabarkan lewat email.
+- `/` — published events.
+- `/events/[slug]` — details, agenda, published speakers, partners by category, ticket types on sale.
+- `/events/[slug]/register` — registration form (flow in §6). Participant types = the event's ticket types.
+- `/payment/finish` — where DOKU Checkout sends the payer back.
+- Participants do not sign in; status updates arrive by email.
 
-## 9. Keputusan
+## 8. Decisions
 
-| # | Pertanyaan | Keputusan |
+| # | Question | Decision |
 |---|---|---|
-| 1 | Role | Hanya `admin` dan `participant` |
-| 2 | Form & halaman event publik | Masuk scope app ini |
-| 3 | Payment gateway | DOKU |
-| 4 | Penyimpanan file | Cloudflare R2 |
-| 5 | Hapus data | Permanen (hard delete); transaksi tetap disimpan |
-| – | Email | Statis di kode |
-| – | Transaksi | Satu tabel, detail dalam `jsonb` |
-| – | Admin & peserta | Satu tabel `users`, dibedakan `role`; daftar event membuat user `participant` otomatis |
+| 1 | Roles | Only `admin` and `participant` |
+| 2 | Public form and event page | In scope for this app |
+| 3 | Payment gateway | DOKU Checkout |
+| 4 | File storage | Cloudflare R2 |
+| 5 | Deletes | Permanent (hard delete); transactions are kept |
+| – | Emails | Static, in code |
+| – | Transactions | One table, details in `jsonb` |
+| – | Admins and participants | One `users` table told apart by `role`; registering for an event creates a `participant` user |
+| – | Language | All code, comments, docs, UI copy and emails in English |
+| – | Design | Core Design System (gold brand `#ECBD56`, slate neutrals, Rethink Sans + JetBrains Mono) mapped onto Nuxt UI in `app/assets/css/main.css` and `app/app.config.ts` |

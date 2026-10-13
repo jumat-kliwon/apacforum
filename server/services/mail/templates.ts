@@ -1,6 +1,6 @@
 /**
- * Template email statis (9 template dari desain "Template email peserta").
- * Setiap template menghasilkan konten terstruktur; `renderEmail` membungkusnya dengan layout yang sama.
+ * Static email templates (the 9 templates from the "Participant email templates" design).
+ * Each template returns structured content; `renderEmail` wraps it in one shared layout.
  */
 import { formatDateRange, formatDateTime, formatRupiah } from '../../../shared/utils/format'
 
@@ -54,23 +54,23 @@ export const TEMPLATE_KEYS = [
 ] as const
 export type TemplateKey = typeof TEMPLATE_KEYS[number]
 
-export const TEMPLATE_META: Record<TemplateKey, { group: 'Pendaftaran' | 'Pembayaran' | 'Acara', name: string, trigger: string, tone: Tone, registration: string, payment: string }> = {
-  'registration-received': { group: 'Pendaftaran', name: 'Pendaftaran diterima', trigger: 'Peserta mengirim form Registration', tone: 'info', registration: 'Menunggu verifikasi', payment: 'Belum ditagih' },
-  'registration-verified': { group: 'Pendaftaran', name: 'Terverifikasi + tagihan', trigger: 'Admin memverifikasi pendaftaran', tone: 'success', registration: 'Terverifikasi', payment: 'Menunggu pembayaran' },
-  'registration-rejected': { group: 'Pendaftaran', name: 'Pendaftaran ditolak', trigger: 'Admin menolak pendaftaran', tone: 'danger', registration: 'Ditolak', payment: 'Tidak ditagih' },
-  'payment-reminder': { group: 'Pembayaran', name: 'Pengingat pembayaran', trigger: '24 jam sebelum batas pembayaran', tone: 'warning', registration: 'Terverifikasi', payment: 'Menunggu pembayaran' },
-  'payment-success': { group: 'Pembayaran', name: 'Pembayaran berhasil + e-tiket', trigger: 'DOKU mengonfirmasi pembayaran', tone: 'success', registration: 'Terverifikasi', payment: 'Lunas' },
-  'invoice-expired': { group: 'Pembayaran', name: 'Tagihan kedaluwarsa', trigger: 'Batas pembayaran terlewati', tone: 'danger', registration: 'Terverifikasi', payment: 'Kedaluwarsa' },
-  'refund-processed': { group: 'Pembayaran', name: 'Refund diproses', trigger: 'Admin menyetujui pembatalan', tone: 'neutral', registration: 'Dibatalkan', payment: 'Refund' },
-  'event-reminder-h3': { group: 'Acara', name: 'Pengingat H-3 acara', trigger: '3 hari sebelum acara, peserta lunas', tone: 'info', registration: 'Terverifikasi', payment: 'Lunas' },
-  'event-thank-you': { group: 'Acara', name: 'Terima kasih', trigger: '1 hari setelah acara selesai', tone: 'success', registration: 'Terverifikasi', payment: 'Lunas' }
+export const TEMPLATE_META: Record<TemplateKey, { group: 'Registration' | 'Payment' | 'Event', name: string, trigger: string, tone: Tone, registration: string, payment: string }> = {
+  'registration-received': { group: 'Registration', name: 'Registration received', trigger: 'Participant submits the registration form', tone: 'info', registration: 'Pending verification', payment: 'Not invoiced yet' },
+  'registration-verified': { group: 'Registration', name: 'Verified + invoice', trigger: 'Admin verifies the registration', tone: 'success', registration: 'Verified', payment: 'Awaiting payment' },
+  'registration-rejected': { group: 'Registration', name: 'Registration rejected', trigger: 'Admin rejects the registration', tone: 'danger', registration: 'Rejected', payment: 'Not invoiced' },
+  'payment-reminder': { group: 'Payment', name: 'Payment reminder', trigger: '24 hours before the payment deadline', tone: 'warning', registration: 'Verified', payment: 'Awaiting payment' },
+  'payment-success': { group: 'Payment', name: 'Payment received + e-ticket', trigger: 'DOKU confirms the payment', tone: 'success', registration: 'Verified', payment: 'Paid' },
+  'invoice-expired': { group: 'Payment', name: 'Invoice expired', trigger: 'Payment deadline passes', tone: 'danger', registration: 'Verified', payment: 'Expired' },
+  'refund-processed': { group: 'Payment', name: 'Refund processed', trigger: 'Admin approves a cancellation', tone: 'neutral', registration: 'Cancelled', payment: 'Refunded' },
+  'event-reminder-h3': { group: 'Event', name: '3-day event reminder', trigger: '3 days before the event, paid participants', tone: 'info', registration: 'Verified', payment: 'Paid' },
+  'event-thank-you': { group: 'Event', name: 'Thank you', trigger: '1 day after the event ends', tone: 'success', registration: 'Verified', payment: 'Paid' }
 }
 
 const eventDate = (d: MailData) => formatDateRange(d.event.startDate, d.event.endDate)
 const eventUrl = (d: MailData) => `${d.siteUrl}/events/${d.event.slug}`
 const wib = (date: Date) => `${formatDateTime(date)} WIB`
 
-/** Link Google Calendar untuk CTA "Tambahkan ke kalender". */
+/** Google Calendar link for the "Add to calendar" button. */
 function calendarUrl(d: MailData) {
   const day = (iso: string, add = 0) => {
     const dt = new Date(`${iso}T00:00:00Z`)
@@ -89,145 +89,146 @@ function calendarUrl(d: MailData) {
 
 export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
   'registration-received': d => ({
-    subject: `Pendaftaran ${d.event.name} kamu sudah kami terima`,
-    preheader: 'Tim kami sedang memverifikasi data kamu, maksimal 2 hari kerja.',
+    subject: `We received your ${d.event.name} registration`,
+    preheader: 'Our team is verifying your details, within 2 working days.',
     tone: 'info',
-    heading: 'Terima kasih sudah mendaftar',
+    heading: 'Thanks for registering',
     body: [
-      `Pendaftaran kamu untuk ${d.event.name} sudah kami terima. Tim kami akan memverifikasi data kamu dalam 2 hari kerja.`,
-      'Setelah terverifikasi, kami mengirim tagihan dan link pembayaran ke email ini.'
+      `We received your registration for ${d.event.name}. Our team will verify your details within 2 working days.`,
+      'Once verified, we will send the invoice and a payment link to this email.'
     ],
-    boxTitle: 'Ringkasan pendaftaran',
+    boxTitle: 'Registration summary',
     rows: [
-      ['No. pendaftaran', d.regNo ?? '-'],
-      ['Nama', d.to.name],
-      ['Instansi', d.organization ?? '-'],
-      ['Tipe peserta', d.ticketTypeName ?? '-'],
-      ['Acara', `${d.event.name} · ${eventDate(d)}`]
+      ['Registration no.', d.regNo ?? '-'],
+      ['Name', d.to.name],
+      ['Organization', d.organization ?? '-'],
+      ['Participant type', d.ticketTypeName ?? '-'],
+      ['Event', `${d.event.name} · ${eventDate(d)}`]
     ],
-    cta: { label: 'Lihat halaman acara', url: eventUrl(d) },
-    note: 'Ada data yang salah? Balas email ini sebelum pendaftaran diverifikasi.'
+    cta: { label: 'View event page', url: eventUrl(d) },
+    note: 'Something wrong in your details? Reply to this email before your registration is verified.'
   }),
 
   'registration-verified': d => ({
-    subject: `Pendaftaran terverifikasi — selesaikan pembayaran${d.invoice?.expiresAt ? ` sebelum ${formatDateTime(d.invoice.expiresAt)} WIB` : ''}`,
-    preheader: `Tagihan ${formatRupiah(d.invoice?.total ?? 0)} untuk ${d.ticketTypeName}. Bayar dalam 48 jam.`,
+    subject: `Registration verified — complete your payment${d.invoice?.expiresAt ? ` by ${formatDateTime(d.invoice.expiresAt)} WIB` : ''}`,
+    preheader: `Invoice of ${formatRupiah(d.invoice?.total ?? 0)} for ${d.ticketTypeName}. Pay within 48 hours.`,
     tone: 'success',
-    heading: 'Pendaftaran kamu terverifikasi',
-    body: ['Data kamu sudah kami verifikasi. Selesaikan pembayaran sebelum batas waktu supaya kursi kamu tidak dilepas ke peserta lain.'],
-    boxTitle: `Tagihan ${d.invoice?.no ?? ''}`,
+    heading: 'Your registration is verified',
+    body: ['We have verified your details. Complete the payment before the deadline so your seat is not released to someone else.'],
+    boxTitle: `Invoice ${d.invoice?.no ?? ''}`,
     rows: [
-      ['Tipe tiket', d.ticketTypeName ?? '-'],
-      ['Harga', formatRupiah(d.ticketPrice ?? d.invoice?.total ?? 0)],
-      ...(d.invoice?.expiresAt ? [['Batas pembayaran', wib(d.invoice.expiresAt)] as [string, string]] : []),
+      ['Ticket type', d.ticketTypeName ?? '-'],
+      ['Price', formatRupiah(d.ticketPrice ?? d.invoice?.total ?? 0)],
+      ...(d.invoice?.expiresAt ? [['Payment deadline', wib(d.invoice.expiresAt)] as [string, string]] : []),
       ['Total', formatRupiah(d.invoice?.total ?? 0), true]
     ],
-    cta: d.invoice?.paymentUrl ? { label: 'Bayar sekarang', url: d.invoice.paymentUrl } : undefined,
-    note: 'Bisa bayar lewat Virtual Account, QRIS, transfer bank, atau kartu kredit.'
+    cta: d.invoice?.paymentUrl ? { label: 'Pay now', url: d.invoice.paymentUrl } : undefined,
+    note: 'You can pay by virtual account, QRIS, bank transfer, e-wallet or credit card.'
   }),
 
   'registration-rejected': d => ({
-    subject: `Kabar tentang pendaftaran ${d.event.name} kamu`,
-    preheader: 'Pendaftaran kamu belum bisa kami terima. Ini alasannya dan langkah berikutnya.',
+    subject: `An update on your ${d.event.name} registration`,
+    preheader: 'We could not accept your registration. Here is why and what you can do next.',
     tone: 'danger',
-    heading: 'Pendaftaran kamu belum bisa kami terima',
+    heading: 'We could not accept your registration',
     body: [
-      `Mohon maaf, pendaftaran kamu sebagai ${d.ticketTypeName} belum bisa kami terima.`,
-      ...(d.rejectionReason ? [`Alasan: ${d.rejectionReason}`] : []),
-      'Kamu bisa mendaftar ulang dengan melengkapi data tersebut selama kuota masih tersedia.'
+      `Sorry, we could not accept your registration as ${d.ticketTypeName}.`,
+      ...(d.rejectionReason ? [`Reason: ${d.rejectionReason}`] : []),
+      'You can register again with the missing details while seats are still available.'
     ],
-    cta: { label: 'Daftar ulang', url: `${eventUrl(d)}/register` },
-    note: 'Tidak ada tagihan yang dibuat untuk pendaftaran ini.'
+    cta: { label: 'Register again', url: `${eventUrl(d)}/register` },
+    note: 'No invoice was created for this registration.'
   }),
 
   'payment-reminder': d => ({
-    subject: `Tinggal 24 jam: selesaikan pembayaran ${d.event.name}`,
-    preheader: `Tagihan ${d.invoice?.no} kedaluwarsa${d.invoice?.expiresAt ? ` ${wib(d.invoice.expiresAt)}` : ' besok'}.`,
+    subject: `24 hours left: complete your ${d.event.name} payment`,
+    preheader: `Invoice ${d.invoice?.no} expires${d.invoice?.expiresAt ? ` ${wib(d.invoice.expiresAt)}` : ' tomorrow'}.`,
     tone: 'warning',
-    heading: 'Pembayaran kamu belum kami terima',
-    body: ['Tagihan kamu akan kedaluwarsa dalam 24 jam. Setelah itu kursi kamu kami lepas ke peserta lain.'],
-    boxTitle: `Tagihan ${d.invoice?.no ?? ''}`,
+    heading: 'We have not received your payment yet',
+    body: ['Your invoice expires in 24 hours. After that we release your seat to someone else.'],
+    boxTitle: `Invoice ${d.invoice?.no ?? ''}`,
     rows: [
-      ['Tipe tiket', d.ticketTypeName ?? '-'],
-      ...(d.invoice?.expiresAt ? [['Batas pembayaran', wib(d.invoice.expiresAt)] as [string, string]] : []),
+      ['Ticket type', d.ticketTypeName ?? '-'],
+      ...(d.invoice?.expiresAt ? [['Payment deadline', wib(d.invoice.expiresAt)] as [string, string]] : []),
       ['Total', formatRupiah(d.invoice?.total ?? 0), true]
     ],
-    cta: d.invoice?.paymentUrl ? { label: 'Bayar sekarang', url: d.invoice.paymentUrl } : undefined,
-    note: 'Sudah bayar? Abaikan email ini. Konfirmasi biasanya masuk dalam 10 menit.'
+    cta: d.invoice?.paymentUrl ? { label: 'Pay now', url: d.invoice.paymentUrl } : undefined,
+    note: 'Already paid? You can ignore this email. Confirmation usually arrives within 10 minutes.'
   }),
 
   'payment-success': d => ({
-    subject: `Pembayaran berhasil — ini e-tiket ${d.event.name} kamu`,
-    preheader: 'Simpan email ini. QR code dipakai untuk registrasi ulang di lokasi.',
+    subject: `Payment received — here is your ${d.event.name} e-ticket`,
+    preheader: 'Keep this email. The QR code is used to check in at the venue.',
     tone: 'success',
-    heading: `Sampai jumpa di ${d.event.city}!`,
-    body: [`Pembayaran kamu sudah kami terima. Kursi kamu di ${d.event.name} sudah aman.`],
-    boxTitle: 'Bukti pembayaran',
+    heading: `See you in ${d.event.city}!`,
+    body: [`We received your payment. Your seat at ${d.event.name} is confirmed.`],
+    boxTitle: 'Payment receipt',
     rows: [
-      ['No. invoice', d.invoice?.no ?? '-'],
-      ['Metode', d.invoice?.methodLabel ?? '-'],
-      ...(d.invoice?.paidAt ? [['Dibayar', wib(d.invoice.paidAt)] as [string, string]] : []),
+      ['Invoice no.', d.invoice?.no ?? '-'],
+      ['Method', d.invoice?.methodLabel ?? '-'],
+      ...(d.invoice?.paidAt ? [['Paid', wib(d.invoice.paidAt)] as [string, string]] : []),
       ['Total', formatRupiah(d.invoice?.total ?? 0), true]
     ],
-    qr: d.ticketCode ? { code: d.ticketCode, caption: 'Tunjukkan QR ini di meja registrasi untuk mengambil ID card.' } : undefined,
-    cta: { label: 'Tambahkan ke kalender', url: calendarUrl(d) }
+    qr: d.ticketCode ? { code: d.ticketCode, caption: 'Show this QR code at the registration desk to collect your ID card.' } : undefined,
+    cta: { label: 'Add to calendar', url: calendarUrl(d) }
   }),
 
   'invoice-expired': d => ({
-    subject: `Tagihan ${d.event.name} kamu sudah kedaluwarsa`,
-    preheader: 'Kamu masih bisa mendaftar lagi selama kuota tersedia.',
+    subject: `Your ${d.event.name} invoice has expired`,
+    preheader: 'You can still register again while seats are available.',
     tone: 'danger',
-    heading: 'Tagihan kamu sudah kedaluwarsa',
+    heading: 'Your invoice has expired',
     body: [
-      `Kami belum menerima pembayaran sampai batas waktu, jadi tagihan ${d.invoice?.no} kami batalkan.`,
-      `Kalau masih ingin ikut, kamu bisa mendaftar lagi.${d.remainingSeats != null ? ` Kuota tiket saat ini tersisa ${d.remainingSeats} kursi.` : ''}`
+      `We did not receive your payment before the deadline, so invoice ${d.invoice?.no} has been cancelled.`,
+      `If you still want to attend, you can register again.${d.remainingSeats != null ? ` ${d.remainingSeats} seats are left for your ticket type.` : ''}`
     ],
-    cta: { label: 'Daftar lagi', url: `${eventUrl(d)}/register` },
-    note: 'Sudah transfer tapi tagihan kedaluwarsa? Balas email ini dengan bukti transfer.'
+    cta: { label: 'Register again', url: `${eventUrl(d)}/register` },
+    note: 'Paid but the invoice expired? Reply to this email with your proof of transfer.'
   }),
 
   'refund-processed': d => ({
-    subject: `Refund ${d.event.name} sedang kami proses`,
-    preheader: `Dana ${formatRupiah(d.invoice?.refundAmount ?? d.invoice?.total ?? 0)} kembali ke rekening kamu dalam 7–14 hari kerja.`,
+    subject: `We are processing your ${d.event.name} refund`,
+    preheader: `${formatRupiah(d.invoice?.refundAmount ?? d.invoice?.total ?? 0)} returns to your account within 7–14 working days.`,
     tone: 'neutral',
-    heading: 'Refund kamu sedang diproses',
-    body: ['Pembatalan pendaftaran kamu sudah kami setujui. Dana akan dikembalikan ke metode pembayaran awal.'],
-    boxTitle: 'Detail refund',
+    heading: 'Your refund is being processed',
+    body: ['We approved the cancellation of your registration. The money goes back to your original payment method.'],
+    boxTitle: 'Refund details',
     rows: [
-      ['No. invoice', d.invoice?.no ?? '-'],
-      ['Metode awal', d.invoice?.methodLabel ?? '-'],
-      ['Estimasi masuk', '7–14 hari kerja'],
-      ['Jumlah refund', formatRupiah(d.invoice?.refundAmount ?? d.invoice?.total ?? 0), true]
+      ['Invoice no.', d.invoice?.no ?? '-'],
+      ['Original method', d.invoice?.methodLabel ?? '-'],
+      ['Expected arrival', '7–14 working days'],
+      ['Refund amount', formatRupiah(d.invoice?.refundAmount ?? d.invoice?.total ?? 0), true]
     ],
-    note: 'E-tiket untuk pendaftaran ini sudah tidak berlaku.'
+    note: 'The e-ticket for this registration is no longer valid.'
   }),
 
   'event-reminder-h3': d => ({
-    subject: `3 hari lagi: info penting sebelum ${d.event.name}`,
-    preheader: 'Lokasi, jadwal, dan yang perlu dibawa.',
+    subject: `3 days to go: what to know before ${d.event.name}`,
+    preheader: 'Venue, dates and what to bring.',
     tone: 'info',
-    heading: `${d.event.name} tinggal 3 hari lagi`,
-    body: ['Ini info yang perlu kamu siapkan sebelum datang.'],
-    boxTitle: 'Info acara',
+    heading: `${d.event.name} is 3 days away`,
+    body: ['Here is what to prepare before you come.'],
+    boxTitle: 'Event details',
     rows: [
-      ['Tanggal', eventDate(d)],
-      ['Lokasi', `${d.event.venueName}, ${d.event.city}`],
-      ['Bawa', 'E-tiket (QR) dan kartu identitas']
+      ['Dates', eventDate(d)],
+      ['Venue', `${d.event.venueName}, ${d.event.city}`],
+      ['Bring', 'Your e-ticket (QR) and an ID card']
     ],
-    qr: d.ticketCode ? { code: d.ticketCode, caption: 'Tunjukkan QR ini di meja registrasi untuk mengambil ID card.' } : undefined,
-    cta: { label: 'Lihat agenda lengkap', url: eventUrl(d) }
+    qr: d.ticketCode ? { code: d.ticketCode, caption: 'Show this QR code at the registration desk to collect your ID card.' } : undefined,
+    cta: { label: 'See the full agenda', url: eventUrl(d) }
   }),
 
   'event-thank-you': d => ({
-    subject: `Terima kasih sudah hadir di ${d.event.name}`,
-    preheader: `Sampai jumpa di acara APCR berikutnya.`,
+    subject: `Thank you for joining ${d.event.name}`,
+    preheader: 'See you at the next APCR event.',
     tone: 'success',
-    heading: 'Terima kasih sudah hadir',
-    body: [`Terima kasih sudah menjadi bagian dari ${d.event.name} di ${d.event.city}. Kami akan mengabari kamu untuk acara APCR berikutnya.`],
-    cta: { label: 'Lihat halaman acara', url: eventUrl(d) }
+    heading: 'Thank you for joining us',
+    body: [`Thank you for being part of ${d.event.name} in ${d.event.city}. We will let you know about the next APCR event.`],
+    cta: { label: 'View event page', url: eventUrl(d) }
   })
 }
 
+/** Core Design System colors; emails need literal values, not CSS variables. */
 const TONE: Record<Tone, [bg: string, fg: string]> = {
   info: ['#eff6ff', '#1d4ed8'],
   success: ['#f0fdf4', '#15803d'],
@@ -236,10 +237,13 @@ const TONE: Record<Tone, [bg: string, fg: string]> = {
   neutral: ['#f1f5f9', '#475569']
 }
 
+/** Plain-text glyphs: email clients do not load icon fonts or inline SVG reliably. */
+const TONE_GLYPH: Record<Tone, string> = { info: 'i', success: '&#10003;', warning: '!', danger: '!', neutral: '&#8634;' }
+
 const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]!))
 
 /**
- * HTML email (table layout, inline style). `qrSrc` = `cid:...` saat dikirim, data URI saat pratinjau.
+ * Email HTML (table layout, inline styles). `qrSrc` is a `cid:` reference when sending and a data URI in previews.
  */
 export function renderEmail(c: EmailContent, d: MailData, qrSrc?: string) {
   const [toneBg, toneFg] = TONE[c.tone]
@@ -255,8 +259,8 @@ export function renderEmail(c: EmailContent, d: MailData, qrSrc?: string) {
     : ''
   const qr = c.qr && qrSrc
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:8px 0 20px;background:#f8fafc;border-radius:12px"><tr><td align="center" style="padding:20px">
-        <img src="${qrSrc}" width="160" height="160" alt="QR code e-tiket ${esc(c.qr.code)}" style="display:block">
-        <div style="margin-top:12px;font:600 14px/20px ${font};color:#0f172a">E-tiket ${esc(d.event.name)}</div>
+        <img src="${qrSrc}" width="160" height="160" alt="E-ticket QR code ${esc(c.qr.code)}" style="display:block">
+        <div style="margin-top:12px;font:600 14px/20px ${font};color:#0f172a">${esc(d.event.name)} e-ticket</div>
         <div style="font:500 14px/20px 'JetBrains Mono',Menlo,monospace;color:#0f172a">${esc(c.qr.code)}</div>
         <div style="margin-top:4px;font:400 13px/18px ${font};color:#64748b">${esc(c.qr.caption)}</div>
       </td></tr></table>`
@@ -268,7 +272,7 @@ export function renderEmail(c: EmailContent, d: MailData, qrSrc?: string) {
     : ''
 
   const html = `<!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(c.subject)}</title></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(c.subject)}</title></head>
 <body style="margin:0;padding:0;background:#f8fafc">
 <div style="display:none;max-height:0;overflow:hidden">${esc(c.preheader)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc"><tr><td align="center" style="padding:32px 16px">
@@ -283,35 +287,35 @@ export function renderEmail(c: EmailContent, d: MailData, qrSrc?: string) {
       </tr></table>
     </td></tr>
     <tr><td style="padding:28px">
-      <div style="display:inline-block;padding:4px 10px;border-radius:999px;background:${toneBg};color:${toneFg};font:600 12px/16px ${font}">${esc(c.heading)}</div>
+      <div style="width:40px;height:40px;border-radius:999px;background:${toneBg};color:${toneFg};text-align:center;font:700 20px/40px ${font}" aria-hidden="true">${TONE_GLYPH[c.tone]}</div>
       <h1 style="margin:16px 0 0;font:700 22px/30px ${font};color:#0f172a">${esc(c.heading)}</h1>
-      <p style="margin:16px 0 0;font:400 15px/24px ${font};color:#334155">Halo ${esc(d.to.name)},</p>
+      <p style="margin:16px 0 0;font:400 15px/24px ${font};color:#334155">Hi ${esc(d.to.name)},</p>
       ${c.body.map(p => `<p style="margin:12px 0 0;font:400 15px/24px ${font};color:#334155">${esc(p)}</p>`).join('')}
       ${rows}${qr}${cta}
       ${c.note ? `<p style="margin:0 0 16px;font:400 13px/20px ${font};color:#64748b">${esc(c.note)}</p>` : ''}
-      <p style="margin:16px 0 0;font:400 15px/24px ${font};color:#334155">Salam hangat,<br>Panitia ${esc(d.event.name)}</p>
+      <p style="margin:16px 0 0;font:400 15px/24px ${font};color:#334155">Warm regards,<br>The ${esc(d.event.name)} team</p>
     </td></tr>
     <tr><td style="padding:20px 28px;border-top:1px solid #e2e8f0;font:400 12px/18px ${font};color:#64748b">
       ASEAN Public Communication &amp; Reputation Forum<br>
-      Butuh bantuan? Balas email ini.
+      Need help? Reply to this email.
     </td></tr>
   </table>
 </td></tr></table>
 </body></html>`
 
   const text = [
-    `Halo ${d.to.name},`,
+    `Hi ${d.to.name},`,
     '',
     ...c.body,
     '',
     ...(c.boxTitle ? [c.boxTitle] : []),
     ...(c.rows ?? []).map(([k, v]) => `${k}: ${v}`),
-    ...(c.qr ? ['', `E-tiket: ${c.qr.code}`, c.qr.caption] : []),
+    ...(c.qr ? ['', `E-ticket: ${c.qr.code}`, c.qr.caption] : []),
     ...(c.cta ? ['', `${c.cta.label}: ${c.cta.url}`] : []),
     ...(c.note ? ['', c.note] : []),
     '',
-    'Salam hangat,',
-    `Panitia ${d.event.name}`
+    'Warm regards,',
+    `The ${d.event.name} team`
   ].join('\n')
 
   return { html, text }

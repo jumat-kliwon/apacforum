@@ -3,8 +3,8 @@ import QRCode from 'qrcode'
 import { renderEmail, templates, type MailData, type TemplateKey } from './templates'
 
 /**
- * Pengiriman lewat SMTP (`SMTP_URL`, `MAIL_FROM`). Tanpa `SMTP_URL`, email hanya dicatat di log
- * supaya alur tetap bisa dicoba di development.
+ * Sends through SMTP (`SMTP_URL`, `MAIL_FROM`). Without `SMTP_URL` emails are only logged,
+ * so the flows can still be tried in development.
  */
 let transport: Transporter | null = null
 
@@ -21,7 +21,7 @@ export async function sendTemplate(key: TemplateKey, data: MailData) {
 
   const t = getTransport()
   if (!t) {
-    console.info(`[mail] (tidak dikirim, SMTP_URL kosong) ${key} → ${data.to.email}: ${content.subject}`)
+    console.info(`[mail] (not sent, SMTP_URL is empty) ${key} → ${data.to.email}: ${content.subject}`)
     return { sent: false as const }
   }
   await t.sendMail({
@@ -30,22 +30,22 @@ export async function sendTemplate(key: TemplateKey, data: MailData) {
     subject: content.subject,
     html,
     text,
-    attachments: qrPng ? [{ filename: 'e-tiket.png', content: qrPng, cid: 'eticket-qr' }] : []
+    attachments: qrPng ? [{ filename: 'e-ticket.png', content: qrPng, cid: 'eticket-qr' }] : []
   })
   return { sent: true as const }
 }
 
-/** Kirim tanpa menggagalkan alur utama (status di DB sudah tersimpan). */
+/** Sends without failing the main flow (the status change is already saved). */
 export async function sendTemplateSafe(key: TemplateKey, data: MailData) {
   try {
     return await sendTemplate(key, data)
   } catch (err) {
-    console.error(`[mail] gagal mengirim ${key} ke ${data.to.email}`, err)
+    console.error(`[mail] could not send ${key} to ${data.to.email}`, err)
     return { sent: false as const }
   }
 }
 
-/** Pratinjau HTML (QR sebagai data URI). */
+/** Preview HTML (QR code as a data URI). */
 export async function previewTemplate(key: TemplateKey, data: MailData) {
   const content = templates[key](data)
   const qr = content.qr ? await QRCode.toDataURL(content.qr.code, { width: 320, margin: 1 }) : undefined

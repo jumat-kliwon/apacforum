@@ -1,9 +1,13 @@
 /**
- * DOKU Checkout + notifikasi pembayaran.
- * Skema signature (Non-SNAP): "HMACSHA256=" + base64(HMAC-SHA256(secret, komponen)) dengan komponen
- *   Client-Id:..\nRequest-Id:..\nRequest-Timestamp:..\nRequest-Target:..\nDigest:base64(sha256(body))
- * Rujukan: https://developers.doku.com (Checkout & Notification). Cocokkan lagi dengan dokumentasi
- * akun DOKU sebelum produksi.
+ * DOKU Checkout (hosted payment page) + HTTP notifications.
+ * Docs: https://docs.doku.com/accept-payments/integration-tools/doku-checkout
+ *
+ * Flow: the server creates a payment with `POST /checkout/v1/payment`, sends the returned
+ * `response.payment.url` to the participant, and DOKU calls the notification URL once paid.
+ *
+ * Request signature (DOKU non-SNAP): "HMACSHA256=" + base64(HMAC-SHA256(secretKey, component)) where component is
+ *   Client-Id:<id>\nRequest-Id:<uuid>\nRequest-Timestamp:<ISO8601 UTC>\nRequest-Target:<path>\nDigest:<base64(sha256(body))>
+ * Notifications are signed the same way with Request-Target = our notification path.
  */
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto'
 
@@ -33,43 +37,68 @@ function signature(secretKey: string, parts: { clientId: string, requestId: stri
   return `HMACSHA256=${createHmac('sha256', secretKey).update(component).digest('base64')}`
 }
 
-/** `2026-10-12T08:00:00Z` (tanpa milidetik, sesuai format DOKU) */
+/** `2026-10-12T08:00:00Z` — UTC without milliseconds, as DOKU expects. */
 const timestamp = () => new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')
 
 export type CheckoutInput = {
   invoiceNo: string
   amount: number
+  /** How long the checkout page stays payable, in minutes. */
   dueMinutes: number
+  /** Where DOKU sends the payer after the checkout page. */
   callbackUrl: string
-  customer: { name: string, email: string, phone?: string | null }
+  /** Absolute URL of our notification endpoint (its path must match the one set in the DOKU Back Office). */
+  notificationUrl: string
+  customer: { id: string, name: string, email: string, phone?: string | null }
   lineItems: { name: string, price: number, quantity: number }[]
 }
 
-export type CheckoutResult = { url: string, requestId: string, expiresAt: Date | null }
+export type CheckoutResult = { url: string, tokenId: string | null, requestId: string, expiresAt: Date | null }
+
+type CheckoutResponse = {
+  message?: string[]
+  response?: {
+    payment?: { url?: string, token_id?: string, expired_date?: string }
+  }
+}
+
+/** `yyyyMMddHHmmss` in WIB (DOKU's `expired_date`) → Date. */
+function parseDokuDate(value: string | undefined) {
+  if (!value || !/^\d{14}$/.test(value)) return null
+  const v = value
+  return new Date(`${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}T${v.slice(8, 10)}:${v.slice(10, 12)}:${v.slice(12, 14)}+07:00`)
+}
 
 export async function createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
   const cfg = config()
   if (!cfg) {
-    // dev tanpa kredensial: link palsu supaya alur lain tetap bisa dicoba
-    console.warn(`[doku] DOKU_CLIENT_ID/DOKU_SECRET_KEY kosong — checkout ${input.invoiceNo} disimulasikan`)
-    return { url: `${input.callbackUrl}?simulated=1&invoice=${input.invoiceNo}`, requestId: `sim-${randomUUID()}`, expiresAt: null }
+    // Development without credentials: a fake link so the rest of the flow can still be tried.
+    console.warn(`[doku] DOKU_CLIENT_ID/DOKU_SECRET_KEY not set — simulating checkout for ${input.invoiceNo}`)
+    return { url: `${input.callbackUrl}?simulated=1&invoice=${input.invoiceNo}`, tokenId: null, requestId: `sim-${randomUUID()}`, expiresAt: null }
   }
 
   const requestId = randomUUID()
   const ts = timestamp()
   const body = JSON.stringify({
     order: {
-      invoice_number: input.invoiceNo,
       amount: input.amount,
+      invoice_number: input.invoiceNo,
       currency: 'IDR',
       callback_url: input.callbackUrl,
+      callback_url_cancel: input.callbackUrl,
       line_items: input.lineItems.map(l => ({ name: l.name.slice(0, 255), price: l.price, quantity: l.quantity }))
     },
-    payment: { payment_due_date: input.dueMinutes },
+    payment: {
+      payment_due_date: input.dueMinutes
+    },
     customer: {
+      id: input.customer.id,
       name: input.customer.name.slice(0, 255),
       email: input.customer.email,
       ...(input.customer.phone && { phone: input.customer.phone.replace(/[^\d+]/g, '') })
+    },
+    additional_info: {
+      override_notification_url: input.notificationUrl
     }
   })
 
@@ -84,21 +113,16 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
     },
     body
   })
-  const json = await res.json().catch(() => null) as { response?: { payment?: { url?: string, expired_date?: string } }, message?: string[] } | null
-  const url = json?.response?.payment?.url
-  if (!res.ok || !url) {
-    console.error('[doku] checkout gagal', res.status, json)
-    throw createError({ statusCode: 502, statusMessage: 'Gagal membuat pembayaran di DOKU' })
+  const json = await res.json().catch(() => null) as CheckoutResponse | null
+  const payment = json?.response?.payment
+  if (!res.ok || !payment?.url) {
+    console.error('[doku] checkout failed', res.status, json)
+    throw createError({ statusCode: 502, statusMessage: 'Could not create the DOKU payment' })
   }
-  // expired_date DOKU: "yyyyMMddHHmmss" (WIB)
-  const ed = json.response?.payment?.expired_date
-  const expiresAt = ed && /^\d{14}$/.test(ed)
-    ? new Date(`${ed.slice(0, 4)}-${ed.slice(4, 6)}-${ed.slice(6, 8)}T${ed.slice(8, 10)}:${ed.slice(10, 12)}:${ed.slice(12, 14)}+07:00`)
-    : null
-  return { url, requestId, expiresAt }
+  return { url: payment.url, tokenId: payment.token_id ?? null, requestId, expiresAt: parseDokuDate(payment.expired_date) }
 }
 
-/** Cek signature notifikasi dari DOKU. `rawBody` harus persis seperti diterima. */
+/** Verifies a DOKU notification. `rawBody` must be exactly what was received. */
 export function verifyNotification(headers: Headers, rawBody: string) {
   const cfg = config()
   if (!cfg) return false
@@ -122,7 +146,7 @@ export type DokuNotification = {
   virtual_account_info?: { virtual_account_number?: string }
 }
 
-/** Petakan kanal DOKU → metode + bank. Contoh id: VIRTUAL_ACCOUNT_BCA, QRIS, CREDIT_CARD, EMONEY_OVO. */
+/** Maps a DOKU channel to our method + bank. Example ids: VIRTUAL_ACCOUNT_BCA, QRIS, CREDIT_CARD, EMONEY_OVO. */
 export function mapChannel(n: DokuNotification): { method: 'virtual_account' | 'qris' | 'credit_card' | 'bank_transfer' | 'e_wallet' | null, channel?: string } {
   const id = (n.channel?.id ?? n.service?.id ?? '').toUpperCase()
   if (id.startsWith('VIRTUAL_ACCOUNT')) {
