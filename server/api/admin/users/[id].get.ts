@@ -1,8 +1,9 @@
 import { and, desc, eq } from 'drizzle-orm'
+import QRCode from 'qrcode'
 import { db } from '~~/server/db'
 import { events, participants, ticketTypes, transactions, users } from '~~/server/db/schema'
 
-/** Participant detail: profile, every event registration, transaction history. */
+/** Participant detail: profile, every event registration (with its e-ticket QR), transaction history. */
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
   const id = parseId(event)
@@ -25,6 +26,8 @@ export default defineEventHandler(async (event) => {
       status: participants.status,
       paymentStatus: participants.paymentStatus,
       ticketCode: participants.ticketCode,
+      ticketIssuedAt: participants.ticketIssuedAt,
+      checkedInAt: participants.checkedInAt,
       rejectionReason: participants.rejectionReason,
       createdAt: participants.createdAt
     }).from(participants)
@@ -38,9 +41,15 @@ export default defineEventHandler(async (event) => {
     }).from(transactions).where(eq(transactions.userId, id)).orderBy(desc(transactions.createdAt))
   ])
 
+  // the same QR as the e-ticket email: it encodes the ticket code the scanner looks up
+  const withQr = await Promise.all(registrations.map(async r => ({
+    ...r,
+    ticketQr: r.ticketCode ? await QRCode.toDataURL(r.ticketCode, { width: 320, margin: 1 }) : null
+  })))
+
   return {
     user,
-    registrations,
+    registrations: withQr,
     transactions: trx.map(({ payment, ...t }) => ({ ...t, channel: payment.channel ?? null })),
     totalPaid: trx.filter(t => t.status === 'paid').reduce((sum, t) => sum + t.total, 0)
   }
