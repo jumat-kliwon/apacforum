@@ -384,7 +384,7 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
         {{ state.status === 'published' && eventId ? 'This event is live on the website.' : 'Drafts are not visible on the website.' }}
       </span>
       <div class="ml-auto flex flex-wrap gap-2">
-        <UButton :to="eventId ? `/admin/events/${eventId}` : '/admin/events'" color="neutral" variant="ghost" label="Cancel" />
+        <UButton :to="eventId ? eventPath(eventId, 'settings') : '/admin/events'" color="neutral" variant="ghost" label="Cancel" />
         <UButton color="neutral" variant="outline" label="Save as draft" :loading="saving && submitAs === 'draft'" @click="save('draft')" />
         <UButton v-if="step > 0" color="neutral" variant="outline" icon="i-lucide-arrow-left" label="Back" @click="goTo(step - 1)" />
         <!-- an existing event can be saved from any step, so Next steps back from primary -->

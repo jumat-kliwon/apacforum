@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const [ev] = await db.select().from(events).where(eq(events.id, id))
   if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
 
-  const [days, sp, pa, tickets, sold, [stats], [revenue], breakdown, impact] = await Promise.all([
+  const [days, sp, pa, tickets, sold, [stats], [revenue], impact] = await Promise.all([
     db.select().from(agendaDays).where(eq(agendaDays.eventId, id)).orderBy(asc(agendaDays.sortOrder)),
     db.select().from(speakers).where(eq(speakers.eventId, id)).orderBy(asc(speakers.sortOrder)),
     db.select().from(partners).where(eq(partners.eventId, id)).orderBy(asc(partners.sortOrder)),
@@ -20,9 +20,6 @@ export default defineEventHandler(async (event) => {
       .where(and(eq(participants.eventId, id), eq(participants.paymentStatus, 'paid'))).groupBy(participants.ticketTypeId),
     db.select({ n: sql<number>`count(*) filter (where ${participants.status} not in ('rejected', 'cancelled'))::int` }).from(participants).where(eq(participants.eventId, id)),
     db.select({ sum: sql<string>`coalesce(sum(${transactions.total}), 0)::bigint` }).from(transactions).where(and(eq(transactions.eventId, id), eq(transactions.status, 'paid'))),
-    // registration × payment status counts for the Participants tab filters
-    db.select({ status: participants.status, paymentStatus: participants.paymentStatus, n: sql<number>`count(*)::int` }).from(participants)
-      .where(eq(participants.eventId, id)).groupBy(participants.status, participants.paymentStatus),
     deleteImpact([id])
   ])
 
@@ -39,7 +36,6 @@ export default defineEventHandler(async (event) => {
     partners: pa.map(p => ({ ...p, logoUrl: publicUrl(p.logoKey) })),
     ticketTypes: tickets.map(t => ({ ...t, sold: sold.find(s => s.ticketTypeId === t.id)?.n ?? 0 })),
     stats: { participants: stats?.n ?? 0, revenue: Number(revenue?.sum ?? 0) },
-    participantBreakdown: breakdown,
     impact: impact.get(id)!
   }
 })

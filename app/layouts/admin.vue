@@ -15,7 +15,8 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
   return [
     { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: eventPath(id), exact: true },
     { label: 'Registrations', icon: 'i-lucide-users', to: eventPath(id, 'registrations') },
-    { label: 'Transactions', icon: 'i-lucide-credit-card', to: eventPath(id, 'transactions') }
+    { label: 'Transactions', icon: 'i-lucide-credit-card', to: eventPath(id, 'transactions') },
+    { label: 'Event settings', icon: 'i-lucide-settings', to: eventPath(id, 'settings') }
   ]
 })
 const workspaceItems: NavigationMenuItem[] = [

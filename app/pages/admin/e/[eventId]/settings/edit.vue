@@ -3,9 +3,8 @@ import type { EventForm, EventFormInput } from '~~/shared/schemas/event'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
-const route = useRoute()
 const notify = useNotify()
-const id = String(route.params.id)
+const id = useEventId()
 const { data, error } = await useFetch(`/api/admin/events/${id}`)
 
 const initial = computed<EventFormInput | undefined>(() => {
@@ -35,7 +34,8 @@ async function update(form: EventForm) {
   try {
     await $fetch(`/api/admin/events/${id}`, { method: 'PUT', body: form })
     notify.success('Event saved')
-    await navigateTo(`/admin/events/${id}`)
+    await useAdminEvents().load(true)
+    await navigateTo(eventPath(id, 'settings'))
   } catch (err) {
     notify.error(err, 'Could not save the event')
   } finally {
@@ -52,7 +52,7 @@ async function update(form: EventForm) {
     <AdminPageHeader
       :title="`Edit ${data.event.name}`"
       description="Changes to a published event show on the website right after you save."
-      :breadcrumb="[{ label: 'Events', to: '/admin/events' }, { label: data.event.name, to: `/admin/events/${id}` }, { label: 'Edit' }]"
+      :breadcrumb="[{ label: 'Events', to: '/admin/events' }, { label: data.event.name, to: eventPath(id, 'settings') }, { label: 'Edit' }]"
     />
     <AdminEventForm :initial="initial" :previews="previews" :event-id="id" :saving="saving" @submit="update" />
   </template>

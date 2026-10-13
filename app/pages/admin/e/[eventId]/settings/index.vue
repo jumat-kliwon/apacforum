@@ -3,8 +3,9 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
 const notify = useNotify()
-const id = String(route.params.id)
-const { data, error } = await useFetch(`/api/admin/events/${id}`)
+const id = useEventId()
+const { load } = useAdminEvents()
+const { data, error, refresh } = await useFetch(`/api/admin/events/${id}`)
 
 const ev = computed(() => data.value?.event)
 
@@ -54,7 +55,6 @@ const tabs = computed(() => {
   const count = (n?: number) => (n ? formatNumber(n) : undefined)
   return [
     { label: 'Overview', value: 'overview', icon: 'i-lucide-info', slot: 'overview' as const },
-    { label: 'Participants', value: 'participants', icon: 'i-lucide-users', badge: count(d?.stats.participants), slot: 'participants' as const },
     { label: 'Agenda', value: 'agenda', icon: 'i-lucide-calendar-days', badge: count(d?.agendaDays.length), slot: 'agenda' as const },
     { label: 'Speakers', value: 'speakers', icon: 'i-lucide-mic', badge: count(d?.speakers.length), slot: 'speakers' as const },
     { label: 'Partners', value: 'partners', icon: 'i-lucide-handshake', badge: count(d?.partners.length), slot: 'partners' as const },
@@ -75,7 +75,7 @@ const impactText = computed(() => {
     i.tickets && plural(i.tickets, 'ticket type', 'ticket types')
   ].filter(Boolean)
   const nested = parts.length ? `${parts.join(', ').replace(/^./, c => c.toUpperCase())} ${parts.length === 1 ? 'is' : 'are'} deleted too. ` : ''
-  const people = i.participants ? `${plural(i.participants, 'participant loses their', 'participants lose their')} e-tickets; transactions are kept. ` : ''
+  const people = i.participants ? `${plural(i.participants, 'participant loses their', 'participants lose their')} e-tickets. ` : ''
   return `${nested}${people}This cannot be undone.`
 })
 async function remove() {
@@ -83,10 +83,27 @@ async function remove() {
   try {
     await $fetch(`/api/admin/events/${id}`, { method: 'DELETE' })
     notify.success('Event deleted')
+    await load(true)
     await navigateTo('/admin/events')
   } catch (err) {
     notify.error(err)
     deleting.value = false
+  }
+}
+
+// events with money on them are archived instead (the server refuses to delete them)
+const locked = computed(() => (data.value?.impact.transactions ?? 0) > 0)
+const archiving = ref(false)
+async function archive() {
+  archiving.value = true
+  try {
+    await $fetch(`/api/admin/events/${id}/archive`, { method: 'POST' })
+    notify.success('Event archived', 'It is no longer on the website.')
+    await Promise.all([load(true), refresh()])
+  } catch (err) {
+    notify.error(err)
+  } finally {
+    archiving.value = false
   }
 }
 </script>
@@ -106,10 +123,14 @@ async function remove() {
         {{ formatDateRange(ev.startDate, ev.endDate) }} · {{ ev.venueName }}, {{ ev.city }}
       </template>
       <template #actions>
-        <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="deleteOpen = true" />
+        <UTooltip v-if="locked" :text="`${formatNumber(data.impact.transactions)} pending, paid or refunded transactions keep this event. Archive it instead.`">
+          <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" disabled />
+        </UTooltip>
+        <UButton v-else color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="deleteOpen = true" />
+        <UButton v-if="ev.status !== 'archived'" color="neutral" variant="ghost" icon="i-lucide-archive" label="Archive" :loading="archiving" @click="archive" />
         <UButton v-if="ev.status === 'published'" :to="`/events/${ev.slug}`" target="_blank" color="neutral" variant="outline" icon="i-lucide-external-link" label="View on website" />
         <UButton color="neutral" variant="outline" icon="i-lucide-scan-line" label="Ticket scanner" @click="scannerOpen = true" />
-        <UButton :to="`/admin/events/${id}/edit`" icon="i-lucide-pencil" label="Edit event" />
+        <UButton :to="eventPath(id, 'settings', 'edit')" icon="i-lucide-pencil" label="Edit event" />
       </template>
     </AdminPageHeader>
 
@@ -142,10 +163,6 @@ async function remove() {
           </div>
         </AdminPanel>
 
-      </template>
-
-      <template #participants>
-        <AdminEventParticipants :event-id="id" :capacity="ev.capacity" :registered="data.stats.participants" :breakdown="data.participantBreakdown" />
       </template>
 
       <template #agenda>
