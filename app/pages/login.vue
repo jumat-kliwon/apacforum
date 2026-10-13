@@ -41,7 +41,7 @@ async function onSubmit(e: FormSubmitEvent<Schema>) {
     <UCard class="w-full max-w-[440px] shadow-sm" :ui="{ body: 'p-8 sm:p-8' }">
       <div class="flex flex-col gap-6">
         <div class="flex flex-col items-center gap-3 text-center">
-          <span class="flex size-10 items-center justify-center rounded-lg bg-brand-400 text-lg font-extrabold text-(--brand-ink)">A</span>
+          <span class="flex size-10 items-center justify-center rounded-sm bg-brand-400 text-lg font-extrabold text-(--brand-ink)">A</span>
           <div>
             <h1 class="text-2xl font-bold tracking-tight text-highlighted">
               APCR CMS

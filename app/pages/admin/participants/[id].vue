@@ -115,7 +115,7 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
 </script>
 
 <template>
-  <div v-if="error" class="rounded-2xl border border-default bg-default p-10">
+  <div v-if="error" class="rounded-lg border border-default bg-default p-10">
     <UEmpty icon="i-lucide-user-x" title="Participant not found" :actions="[{ label: 'Back to participants', to: '/admin/participants' }]" />
   </div>
 
@@ -298,13 +298,13 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
           <UFormField label="City" name="city">
             <UInput v-model="editState.city!" class="w-full" />
           </UFormField>
-          <UFormField label="T-shirt size" name="tshirtSize">
+          <UFormField label="T-shirt size" name="tshirtSize" hint="Optional">
             <USelect v-model="editState.tshirtSize!" :items="TSHIRT_ITEMS" placeholder="Choose a size" class="w-full" />
           </UFormField>
-          <UFormField label="Meal preference" name="mealPreference">
+          <UFormField label="Meal preference" name="mealPreference" hint="Optional">
             <UInput v-model="editState.mealPreference!" class="w-full" />
           </UFormField>
-          <UFormField label="Heard about us from" name="referralSource" class="sm:col-span-2">
+          <UFormField label="Heard about us from" name="referralSource" hint="Optional" class="sm:col-span-2">
             <UInput v-model="editState.referralSource!" class="w-full" />
           </UFormField>
         </UForm>

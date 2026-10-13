@@ -18,7 +18,7 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
 
 <template>
   <template v-if="data">
-    <section class="overflow-hidden rounded-2xl border border-default bg-default shadow-xs">
+    <section class="overflow-hidden rounded-lg border border-default bg-default shadow-xs">
       <div v-if="ev.bannerUrl" class="aspect-[16/6] bg-elevated">
         <img :src="ev.bannerUrl" :alt="`${ev.name} banner`" class="size-full object-cover">
       </div>
@@ -49,7 +49,7 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
         Agenda
       </h2>
       <div class="grid gap-4 md:grid-cols-3">
-        <article v-for="(d, i) in data.agendaDays" :key="d.id" class="flex flex-col gap-2 rounded-2xl border border-default bg-default p-5 shadow-xs">
+        <article v-for="(d, i) in data.agendaDays" :key="d.id" class="flex flex-col gap-2 rounded-lg border border-default bg-default p-5 shadow-xs">
           <div class="flex items-center justify-between gap-2">
             <span class="text-[11px] font-medium uppercase tracking-[1.1px] text-muted">Day {{ i + 1 }}</span>
             <UBadge color="primary" :label="d.label" />
@@ -70,7 +70,7 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
         Speakers
       </h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <article v-for="s in data.speakers" :key="s.id" class="flex flex-col gap-3 rounded-2xl border border-default bg-default p-5 shadow-xs">
+        <article v-for="s in data.speakers" :key="s.id" class="flex flex-col gap-3 rounded-lg border border-default bg-default p-5 shadow-xs">
           <UAvatar :src="s.photoUrl ?? undefined" :text="initials(s.name)" :alt="s.name" size="3xl" class="bg-brand-50 text-brand-900" />
           <div>
             <h3 class="font-semibold text-highlighted">
@@ -97,7 +97,7 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
           {{ g.label }}
         </h3>
         <div class="flex flex-wrap gap-3">
-          <div v-for="p in g.items" :key="p.id" class="flex h-16 min-w-40 items-center justify-center gap-3 rounded-xl border border-default bg-default px-4">
+          <div v-for="p in g.items" :key="p.id" class="flex h-16 min-w-40 items-center justify-center gap-3 rounded-md border border-default bg-default px-4">
             <img v-if="p.logoUrl" :src="p.logoUrl" :alt="p.name" class="max-h-10 max-w-32 object-contain">
             <span v-else class="text-sm font-semibold text-highlighted">{{ p.name }}</span>
           </div>
@@ -110,7 +110,7 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
         Tickets
       </h2>
       <div class="grid gap-4 md:grid-cols-3">
-        <article v-for="t in data.ticketTypes" :key="t.id" class="flex flex-col gap-2 rounded-2xl border border-default bg-default p-5 shadow-xs">
+        <article v-for="t in data.ticketTypes" :key="t.id" class="flex flex-col gap-2 rounded-lg border border-default bg-default p-5 shadow-xs">
           <h3 class="font-semibold text-highlighted">
             {{ t.name }}
           </h3>

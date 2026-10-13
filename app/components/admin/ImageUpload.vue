@@ -60,13 +60,13 @@ function clear() {
 
 <template>
   <div class="flex flex-col gap-2">
-    <span v-if="variant === 'banner'" class="text-sm font-medium text-default">{{ label }}</span>
+    <span v-if="variant === 'banner'" class="text-sm/5 font-medium text-highlighted">{{ label }}</span>
     <div
-      class="relative flex items-center justify-center overflow-hidden rounded-xl border border-dashed border-accented bg-muted"
+      class="relative flex items-center justify-center overflow-hidden rounded-md border border-dashed border-accented bg-muted"
       :class="variant === 'banner' ? 'aspect-video w-full' : 'size-20 shrink-0'"
     >
       <img v-if="shown" :src="shown" :alt="label" class="absolute inset-0 size-full object-cover">
-      <label class="relative z-10 flex cursor-pointer flex-col items-center gap-1 rounded-lg p-3 text-center focus-within:outline-2 focus-within:outline-(--focus-ring)" :class="shown ? 'bg-default/90 shadow-sm' : ''">
+      <label class="relative z-10 flex cursor-pointer flex-col items-center gap-1 rounded-sm p-3 text-center focus-within:outline-2 focus-within:outline-(--focus-ring)" :class="shown ? 'bg-default/90 shadow-sm' : ''">
         <UIcon :name="uploading ? 'i-lucide-loader-circle' : 'i-lucide-upload'" class="size-5 text-muted" :class="{ 'animate-spin': uploading }" />
         <span v-if="variant === 'banner'" class="text-sm font-medium text-highlighted">{{ shown ? 'Replace banner' : 'Upload banner' }}</span>
         <span v-else class="sr-only">{{ label }}</span>

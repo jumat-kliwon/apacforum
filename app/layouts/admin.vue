@@ -35,7 +35,7 @@ watch(() => route.fullPath, () => { open.value = false })
     >
       <template #header>
         <NuxtLink to="/admin" class="flex items-center gap-3">
-          <span class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-400 text-[15px] font-extrabold text-(--brand-ink)">A</span>
+          <span class="flex size-8 shrink-0 items-center justify-center rounded-sm bg-brand-400 text-[15px] font-extrabold text-(--brand-ink)">A</span>
           <span class="flex min-w-0 flex-col leading-tight">
             <span class="text-[15px] font-bold text-highlighted">APCR CMS</span>
             <span class="text-xs text-muted">Admin panel</span>
@@ -60,7 +60,7 @@ watch(() => route.fullPath, () => { open.value = false })
       </template>
     </UDashboardSidebar>
 
-    <UDashboardPanel :ui="{ body: 'bg-muted p-4 sm:p-8 gap-6' }">
+    <UDashboardPanel :ui="{ body: 'bg-muted px-4 pt-6 pb-10 sm:px-8 sm:pt-7 gap-6' }">
       <template #header>
         <UDashboardNavbar class="lg:hidden" title="APCR CMS">
           <template #leading>

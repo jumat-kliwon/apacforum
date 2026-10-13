@@ -113,8 +113,8 @@ const rangeText = computed(() => {
   </div>
 
   <AdminPanel>
-    <div class="flex flex-wrap items-center gap-3">
-      <UInput v-model="q" icon="i-lucide-search" placeholder="Search transaction ID or participant" aria-label="Search transaction ID or participant" class="w-full sm:w-80" />
+    <div class="flex flex-wrap items-center gap-4 p-2">
+      <UInput v-model="q" icon="i-lucide-search" placeholder="Search transaction ID or participant" aria-label="Search transaction ID or participant" class="w-full sm:w-80 sm:min-w-[200px]" />
       <div class="ml-auto flex gap-2">
         <UButton color="neutral" variant="outline" icon="i-lucide-list-filter" :label="activeFilters ? `Filters (${activeFilters})` : 'Filters'" :aria-expanded="filterOpen" aria-controls="transaction-filters" @click="filterOpen = !filterOpen" />
         <UDropdownMenu :items="columnMenu" :content="{ align: 'end' }">
@@ -123,7 +123,7 @@ const rangeText = computed(() => {
       </div>
     </div>
 
-    <div v-if="filterOpen" id="transaction-filters" class="grid gap-3 rounded-xl bg-muted p-4 sm:grid-cols-2 lg:grid-cols-[repeat(5,minmax(0,1fr))_auto]">
+    <div v-if="filterOpen" id="transaction-filters" class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] items-end gap-4 rounded-lg border border-default bg-muted p-4">
       <UFormField label="Status">
         <USelect v-model="fStatus" :items="statusItems" class="w-full" />
       </UFormField>
@@ -139,13 +139,13 @@ const rangeText = computed(() => {
       <UFormField label="To">
         <UInput v-model="draft.to" type="date" class="w-full" />
       </UFormField>
-      <div class="flex items-end gap-2">
+      <div class="flex items-end justify-end gap-2">
         <UButton color="neutral" variant="ghost" label="Reset" @click="resetFilters" />
         <UButton label="Apply" @click="applyFilters" />
       </div>
     </div>
 
-    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center gap-2 rounded-xl bg-brand-50 px-4 py-2.5 dark:bg-[#2e2a18]">
+    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-brand-50 px-5 py-3 dark:bg-[#2e2a18]">
       <span aria-live="polite" class="text-sm font-semibold text-highlighted">{{ selected.size }} selected</span>
       <UButton class="ml-auto" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
     </div>

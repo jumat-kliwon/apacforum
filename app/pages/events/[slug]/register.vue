@@ -54,7 +54,7 @@ function onError(e: FormErrorEvent) {
   <template v-if="data">
     <UBreadcrumb :items="[{ label: ev.name, to: `/events/${slug}` }, { label: 'Register' }]" />
 
-    <div v-if="done" class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-2xl border border-default bg-default p-8 text-center shadow-xs" role="status">
+    <div v-if="done" class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-lg border border-default bg-default p-8 text-center shadow-xs" role="status">
       <span class="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
         <UIcon name="i-lucide-circle-check" class="size-6" />
       </span>
@@ -70,7 +70,7 @@ function onError(e: FormErrorEvent) {
       <UButton :to="`/events/${slug}`" color="neutral" variant="outline" label="Back to event page" />
     </div>
 
-    <div v-else-if="!ev.isOpen" class="rounded-2xl border border-default bg-default p-10">
+    <div v-else-if="!ev.isOpen" class="rounded-lg border border-default bg-default p-10">
       <UEmpty icon="i-lucide-calendar-x" title="Registration is closed" description="This event is no longer accepting registrations." :actions="[{ label: 'Back to event page', to: `/events/${slug}` }]" />
     </div>
 
@@ -81,7 +81,7 @@ function onError(e: FormErrorEvent) {
             Register for {{ ev.name }}
           </h1>
           <p class="text-sm text-muted">
-            Fields marked * are required. We use these details for your name badge and certificate.
+            All fields are required unless marked Optional. We use these details for your name badge and certificate.
           </p>
         </div>
 
@@ -133,7 +133,7 @@ function onError(e: FormErrorEvent) {
         </UForm>
       </UCard>
 
-      <aside class="flex flex-col gap-3 rounded-2xl border border-default bg-default p-5 shadow-xs lg:sticky lg:top-24">
+      <aside class="flex flex-col gap-3 rounded-lg border border-default bg-default p-5 shadow-xs lg:sticky lg:top-24">
         <h2 class="font-semibold text-highlighted">
           {{ ev.name }}
         </h2>

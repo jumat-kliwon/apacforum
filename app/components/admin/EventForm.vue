@@ -95,7 +95,7 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
   <UForm ref="form" :schema="eventFormSchema" :state="state" class="flex flex-col gap-6" @submit="onSubmit" @error="onError">
     <!-- 1. General details -->
     <AdminPanel title="1. General details" description="Shown on the event page and in participant emails.">
-      <div class="grid gap-x-6 gap-y-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div class="grid gap-4 sm:grid-cols-2">
           <UFormField label="Event name" name="name" required class="sm:col-span-2">
             <UInput v-model="state.name" placeholder="For example: APCR 2027" class="w-full" />
@@ -119,9 +119,9 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
             <UInput v-model="state.registrationDeadline" type="date" class="w-full" />
           </UFormField>
           <UFormField label="Capacity" name="capacity" required>
-            <UInput v-model.number="state.capacity" type="number" min="0" class="w-full">
+            <UInput v-model.number="state.capacity" type="number" min="0" class="w-full" :ui="{ base: 'pe-28' }">
               <template #trailing>
-                <span class="text-xs text-muted">participants</span>
+                <span class="flex h-full items-center border-l border-default pl-2 text-sm font-medium text-toned">participants</span>
               </template>
             </UInput>
           </UFormField>
@@ -140,12 +140,12 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
         </div>
         <div class="flex flex-col gap-4">
           <AdminImageUpload v-model="state.bannerKey" folder="events" :preview-url="previews.banner" label="Event banner" hint="JPG, PNG or WebP, 1920×1080, 5 MB at most" variant="banner" />
-          <div class="flex items-start justify-between gap-4 rounded-xl border border-default p-4">
+          <div class="flex items-start justify-between gap-4 rounded-md border border-default p-4">
             <div>
               <p class="text-sm font-medium text-highlighted">
                 Open registration
               </p>
-              <p class="text-[13px] text-muted">
+              <p class="text-[13px]/[18px] text-muted">
                 The registration form accepts participants as soon as the event is published.
               </p>
             </div>
@@ -160,12 +160,12 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
       <template #actions>
         <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add day" @click="days.push(blankDay())" />
       </template>
-      <div v-for="(d, i) in days" :key="i" class="flex flex-col gap-4 rounded-xl border border-default p-4">
+      <div v-for="(d, i) in days" :key="i" class="flex flex-col gap-4 rounded-md border border-default p-4">
         <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold text-highlighted">
+          <h3 class="text-[15px]/5 font-semibold text-highlighted">
             Day {{ i + 1 }}
           </h3>
-          <UButton color="error" variant="ghost" size="sm" icon="i-lucide-trash-2" :aria-label="`Remove day ${i + 1}`" @click="removeDay(i)" />
+          <UButton color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Remove day ${i + 1}`" @click="removeDay(i)" />
         </div>
         <div class="grid gap-4 sm:grid-cols-2">
           <UFormField label="Day label" :name="`agendaDays.${i}.label`">
@@ -192,7 +192,7 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
       <template #actions>
         <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add speaker" @click="addSpeaker" />
       </template>
-      <div v-for="(s, i) in speakers" :key="i" class="flex flex-wrap items-start gap-4 rounded-xl border border-default p-4">
+      <div v-for="(s, i) in speakers" :key="i" class="flex flex-wrap items-end gap-4 rounded-md border border-default p-4">
         <AdminImageUpload v-model="s.photoKey" folder="speakers" :preview-url="previews.speakers[i]" :label="`Speaker ${i + 1} photo`" variant="square" />
         <div class="grid min-w-0 grow gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <UFormField label="Name" :name="`speakers.${i}.name`">
@@ -208,9 +208,9 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
             <USelect v-model="dayModel(s).value" :items="dayItems" class="w-full" />
           </UFormField>
         </div>
-        <div class="flex items-center gap-3 self-center">
+        <div class="flex h-11 items-center gap-3">
           <USwitch :model-value="s.status === 'published'" label="Published" @update:model-value="v => s.status = v ? 'published' : 'draft'" />
-          <UButton color="error" variant="ghost" size="sm" icon="i-lucide-trash-2" :aria-label="`Remove speaker ${s.name || i + 1}`" @click="removeSpeaker(i)" />
+          <UButton color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Remove speaker ${s.name || i + 1}`" @click="removeSpeaker(i)" />
         </div>
       </div>
     </AdminPanel>
@@ -220,7 +220,7 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
       <template #actions>
         <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add partner" @click="addPartner" />
       </template>
-      <div v-for="(p, i) in partners" :key="i" class="flex flex-wrap items-start gap-4 rounded-xl border border-default p-4">
+      <div v-for="(p, i) in partners" :key="i" class="flex flex-wrap items-end gap-4 rounded-md border border-default p-4">
         <AdminImageUpload v-model="p.logoKey" folder="partners" :preview-url="previews.partners[i]" :label="`Partner ${i + 1} logo`" variant="square" />
         <div class="grid min-w-0 grow gap-4 sm:grid-cols-2">
           <UFormField label="Partner name" :name="`partners.${i}.name`">
@@ -230,7 +230,7 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
             <USelect v-model="p.category" :items="PARTNER_ITEMS" class="w-full" />
           </UFormField>
         </div>
-        <UButton color="error" variant="ghost" size="sm" icon="i-lucide-trash-2" class="self-center" :aria-label="`Remove partner ${p.name || i + 1}`" @click="removePartner(i)" />
+        <UButton color="error" variant="ghost" icon="i-lucide-trash-2" class="mb-1" :aria-label="`Remove partner ${p.name || i + 1}`" @click="removePartner(i)" />
       </div>
     </AdminPanel>
 
@@ -240,7 +240,7 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
         <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add ticket type" @click="tickets.push(blankTicket())" />
       </template>
       <UFormField name="ticketTypes" />
-      <div v-for="(t, i) in tickets" :key="i" class="flex flex-wrap items-start gap-4 rounded-xl border border-default p-4">
+      <div v-for="(t, i) in tickets" :key="i" class="flex flex-wrap items-end gap-4 rounded-md border border-default p-4">
         <div class="grid min-w-0 grow gap-4 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1.4fr_1fr_1fr]">
           <UFormField label="Ticket type name" :name="`ticketTypes.${i}.name`">
             <UInput v-model="t.name" placeholder="For example: Indonesia Delegate" class="w-full" />
@@ -249,9 +249,9 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
             <UInput v-model="t.code" placeholder="ID" class="w-full font-mono uppercase" />
           </UFormField>
           <UFormField label="Price" :name="`ticketTypes.${i}.price`">
-            <UInput v-model.number="t.price" type="number" min="0" class="w-full">
+            <UInput v-model.number="t.price" type="number" min="0" class="w-full" :ui="{ base: 'ps-13' }">
               <template #leading>
-                <span class="text-xs text-muted">Rp</span>
+                <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">Rp</span>
               </template>
             </UInput>
           </UFormField>
@@ -262,15 +262,15 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
             <UInput v-model.number="t.quota" type="number" min="0" class="w-full" />
           </UFormField>
         </div>
-        <div class="flex items-center gap-3 self-center">
+        <div class="flex h-11 items-center gap-3">
           <USwitch v-model="t.isOnSale" label="On sale" />
-          <UButton color="error" variant="ghost" size="sm" icon="i-lucide-trash-2" :aria-label="`Remove ticket type ${t.name || i + 1}`" @click="tickets.splice(i, 1)" />
+          <UButton color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Remove ticket type ${t.name || i + 1}`" @click="tickets.splice(i, 1)" />
         </div>
       </div>
     </AdminPanel>
 
-    <div class="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center gap-3 border-t border-default bg-default/95 px-4 py-3 sm:-mx-8 sm:px-8">
-      <span class="flex items-center gap-2 text-sm text-muted">
+    <div class="sticky bottom-0 z-10 -mx-4 -mb-10 flex flex-wrap items-center gap-3 border-t border-default bg-default px-4 py-4 sm:-mx-8 sm:px-8">
+      <span class="flex items-center gap-2 text-[13px]/[18px] text-muted">
         <UIcon name="i-lucide-info" class="size-4" />
         {{ state.status === 'published' && eventId ? 'This event is live on the website.' : 'Drafts are not visible on the website.' }}
       </span>

@@ -41,5 +41,5 @@ const { data } = await useFetch('/api/public/events')
       </div>
     </UCard>
   </div>
-  <UEmpty v-else icon="i-lucide-calendar" title="No upcoming events" description="Check back soon." class="rounded-2xl border border-default bg-default p-10" />
+  <UEmpty v-else icon="i-lucide-calendar" title="No upcoming events" description="Check back soon." class="rounded-lg border border-default bg-default p-10" />
 </template>

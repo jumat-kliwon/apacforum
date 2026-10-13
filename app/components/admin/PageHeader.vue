@@ -11,7 +11,7 @@ useHead({ title: () => props.title })
 </script>
 
 <template>
-  <header class="flex flex-wrap items-end justify-between gap-3">
+  <header class="flex flex-wrap items-end justify-between gap-4">
     <div class="flex min-w-0 flex-col gap-1">
       <UBreadcrumb v-if="breadcrumb?.length" :items="breadcrumb" :ui="{ link: 'text-[13px]' }" />
       <div class="flex flex-wrap items-center gap-3">
@@ -26,7 +26,7 @@ useHead({ title: () => props.title })
         </slot>
       </p>
     </div>
-    <div v-if="$slots.actions" class="flex flex-wrap gap-2">
+    <div v-if="$slots.actions" class="flex flex-wrap gap-3">
       <slot name="actions" />
     </div>
   </header>

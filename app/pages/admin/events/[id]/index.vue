@@ -72,7 +72,7 @@ async function remove() {
 </script>
 
 <template>
-  <div v-if="error" class="rounded-2xl border border-default bg-default p-10">
+  <div v-if="error" class="rounded-lg border border-default bg-default p-10">
     <UEmpty icon="i-lucide-calendar-x" title="Event not found" :actions="[{ label: 'Back to events', to: '/admin/events' }]" />
   </div>
 
@@ -114,7 +114,7 @@ async function remove() {
         </dl>
         <div class="flex flex-col gap-2">
           <span class="text-sm font-medium">Event banner</span>
-          <div class="flex aspect-video items-center justify-center overflow-hidden rounded-xl border border-default bg-muted">
+          <div class="flex aspect-video items-center justify-center overflow-hidden rounded-md border border-default bg-muted">
             <img v-if="ev.bannerUrl" :src="ev.bannerUrl" :alt="`${ev.name} banner`" class="size-full object-cover">
             <span v-else class="text-sm text-muted">No banner yet</span>
           </div>
@@ -124,7 +124,7 @@ async function remove() {
 
     <AdminPanel id="agenda" title="Agenda" class="scroll-mt-6">
       <div class="grid gap-4 lg:grid-cols-3">
-        <article v-for="(d, i) in data.agendaDays" :key="d.id" class="flex flex-col gap-2 rounded-xl border border-default p-4">
+        <article v-for="(d, i) in data.agendaDays" :key="d.id" class="flex flex-col gap-2 rounded-md border border-default p-4">
           <div class="flex items-center justify-between gap-2">
             <h3 class="text-sm font-semibold text-highlighted">
               Day {{ i + 1 }}
@@ -175,8 +175,8 @@ async function remove() {
 
     <AdminPanel id="partners" title="Partners" class="scroll-mt-6">
       <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <div v-for="p in data.partners" :key="p.id" class="flex items-center gap-3 rounded-xl border border-default p-3">
-          <UAvatar :src="p.logoUrl ?? undefined" :text="initials(p.name)" :alt="p.name" size="lg" class="rounded-lg bg-muted text-highlighted" />
+        <div v-for="p in data.partners" :key="p.id" class="flex items-center gap-3 rounded-md border border-default p-3">
+          <UAvatar :src="p.logoUrl ?? undefined" :text="initials(p.name)" :alt="p.name" size="lg" class="rounded-sm bg-muted text-highlighted" />
           <div class="min-w-0">
             <div class="truncate text-sm font-semibold text-highlighted">{{ p.name }}</div>
             <div class="truncate text-xs text-muted">{{ PARTNER_CATEGORY[p.category] }}</div>
