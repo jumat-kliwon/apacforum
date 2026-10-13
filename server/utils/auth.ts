@@ -11,7 +11,11 @@ export type Role = typeof ROLES[number]
 const profileField = { type: 'string', required: false, input: false } as const
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
+  // production uses BETTER_AUTH_URL; Vercel preview deployments fall back to their own URL
+  baseURL: process.env.BETTER_AUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined),
+  trustedOrigins: [process.env.VERCEL_URL, process.env.VERCEL_BRANCH_URL]
+    .filter((host): host is string => !!host)
+    .map(host => `https://${host}`),
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, { provider: 'pg', usePlural: true, schema }),
   advanced: {

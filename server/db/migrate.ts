@@ -1,6 +1,15 @@
+/**
+ * Applies pending migrations. Runs locally (`bun run db:migrate`) and in the Vercel build.
+ * Uses the direct (unpooled) connection when available: DDL should not go through PgBouncer.
+ */
+import { SQL } from 'bun'
+import { drizzle } from 'drizzle-orm/bun-sql'
 import { migrate } from 'drizzle-orm/bun-sql/migrator'
-import { client, db } from './index'
 
-await migrate(db, { migrationsFolder: new URL('./migrations', import.meta.url).pathname })
+const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
+if (!url) throw new Error('DATABASE_URL is not set')
+
+const client = new SQL(url, { max: 1 })
+await migrate(drizzle({ client }), { migrationsFolder: new URL('./migrations', import.meta.url).pathname })
 console.log('Migrations applied')
 await client.close()

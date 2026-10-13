@@ -8,7 +8,9 @@ export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0]
 export type Db = typeof db | Tx
 
 export const siteUrl = () =>
-  (process.env.NUXT_PUBLIC_SITE_URL ?? process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+  (process.env.NUXT_PUBLIC_SITE_URL || process.env.BETTER_AUTH_URL
+    || (process.env.VERCEL_PROJECT_PRODUCTION_URL && `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
+    || 'http://localhost:3000').replace(/\/$/, '')
 
 export const methodLabel = (method: keyof typeof PAYMENT_METHOD | null, channel?: string) =>
   method ? `${method === 'virtual_account' && channel ? 'VA' : PAYMENT_METHOD[method]}${channel ? ` ${channel}` : ''}` : null

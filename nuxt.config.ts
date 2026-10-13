@@ -25,7 +25,8 @@ export default defineNuxtConfig({
     ]
   },
   nitro: {
-    preset: 'bun',
+    // Vercel sets VERCEL=1 during its build; elsewhere build a standalone Bun server
+    preset: process.env.NITRO_PRESET || (process.env.VERCEL ? 'vercel' : 'bun'),
     experimental: {
       tasks: true
     },
