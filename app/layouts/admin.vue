@@ -4,10 +4,21 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 const session = useAdminSession()
 const route = useRoute()
 
-const items: NavigationMenuItem[] = [
-  { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: '/admin', exact: true },
-  { label: 'Registrations', icon: 'i-lucide-users', to: '/admin/participants' },
-  { label: 'Transactions', icon: 'i-lucide-credit-card', to: '/admin/transactions' },
+const { load } = useAdminEvents()
+const { event: current } = useCurrentEvent()
+load()
+
+// links follow the event in the URL, or the last one opened when on a global page
+const eventItems = computed<NavigationMenuItem[]>(() => {
+  const id = current.value?.id
+  if (!id) return []
+  return [
+    { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: eventPath(id), exact: true },
+    { label: 'Registrations', icon: 'i-lucide-users', to: '/admin/participants' },
+    { label: 'Transactions', icon: 'i-lucide-credit-card', to: '/admin/transactions' }
+  ]
+})
+const workspaceItems: NavigationMenuItem[] = [
   { label: 'Events', icon: 'i-lucide-calendar-days', to: '/admin/events' },
   { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }
 ]
@@ -50,12 +61,29 @@ watch(() => route.fullPath, () => { open.value = false })
         </NuxtLink>
       </template>
 
+      <div class="px-1 pt-3">
+        <AdminEventSwitcher />
+      </div>
+
       <!-- Core Menu Tree: section label 16/12/4, items 40px tall with 8/12 padding, 2px apart -->
+      <template v-if="eventItems.length">
+        <p class="px-3 pt-4 pb-1 text-[11px]/4 font-medium uppercase tracking-[1.1px] text-muted">
+          Event
+        </p>
+        <UNavigationMenu
+          :items="eventItems"
+          orientation="vertical"
+          :ui="{
+            list: 'flex flex-col gap-0.5',
+            link: 'min-h-10 px-3 py-2 gap-3 text-sm/5 before:inset-0 before:rounded-sm'
+          }"
+        />
+      </template>
       <p class="px-3 pt-4 pb-1 text-[11px]/4 font-medium uppercase tracking-[1.1px] text-muted">
-        Menu
+        Workspace
       </p>
       <UNavigationMenu
-        :items="items"
+        :items="workspaceItems"
         orientation="vertical"
         :ui="{
           list: 'flex flex-col gap-0.5',
