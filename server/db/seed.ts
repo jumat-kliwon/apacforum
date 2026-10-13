@@ -1,8 +1,11 @@
 /**
- * Development seed: admin account + sample data from the APCR CMS design.
+ * Seed: admin account + sample data from the APCR CMS design.
  * Deletes ALL events, participants and transactions, then fills them again.
  *
  *   bun run db:seed
+ *
+ * On Vercel it only runs when the `RUN_SEED=1` env var is set (see `vercel.json`);
+ * turn it off right after, or every deploy wipes the data again.
  */
 import { eq } from 'drizzle-orm'
 import type { TransactionHistory, TransactionItems, TransactionPayment } from '../../shared/schemas/transaction'
@@ -11,15 +14,16 @@ import { auth } from '../utils/auth'
 import { client, db } from './index'
 import * as s from './schema'
 
-if (process.env.NODE_ENV === 'production') {
-  throw new Error('Refusing to seed a production database')
+if (process.env.NODE_ENV === 'production' && process.env.RUN_SEED !== '1') {
+  throw new Error('Refusing to seed a production database (set RUN_SEED=1 to override)')
 }
 
-const adminEmail = process.env.SEED_ADMIN_EMAIL
-const adminPassword = process.env.SEED_ADMIN_PASSWORD
-const adminName = process.env.SEED_ADMIN_NAME ?? 'Admin APCR'
+// SEED_ADMIN_* locally; on Vercel the admin created by db:bootstrap (ADMIN_*) is reused
+const adminEmail = (process.env.SEED_ADMIN_EMAIL || process.env.ADMIN_EMAIL)?.trim().toLowerCase()
+const adminPassword = process.env.SEED_ADMIN_PASSWORD || process.env.ADMIN_PASSWORD
+const adminName = process.env.SEED_ADMIN_NAME || process.env.ADMIN_NAME || 'APCR Admin'
 if (!adminEmail || !adminPassword) {
-  throw new Error('SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD must be set (see .env.example)')
+  throw new Error('SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD (or ADMIN_EMAIL/ADMIN_PASSWORD) must be set')
 }
 
 /** WIB local time → Date. */
