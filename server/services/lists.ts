@@ -76,7 +76,6 @@ const transactionSort = {
   id: transactions.invoiceNo,
   name: transactions.participantName,
   type: transactions.ticketTypeName,
-  event: transactions.eventName,
   amount: transactions.total,
   method: transactions.method,
   status: transactions.status,
@@ -89,7 +88,7 @@ function transactionWhere(q: TQuery) {
     const p = likePattern(q.q)
     conds.push(or(ilike(transactions.invoiceNo, p), ilike(transactions.participantName, p), ilike(transactions.participantEmail, p)))
   }
-  if (q.eventId) conds.push(eq(transactions.eventId, q.eventId))
+  conds.push(eq(transactions.eventId, q.eventId))
   if (q.status) conds.push(eq(transactions.status, q.status))
   if (q.method) conds.push(eq(transactions.method, q.method))
   if (q.from) conds.push(gte(transactions.createdAt, new Date(`${q.from}T00:00:00+07:00`)))

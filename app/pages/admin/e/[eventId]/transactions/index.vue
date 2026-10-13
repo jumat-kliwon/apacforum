@@ -4,15 +4,16 @@ import type { Component } from 'vue'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
+const eventId = useEventId()
 const list = useListQuery({
   sort: 'date',
   dir: 'desc',
-  filters: { status: undefined, eventId: undefined, method: undefined, from: undefined, to: undefined } as Record<'status' | 'eventId' | 'method' | 'from' | 'to', string | undefined>
+  filters: { status: undefined, method: undefined, from: undefined, to: undefined } as Record<'status' | 'method' | 'from' | 'to', string | undefined>
 })
 const { q, page, pageSize, filters, query, sortHeader } = list
+const apiQuery = computed(() => ({ ...query.value, eventId }))
 
-const { data, status } = await useFetch('/api/admin/transactions', { query })
-const { data: options } = await useFetch('/api/admin/event-options')
+const { data, status } = await useFetch('/api/admin/transactions', { query: apiQuery })
 
 const summary = computed(() => data.value?.summary)
 const stats = computed(() => [
@@ -28,14 +29,12 @@ const draft = reactive({ ...filters })
 const ALL = '__all'
 const withAll = (label: string, items: { label: string, value: string }[]) => [{ label, value: ALL }, ...items]
 const statusItems = withAll('All statuses', toItems(TRANSACTION_STATUS))
-const eventItems = computed(() => withAll('All events', (options.value?.events ?? []).map(e => ({ label: e.name, value: e.id }))))
 const methodItems = withAll('All methods', toItems(PAYMENT_METHOD))
-const pick = (key: 'status' | 'eventId' | 'method') => computed({
+const pick = (key: 'status' | 'method') => computed({
   get: () => draft[key] ?? ALL,
   set: (v: string) => { draft[key] = v === ALL ? undefined : v }
 })
 const fStatus = pick('status')
-const fEvent = pick('eventId')
 const fMethod = pick('method')
 const activeFilters = computed(() => Object.values(filters).filter(Boolean).length)
 const applyFilters = () => Object.assign(filters, { ...draft, from: draft.from || undefined, to: draft.to || undefined })
@@ -67,7 +66,6 @@ const columns = computed<TableColumn<Row>[]>(() => [
   { id: 'id', header: sortHeader('id', 'Transaction ID'), enableHiding: false },
   { id: 'name', header: sortHeader('name', 'Participant'), meta: { label: 'Participant' } },
   { id: 'type', header: sortHeader('type', 'Ticket type'), meta: { label: 'Ticket type' } },
-  { id: 'event', header: sortHeader('event', 'Event'), meta: { label: 'Event' } },
   { id: 'amount', header: sortHeader('amount', 'Amount'), meta: { label: 'Amount', class: { th: 'text-right', td: 'text-right' } } },
   { id: 'method', header: sortHeader('method', 'Method'), meta: { label: 'Method' } },
   { id: 'status', header: sortHeader('status', 'Status'), meta: { label: 'Status' } },
@@ -88,7 +86,7 @@ const columnMenu = computed<DropdownMenuItem[]>(() => columns.value
 const methodText = (r: Row) => r.method ? (r.method === 'virtual_account' && r.channel ? `VA ${r.channel}` : PAYMENT_METHOD[r.method]) : '—'
 
 const exportUrl = (ids?: string[]) => {
-  const params = new URLSearchParams(Object.entries(query.value).map(([k, v]) => [k, String(v)]))
+  const params = new URLSearchParams(Object.entries(apiQuery.value).map(([k, v]) => [k, String(v)]))
   if (ids?.length) params.set('ids', ids.join(','))
   return `/api/admin/exports/transactions?${params}`
 }
@@ -127,9 +125,6 @@ const rangeText = computed(() => {
       <UFormField label="Status">
         <USelect v-model="fStatus" :items="statusItems" class="w-full" />
       </UFormField>
-      <UFormField label="Event">
-        <USelect v-model="fEvent" :items="eventItems" class="w-full" />
-      </UFormField>
       <UFormField label="Method">
         <USelect v-model="fMethod" :items="methodItems" class="w-full" />
       </UFormField>
@@ -155,12 +150,12 @@ const rangeText = computed(() => {
         <UCheckbox :model-value="selected.has(row.original.id)" :aria-label="`Select ${row.original.invoiceNo}`" @update:model-value="toggleRow(row.original.id, $event)" />
       </template>
       <template #id-cell="{ row }">
-        <NuxtLink :to="`/admin/transactions/${row.original.id}`" class="font-mono text-[13px] font-medium text-primary hover:underline">
+        <NuxtLink :to="eventPath(eventId, 'transactions', row.original.id)" class="font-mono text-[13px] font-medium text-primary hover:underline">
           {{ row.original.invoiceNo }}
         </NuxtLink>
       </template>
       <template #name-cell="{ row }">
-        <NuxtLink v-if="row.original.userId" :to="`/admin/participants/${row.original.userId}`" class="font-semibold text-highlighted hover:underline">
+        <NuxtLink v-if="row.original.userId" :to="eventPath(eventId, 'registrations', row.original.userId)" class="font-semibold text-highlighted hover:underline">
           {{ row.original.participantName }}
         </NuxtLink>
         <span v-else class="font-semibold text-highlighted">{{ row.original.participantName }}</span>
@@ -168,9 +163,6 @@ const rangeText = computed(() => {
       </template>
       <template #type-cell="{ row }">
         <UBadge color="neutral" variant="outline" :label="row.original.ticketTypeName" />
-      </template>
-      <template #event-cell="{ row }">
-        {{ row.original.eventName }}
       </template>
       <template #amount-cell="{ row }">
         <span class="whitespace-nowrap font-medium tabular-nums">{{ formatRupiah(row.original.total) }}</span>
@@ -186,7 +178,7 @@ const rangeText = computed(() => {
       </template>
       <template #actions-cell="{ row }">
         <div class="text-right">
-          <UButton :to="`/admin/transactions/${row.original.id}`" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="Details" />
+          <UButton :to="eventPath(eventId, 'transactions', row.original.id)" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="Details" />
         </div>
       </template>
     </UTable>
