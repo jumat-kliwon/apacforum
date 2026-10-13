@@ -56,7 +56,7 @@ export type TemplateKey = typeof TEMPLATE_KEYS[number]
 
 export const TEMPLATE_META: Record<TemplateKey, { group: 'Registration' | 'Payment' | 'Event', name: string, trigger: string, tone: Tone, registration: string, payment: string }> = {
   'registration-received': { group: 'Registration', name: 'Registration received', trigger: 'Participant submits the registration form', tone: 'info', registration: 'Pending verification', payment: 'Not invoiced yet' },
-  'registration-verified': { group: 'Registration', name: 'Verified + invoice', trigger: 'Admin verifies the registration', tone: 'success', registration: 'Verified', payment: 'Awaiting payment' },
+  'registration-verified': { group: 'Registration', name: 'Registration + invoice', trigger: 'Participant submits the registration form (or an admin verifies an older pending registration)', tone: 'success', registration: 'Verified', payment: 'Awaiting payment' },
   'registration-rejected': { group: 'Registration', name: 'Registration rejected', trigger: 'Admin rejects the registration', tone: 'danger', registration: 'Rejected', payment: 'Not invoiced' },
   'payment-reminder': { group: 'Payment', name: 'Payment reminder', trigger: '24 hours before the payment deadline', tone: 'warning', registration: 'Verified', payment: 'Awaiting payment' },
   'payment-success': { group: 'Payment', name: 'Payment received + e-ticket', trigger: 'DOKU confirms the payment', tone: 'success', registration: 'Verified', payment: 'Paid' },
@@ -110,11 +110,11 @@ export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
   }),
 
   'registration-verified': d => ({
-    subject: `Registration verified — complete your payment${d.invoice?.expiresAt ? ` by ${formatDateTime(d.invoice.expiresAt)} WIB` : ''}`,
+    subject: `Registration received — complete your payment${d.invoice?.expiresAt ? ` by ${formatDateTime(d.invoice.expiresAt)} WIB` : ''}`,
     preheader: `Invoice of ${formatRupiah(d.invoice?.total ?? 0)} for ${d.ticketTypeName}. Pay within 48 hours.`,
     tone: 'success',
-    heading: 'Your registration is verified',
-    body: ['We have verified your details. Complete the payment before the deadline so your seat is not released to someone else.'],
+    heading: 'Complete your payment',
+    body: [`Thanks for registering for ${d.event.name}. Complete the payment before the deadline so your seat is not released to someone else.`],
     boxTitle: `Invoice ${d.invoice?.no ?? ''}`,
     rows: [
       ['Ticket type', d.ticketTypeName ?? '-'],
