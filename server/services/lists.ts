@@ -11,7 +11,6 @@ type TQuery = z.output<typeof transactionListQuery>
 const participantSort = {
   name: users.name,
   type: ticketTypes.name,
-  event: events.name,
   org: users.organization,
   reg: participants.status,
   pay: participants.paymentStatus,
@@ -24,7 +23,7 @@ function participantWhere(q: Omit<PQuery, 'page' | 'pageSize' | 'sort' | 'dir'>)
     const p = likePattern(q.q)
     conds.push(or(ilike(users.name, p), ilike(sql`${users.email}::text`, p), ilike(users.organization, p), ilike(participants.regNo, p)))
   }
-  if (q.eventId) conds.push(eq(participants.eventId, q.eventId))
+  conds.push(eq(participants.eventId, q.eventId))
   if (q.ticketTypeName) conds.push(eq(ticketTypes.name, q.ticketTypeName))
   if (q.status) conds.push(eq(participants.status, q.status))
   if (q.paymentStatus) conds.push(eq(participants.paymentStatus, q.paymentStatus))

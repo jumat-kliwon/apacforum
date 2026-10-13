@@ -102,7 +102,7 @@ const now = new Date()
 
     <AdminPanel title="Latest registrations">
       <template #actions>
-        <UButton :to="{ path: '/admin/participants', query: { eventId } }" color="neutral" variant="ghost" size="sm" trailing-icon="i-lucide-chevron-right" label="See all participants" />
+        <UButton :to="eventPath(eventId, 'registrations')" color="neutral" variant="ghost" size="sm" trailing-icon="i-lucide-chevron-right" label="See all participants" />
       </template>
       <AdminParticipantMiniTable :rows="data?.recent ?? []" />
     </AdminPanel>

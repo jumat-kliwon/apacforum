@@ -5,22 +5,23 @@ import type { Component } from 'vue'
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const notify = useNotify()
+const eventId = useEventId()
 const list = useListQuery({
   sort: 'date',
   dir: 'desc',
-  filters: { eventId: undefined, ticketTypeName: undefined, status: undefined, paymentStatus: undefined } as Record<'eventId' | 'ticketTypeName' | 'status' | 'paymentStatus', string | undefined>
+  filters: { ticketTypeName: undefined, status: undefined, paymentStatus: undefined } as Record<'ticketTypeName' | 'status' | 'paymentStatus', string | undefined>
 })
 const { q, page, pageSize, filters, query, sortHeader } = list
+const apiQuery = computed(() => ({ ...query.value, eventId }))
 
-const { data, status, refresh } = await useFetch('/api/admin/participants', { query })
-const { data: options } = await useFetch('/api/admin/event-options')
+const { data, status, refresh } = await useFetch('/api/admin/participants', { query: apiQuery })
+const { data: options } = await useFetch('/api/admin/event-options', { query: { eventId } })
 
 // ── filters (applied with the "Apply" button) ──
 const filterOpen = ref(Object.values(filters).some(Boolean))
 const draft = reactive({ ...filters })
 const ALL = '__all'
 const withAll = (label: string, items: { label: string, value: string }[]) => [{ label, value: ALL }, ...items]
-const eventItems = computed(() => withAll('All events', (options.value?.events ?? []).map(e => ({ label: e.name, value: e.id }))))
 const typeItems = computed(() => withAll('All types', (options.value?.ticketTypeNames ?? []).map(n => ({ label: n, value: n }))))
 const regItems = withAll('All statuses', toItems(REGISTRATION_STATUS))
 const payItems = withAll('All statuses', toItems(PAYMENT_STATUS))
@@ -28,7 +29,6 @@ const pick = (key: keyof typeof draft) => computed({
   get: () => draft[key] ?? ALL,
   set: (v: string) => { draft[key] = v === ALL ? undefined : v }
 })
-const fEvent = pick('eventId')
 const fType = pick('ticketTypeName')
 const fReg = pick('status')
 const fPay = pick('paymentStatus')
@@ -66,7 +66,6 @@ const columns = computed((): TableColumn<Row>[] => [
   },
   { id: 'name', header: sortHeader('name', 'Participant'), enableHiding: false },
   { id: 'type', header: sortHeader('type', 'Participant type'), meta: { label: 'Participant type' } },
-  { id: 'event', header: sortHeader('event', 'Event'), meta: { label: 'Event' } },
   { id: 'org', header: sortHeader('org', 'Organization'), meta: { label: 'Organization' } },
   { id: 'reg', header: sortHeader('reg', 'Registration status'), meta: { label: 'Registration status' } },
   { id: 'pay', header: sortHeader('pay', 'Payment status'), meta: { label: 'Payment status' } },
@@ -104,7 +103,7 @@ async function bulk(action: 'verify' | 'email' | 'delete') {
 }
 
 const exportUrl = (ids?: string[]) => {
-  const params = new URLSearchParams(Object.entries(query.value).map(([k, v]) => [k, String(v)]))
+  const params = new URLSearchParams(Object.entries(apiQuery.value).map(([k, v]) => [k, String(v)]))
   if (ids?.length) params.set('ids', ids.join(','))
   return `/api/admin/exports/participants?${params}`
 }
@@ -149,9 +148,6 @@ const rangeText = computed(() => {
     </div>
 
     <div v-if="filterOpen" id="participant-filters" class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] items-end gap-4 rounded-md border border-default bg-muted p-4">
-      <UFormField label="Event">
-        <USelect v-model="fEvent" :items="eventItems" class="w-full" />
-      </UFormField>
       <UFormField label="Participant type">
         <USelect v-model="fType" :items="typeItems" class="w-full" />
       </UFormField>
@@ -192,7 +188,7 @@ const rangeText = computed(() => {
         <div class="flex items-center gap-3">
           <UAvatar :text="initials(row.original.name)" size="sm" class="bg-brand-50 text-brand-900" />
           <div class="min-w-0">
-            <NuxtLink :to="`/admin/participants/${row.original.userId}`" class="font-semibold text-highlighted hover:underline">
+            <NuxtLink :to="eventPath(eventId, 'registrations', row.original.userId)" class="font-semibold text-highlighted hover:underline">
               {{ row.original.name }}
             </NuxtLink>
             <div class="text-xs text-muted">{{ row.original.email }}</div>
@@ -201,9 +197,6 @@ const rangeText = computed(() => {
       </template>
       <template #type-cell="{ row }">
         <UBadge color="neutral" variant="outline" :label="row.original.ticketTypeName" />
-      </template>
-      <template #event-cell="{ row }">
-        {{ row.original.eventName }}
       </template>
       <template #org-cell="{ row }">
         <span class="text-muted">{{ row.original.organization ?? '—' }}</span>
@@ -219,7 +212,7 @@ const rangeText = computed(() => {
       </template>
       <template #actions-cell="{ row }">
         <div class="text-right">
-          <UButton :to="`/admin/participants/${row.original.userId}`" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="Details" />
+          <UButton :to="eventPath(eventId, 'registrations', row.original.userId)" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="Details" />
         </div>
       </template>
     </UTable>

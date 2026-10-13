@@ -7,11 +7,18 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
 const notify = useNotify()
-const id = computed(() => String(route.params.id))
+const eventId = useEventId()
+const id = computed(() => String(route.params.userId))
 const { data, error, refresh } = await useFetch(() => `/api/admin/users/${id.value}`)
 
 const user = computed(() => data.value?.user)
-const latestType = computed(() => data.value?.registrations[0]?.ticketTypeName)
+const here = computed(() => data.value?.registrations.filter(r => r.eventId === eventId) ?? [])
+const elsewhere = computed(() => data.value?.registrations.filter(r => r.eventId !== eventId) ?? [])
+const latestType = computed(() => here.value[0]?.ticketTypeName)
+
+// the URL's event must be one they registered for; otherwise open their latest registration's event
+const latest = data.value?.registrations[0]
+if (latest && !here.value.length) await navigateTo(eventPath(latest.eventId, 'registrations', id.value), { replace: true })
 
 const info = computed(() => {
   const u = user.value
@@ -62,7 +69,7 @@ async function submitReject(e: FormSubmitEvent<z.output<typeof rejectSchema>>) {
   }
 }
 
-const tickets = computed(() => data.value?.registrations.filter(r => r.ticketCode && r.ticketQr) ?? [])
+const tickets = computed(() => here.value.filter(r => r.ticketCode && r.ticketQr))
 const ticketValid = (r: { status: string, paymentStatus: string }) => r.paymentStatus === 'paid' && r.status === 'verified'
 
 async function undoCheckIn(regId: string) {
@@ -79,7 +86,7 @@ async function undoCheckIn(regId: string) {
 }
 
 async function sendEmail() {
-  const reg = data.value?.registrations[0]
+  const reg = here.value[0]
   if (reg) await act(reg.id, 'resend', 'Registration status email sent')
 }
 
@@ -119,7 +126,7 @@ async function remove() {
   try {
     await $fetch(`/api/admin/users/${id.value}`, { method: 'DELETE' })
     notify.success('Participant deleted')
-    await navigateTo('/admin/participants')
+    await navigateTo(eventPath(eventId, 'registrations'))
   } catch (err) {
     notify.error(err)
     deleting.value = false
@@ -132,11 +139,11 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
 
 <template>
   <div v-if="error" class="rounded-md border border-default bg-default p-10">
-    <UEmpty icon="i-lucide-user-x" title="Participant not found" :actions="[{ label: 'Back to participants', to: '/admin/participants' }]" />
+    <UEmpty icon="i-lucide-user-x" title="Participant not found" :actions="[{ label: 'Back to participants', to: eventPath(eventId, 'registrations') }]" />
   </div>
 
   <template v-else-if="user && data">
-    <AdminPageHeader :title="user.name" :breadcrumb="[{ label: 'Participants', to: '/admin/participants' }, { label: user.name }]">
+    <AdminPageHeader :title="user.name" :breadcrumb="[{ label: 'Participants', to: eventPath(eventId, 'registrations') }, { label: user.name }]">
       <template #badges>
         <UBadge v-if="latestType" color="neutral" variant="outline" :label="latestType" />
       </template>
@@ -145,7 +152,7 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
       </template>
       <template #actions>
         <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="deleteOpen = true" />
-        <UButton color="neutral" variant="outline" icon="i-lucide-mail" label="Send email" :disabled="!data.registrations.length" :loading="working?.startsWith('resend')" @click="sendEmail" />
+        <UButton color="neutral" variant="outline" icon="i-lucide-mail" label="Send email" :disabled="!here.length" :loading="working?.startsWith('resend')" @click="sendEmail" />
         <UButton icon="i-lucide-pencil" label="Edit participant" @click="openEdit" />
       </template>
     </AdminPageHeader>
@@ -176,20 +183,18 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
       </AdminPanel>
 
       <div class="flex flex-col gap-6">
-        <AdminPanel title="Registered events">
+        <AdminPanel title="Registration">
           <template #actions>
-            <span class="text-[13px] text-muted">{{ data.registrations.length }} {{ data.registrations.length === 1 ? 'event' : 'events' }}</span>
+            <span class="text-[13px] text-muted">{{ here[0]?.eventName }}</span>
           </template>
           <UTable
-            :data="data.registrations"
+            :data="here"
             :columns="[{ id: 'event', header: 'Event' }, { id: 'no', header: 'Registration no.' }, { id: 'reg', header: 'Registration status' }, { id: 'pay', header: 'Payment status' }, { id: 'actions', header: 'Actions' }]"
             empty="No registrations yet."
             class="-mx-4 sm:-mx-5"
           >
             <template #event-cell="{ row }">
-              <NuxtLink :to="`/admin/events/${row.original.eventId}`" class="font-semibold text-highlighted hover:underline">
-                {{ row.original.eventName }}
-              </NuxtLink>
+              <span class="font-semibold text-highlighted">{{ row.original.eventName }}</span>
               <div class="text-xs text-muted">
                 {{ formatDateRange(row.original.startDate, row.original.endDate, 'short') }} · {{ row.original.ticketTypeName }}
               </div>
@@ -261,6 +266,32 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
           </div>
         </AdminPanel>
 
+        <AdminPanel v-if="elsewhere.length" title="Other events" description="Open a registration to manage it in its own event.">
+          <UTable
+            :data="elsewhere"
+            :columns="[{ id: 'event', header: 'Event' }, { id: 'no', header: 'Registration no.' }, { id: 'reg', header: 'Registration status' }, { id: 'pay', header: 'Payment status' }]"
+            class="-mx-4 sm:-mx-5"
+          >
+            <template #event-cell="{ row }">
+              <NuxtLink :to="eventPath(row.original.eventId, 'registrations', id)" class="font-semibold text-highlighted hover:underline">
+                {{ row.original.eventName }}
+              </NuxtLink>
+              <div class="text-xs text-muted">
+                {{ formatDateRange(row.original.startDate, row.original.endDate, 'short') }} · {{ row.original.ticketTypeName }}
+              </div>
+            </template>
+            <template #no-cell="{ row }">
+              <span class="font-mono text-[13px]">{{ row.original.regNo }}</span>
+            </template>
+            <template #reg-cell="{ row }">
+              <UBadge v-bind="REGISTRATION_STATUS[row.original.status]" />
+            </template>
+            <template #pay-cell="{ row }">
+              <UBadge v-bind="paymentStatusLabel(row.original.paymentStatus, row.original.status)" />
+            </template>
+          </UTable>
+        </AdminPanel>
+
         <AdminPanel title="Transaction history">
           <template #actions>
             <span class="text-[13px] text-muted">Total paid <strong class="text-highlighted">{{ formatRupiah(data.totalPaid) }}</strong></span>
@@ -272,9 +303,10 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
             class="-mx-4 sm:-mx-5"
           >
             <template #id-cell="{ row }">
-              <NuxtLink :to="`/admin/transactions/${row.original.id}`" class="font-mono text-[13px] font-medium text-primary hover:underline">
+              <NuxtLink v-if="row.original.eventId" :to="eventPath(row.original.eventId, 'transactions', row.original.id)" class="font-mono text-[13px] font-medium text-primary hover:underline">
                 {{ row.original.invoiceNo }}
               </NuxtLink>
+              <span v-else class="font-mono text-[13px] font-medium">{{ row.original.invoiceNo }}</span>
             </template>
             <template #event-cell="{ row }">
               {{ row.original.eventName }}
@@ -292,7 +324,7 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
               <span class="whitespace-nowrap text-muted tabular-nums">{{ formatDateTime(row.original.createdAt) }}</span>
             </template>
             <template #actions-cell="{ row }">
-              <UButton :to="`/admin/transactions/${row.original.id}`" size="sm" color="neutral" variant="ghost" label="Details" />
+              <UButton v-if="row.original.eventId" :to="eventPath(row.original.eventId, 'transactions', row.original.id)" size="sm" color="neutral" variant="ghost" label="Details" />
             </template>
           </UTable>
         </AdminPanel>

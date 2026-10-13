@@ -14,7 +14,7 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
   if (!id) return []
   return [
     { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: eventPath(id), exact: true },
-    { label: 'Registrations', icon: 'i-lucide-users', to: '/admin/participants' },
+    { label: 'Registrations', icon: 'i-lucide-users', to: eventPath(id, 'registrations') },
     { label: 'Transactions', icon: 'i-lucide-credit-card', to: '/admin/transactions' }
   ]
 })

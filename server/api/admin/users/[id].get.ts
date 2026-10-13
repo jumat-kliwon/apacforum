@@ -36,7 +36,7 @@ export default defineEventHandler(async (event) => {
       .where(eq(participants.userId, id))
       .orderBy(desc(participants.createdAt)),
     db.select({
-      id: transactions.id, invoiceNo: transactions.invoiceNo, eventName: transactions.eventName, total: transactions.total,
+      id: transactions.id, invoiceNo: transactions.invoiceNo, eventId: transactions.eventId, eventName: transactions.eventName, total: transactions.total,
       method: transactions.method, payment: transactions.payment, status: transactions.status, createdAt: transactions.createdAt
     }).from(transactions).where(eq(transactions.userId, id)).orderBy(desc(transactions.createdAt))
   ])
