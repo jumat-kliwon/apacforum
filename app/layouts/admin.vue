@@ -14,8 +14,10 @@ const items: NavigationMenuItem[] = [
 
 const name = computed(() => session.value.data?.user.name ?? '')
 
+const sessionCheckedAt = useAdminSessionCheckedAt()
 async function signOut() {
   await authClient.signOut()
+  sessionCheckedAt.value = 0
   await navigateTo('/login')
 }
 

@@ -3,7 +3,7 @@ import type { EventForm } from '../../shared/schemas/event'
 import { db } from '../db'
 import { agendaDays, events, partners, participants, speakers, ticketTypes } from '../db/schema'
 import { deadlineFromDate } from './registration'
-import { deleteObjects } from './storage'
+import { assertUploads, deleteObjects } from './storage'
 import type { Tx } from './context'
 import { pgError } from '../utils/db-error'
 
@@ -54,6 +54,11 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
     registrationOpen: form.registrationOpen,
     status: form.status
   }
+
+  // only files uploaded since the last save need checking
+  const savedKeys = eventId ? await imageKeys(eventId) : new Set<string | null>()
+  await assertUploads([form.bannerKey, ...form.speakers.map(s => s.photoKey), ...form.partners.map(p => p.logoKey)]
+    .filter(k => !savedKeys.has(k ?? null)))
 
   const staleKeys: (string | null)[] = []
   try {
@@ -110,6 +115,16 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
   } catch (err: unknown) {
     throw translateDbError(err)
   }
+}
+
+/** Image keys an event currently uses. */
+async function imageKeys(eventId: string) {
+  const [ev, sp, pa] = await Promise.all([
+    db.select({ k: events.bannerKey }).from(events).where(eq(events.id, eventId)),
+    db.select({ k: speakers.photoKey }).from(speakers).where(eq(speakers.eventId, eventId)),
+    db.select({ k: partners.logoKey }).from(partners).where(eq(partners.eventId, eventId))
+  ])
+  return new Set([...ev, ...sp, ...pa].map(r => r.k))
 }
 
 /** Readable messages for constraint violations. */

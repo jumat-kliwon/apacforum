@@ -12,7 +12,7 @@ const list = useListQuery({
 })
 const { q, page, pageSize, filters, query, sortHeader } = list
 
-const { data, status, refresh } = await useFetch('/api/admin/participants', { query, watch: [query] })
+const { data, status, refresh } = await useFetch('/api/admin/participants', { query })
 const { data: options } = await useFetch('/api/admin/event-options')
 
 // ── filters (applied with the "Apply" button) ──

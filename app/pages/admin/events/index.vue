@@ -7,7 +7,7 @@ const notify = useNotify()
 const list = useListQuery({ sort: 'date', dir: 'asc', filters: { status: undefined } as Record<'status', string | undefined> })
 const { q, filters, sort, dir, sortHeader } = list
 const query = computed(() => ({ q: list.query.value.q, status: filters.status, sort: sort.value, dir: dir.value }))
-const { data, status, refresh } = await useFetch('/api/admin/events', { query, watch: [query] })
+const { data, status, refresh } = await useFetch('/api/admin/events', { query })
 
 type Row = NonNullable<typeof data.value>[number]
 const columns: TableColumn<Row>[] = [

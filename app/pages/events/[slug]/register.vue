@@ -6,7 +6,11 @@ import { registrationSchema, type RegistrationInput } from '~~/shared/schemas/pa
 const route = useRoute()
 const slug = String(route.params.slug)
 const { data, error } = await useFetch(`/api/public/events/${slug}`)
-if (error.value) throw createError({ statusCode: 404, statusMessage: 'Event not found', fatal: true })
+if (error.value) {
+  // only a real 404 says "not found"; a server error must not look like a missing page to visitors or crawlers
+  const statusCode = error.value.statusCode ?? 500
+  throw createError({ statusCode, statusMessage: statusCode === 404 ? 'Event not found' : 'We could not load this event', fatal: true })
+}
 
 const ev = computed(() => data.value!.event)
 useHead({ title: () => `Register · ${ev.value.name}` })

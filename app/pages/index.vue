@@ -57,7 +57,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
   <div class="apcr">
     <header class="site-header">
       <div class="wrap nav">
-        <a href="#home" class="brand" aria-label="APCR home"><img src="/landing/apcr-logo.png" alt="APCR"></a>
+        <a href="#home" class="brand" aria-label="APCR home"><img src="/landing/apcr-logo.webp" alt="APCR" width="500" height="500"></a>
         <nav id="navLinks" class="nav-links" :class="{ open: menuOpen }" aria-label="Main navigation">
           <a v-for="l in NAV_LINKS" :key="l.href" :href="l.href" @click="closeMenu">{{ l.label }}</a>
           <NuxtLink class="nav-cta" :to="registerHref" @click="closeMenu">Register</NuxtLink>
@@ -78,7 +78,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
     <main>
       <section id="home" class="hero">
         <div class="hero-media">
-          <img src="/landing/networking.webp" alt="ASEAN professionals networking at a regional forum" fetchpriority="high">
+          <img src="/landing/networking.webp" alt="ASEAN professionals networking at a regional forum" width="1100" height="825" fetchpriority="high">
         </div>
         <div class="wrap hero-inner">
           <div class="hero-copy">
@@ -213,7 +213,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
       <section id="platform" class="section">
         <div class="wrap platform-grid">
           <div class="platform-photo">
-            <img src="/landing/networking.webp" alt="Business and public communication professionals networking" loading="lazy" decoding="async">
+            <img src="/landing/networking.webp" alt="Business and public communication professionals networking" width="1100" height="825" loading="lazy" decoding="async">
           </div>
           <div>
             <div class="kicker">
@@ -254,7 +254,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
           <div class="scenario-list">
             <article v-for="s in SCENARIOS" :key="s.title" class="scenario-row">
               <div class="scenario-image">
-                <img :src="s.image" :alt="s.alt" loading="lazy" decoding="async">
+                <img :src="s.image" :alt="s.alt" width="1100" height="825" loading="lazy" decoding="async">
               </div>
               <div>
                 <h3 class="h3">
@@ -402,7 +402,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
       <section id="sumatra" class="section sumatra">
         <div class="sumatra-wrap">
           <div class="sumatra-image">
-            <img src="/landing/medan.webp" alt="Professionals walking through Medan heritage district" loading="lazy" decoding="async">
+            <img src="/landing/medan.webp" alt="Professionals walking through Medan heritage district" width="1100" height="825" loading="lazy" decoding="async">
           </div>
           <div class="sumatra-copy">
             <div class="kicker">
@@ -504,7 +504,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
       <section id="initiator" class="section">
         <div class="wrap initiator-grid">
           <div class="initiator-mark">
-            <img src="/landing/pr-indonesia.png" alt="PR INDONESIA" loading="lazy" decoding="async">
+            <img src="/landing/pr-indonesia.png" alt="PR INDONESIA" width="150" height="122" loading="lazy" decoding="async">
           </div>
           <div>
             <div class="kicker">
@@ -577,7 +577,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
         <div class="footer-grid">
           <div>
             <div class="footer-logo">
-              <img src="/landing/apcr-logo.png" alt="APCR">
+              <img src="/landing/apcr-logo.webp" alt="APCR" width="500" height="500" loading="lazy" decoding="async">
             </div>
             <div class="footer-tag">
               BUILDING TRUST.<br>SHAPING REPUTATION.<br>CONNECTING ASEAN.<br><br>2–4 December 2026<br>Medan, North Sumatra, Indonesia<br><br>Initiated by PR INDONESIA
@@ -606,11 +606,11 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
         <div class="footer-partners">
           <div>
             <span>Initiated by</span>
-            <img src="/landing/pr-indonesia.png" alt="PR INDONESIA" loading="lazy" decoding="async">
+            <img src="/landing/pr-indonesia.png" alt="PR INDONESIA" width="150" height="122" loading="lazy" decoding="async">
           </div>
           <div>
             <span>Partner</span>
-            <img src="/landing/nolimit.png" alt="NoLimit" loading="lazy" decoding="async">
+            <img src="/landing/nolimit.png" alt="NoLimit" width="221" height="116" loading="lazy" decoding="async">
           </div>
         </div>
         <div class="footer-bottom">

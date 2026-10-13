@@ -11,7 +11,7 @@ const list = useListQuery({
 })
 const { q, page, pageSize, filters, query, sortHeader } = list
 
-const { data, status } = await useFetch('/api/admin/transactions', { query, watch: [query] })
+const { data, status } = await useFetch('/api/admin/transactions', { query })
 const { data: options } = await useFetch('/api/admin/event-options')
 
 const summary = computed(() => data.value?.summary)

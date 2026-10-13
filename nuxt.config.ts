@@ -41,8 +41,10 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      siteUrl: 'http://localhost:3000',
-      r2PublicUrl: ''
+      // NUXT_PUBLIC_SITE_URL; empty falls back to BETTER_AUTH_URL / the Vercel URL (server/services/context.ts)
+      siteUrl: '',
+      // the same R2_PUBLIC_URL the server uses; NUXT_PUBLIC_R2_PUBLIC_URL still overrides it at runtime
+      r2PublicUrl: process.env.R2_PUBLIC_URL || ''
     }
   }
 })
