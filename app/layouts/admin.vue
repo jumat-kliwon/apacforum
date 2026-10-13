@@ -4,7 +4,7 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 const session = useAdminSession()
 const route = useRoute()
 
-const { load } = useAdminEvents()
+const { events, load } = useAdminEvents()
 const { event: current } = useCurrentEvent()
 load()
 
@@ -20,7 +20,6 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
   ]
 })
 const workspaceItems: NavigationMenuItem[] = [
-  { label: 'Events', icon: 'i-lucide-calendar-days', to: '/admin/events' },
   { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }
 ]
 
@@ -63,7 +62,9 @@ watch(() => route.fullPath, () => { open.value = false })
       </template>
 
       <div class="px-1 pt-3">
-        <AdminEventSwitcher />
+        <!-- no events yet: nothing to switch between -->
+        <UButton v-if="events && !events.length" to="/admin/events/new" icon="i-lucide-plus" label="Create the first event" block />
+        <AdminEventSwitcher v-else />
       </div>
 
       <!-- Core Menu Tree: section label 16/12/4, items 40px tall with 8/12 padding, 2px apart -->

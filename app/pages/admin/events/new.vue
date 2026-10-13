@@ -11,7 +11,8 @@ async function create(form: EventForm) {
   try {
     const { id } = await $fetch('/api/admin/events', { method: 'POST', body: form })
     notify.success(form.status === 'published' ? 'Event published' : 'Draft saved')
-    await navigateTo(`/admin/events/${id}`)
+    await useAdminEvents().load(true)
+    await navigateTo(eventPath(id, 'settings'))
   } catch (err) {
     notify.error(err, 'Could not save the event')
   } finally {
@@ -24,7 +25,7 @@ async function create(form: EventForm) {
   <AdminPageHeader
     title="Add event"
     description="Five short steps. You can save the event as a draft at any step."
-    :breadcrumb="[{ label: 'Events', to: '/admin/events' }, { label: 'Add event' }]"
+    :breadcrumb="[{ label: 'Manage events', to: '/admin/events' }, { label: 'Add event' }]"
   />
   <AdminEventForm :saving="saving" @submit="create" />
 </template>

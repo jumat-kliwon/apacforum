@@ -4,6 +4,7 @@ import type { TableColumn } from '@nuxt/ui'
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const notify = useNotify()
+const { load } = useAdminEvents()
 const list = useListQuery({ sort: 'date', dir: 'asc', filters: { status: undefined } as Record<'status', string | undefined> })
 const { q, filters, sort, dir, sortHeader } = list
 const query = computed(() => ({ q: list.query.value.q, status: filters.status, sort: sort.value, dir: dir.value }))
@@ -38,7 +39,7 @@ function impactText(r: Row) {
     i.tickets && plural(i.tickets, 'ticket type', 'ticket types')
   ].filter(Boolean)
   const nested = parts.length ? `${parts.join(', ').replace(/^./, c => c.toUpperCase())} ${parts.length === 1 ? 'is' : 'are'} deleted too. ` : ''
-  const people = i.participants ? `${plural(i.participants, 'registration and its', 'registrations and their')} e-tickets are deleted; transactions are kept. ` : ''
+  const people = i.participants ? `${plural(i.participants, 'registration and its', 'registrations and their')} e-tickets are deleted. ` : ''
   return `${nested}${people}This cannot be undone.`
 }
 async function remove() {
@@ -48,18 +49,31 @@ async function remove() {
     await $fetch(`/api/admin/events/${target.value.id}`, { method: 'DELETE' })
     notify.success(`${target.value.name} deleted`)
     target.value = null
-    await refresh()
+    await Promise.all([refresh(), load(true)])
   } catch (err) {
     notify.error(err)
   } finally {
     deleting.value = false
   }
 }
+const archivingId = ref<string | null>(null)
+async function archive(r: Row) {
+  archivingId.value = r.id
+  try {
+    await $fetch(`/api/admin/events/${r.id}/archive`, { method: 'POST' })
+    notify.success(`${r.name} archived`)
+    await Promise.all([refresh(), load(true)])
+  } catch (err) {
+    notify.error(err)
+  } finally {
+    archivingId.value = null
+  }
+}
 const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) target.value = null } })
 </script>
 
 <template>
-  <AdminPageHeader title="Events" description="Each event has its own details, agenda, speakers, partners and tickets.">
+  <AdminPageHeader title="Manage events" description="Every event. Open one to work in it, or use the switcher in the sidebar.">
     <template #actions>
       <UButton to="/admin/events/new" icon="i-lucide-plus" label="Add event" />
     </template>
@@ -76,7 +90,7 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
         <div class="flex items-center gap-3">
           <span class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-brand-50 text-brand-800"><UIcon name="i-lucide-calendar-days" class="size-5" /></span>
           <div class="min-w-0">
-            <NuxtLink :to="`/admin/events/${row.original.id}`" class="font-semibold text-highlighted hover:underline">{{ row.original.name }}</NuxtLink>
+            <NuxtLink :to="eventPath(row.original.id, 'settings')" class="font-semibold text-highlighted hover:underline">{{ row.original.name }}</NuxtLink>
             <div class="max-w-xs truncate text-xs text-muted">{{ row.original.tagline }}</div>
           </div>
         </div>
@@ -95,9 +109,22 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       </template>
       <template #actions-cell="{ row }">
         <div class="flex items-center justify-end gap-1">
-          <UButton :to="`/admin/events/${row.original.id}`" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="View" />
-          <UButton :to="`/admin/events/${row.original.id}/edit`" size="sm" color="neutral" variant="ghost" icon="i-lucide-pencil" :aria-label="`Edit ${row.original.name}`" />
-          <UButton size="sm" color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Delete ${row.original.name}`" @click="target = row.original" />
+          <UButton :to="eventPath(row.original.id, 'settings')" size="sm" color="neutral" variant="outline" icon="i-lucide-eye" label="View" />
+          <UButton :to="eventPath(row.original.id, 'settings', 'edit')" size="sm" color="neutral" variant="ghost" icon="i-lucide-pencil" :aria-label="`Edit ${row.original.name}`" />
+          <UButton
+            v-if="row.original.status !== 'archived' && row.original.impact.transactions > 0"
+            size="sm"
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-archive"
+            :loading="archivingId === row.original.id"
+            :aria-label="`Archive ${row.original.name}`"
+            @click="archive(row.original)"
+          />
+          <UTooltip v-if="row.original.impact.transactions > 0" :text="`${formatNumber(row.original.impact.transactions)} pending, paid or refunded transactions keep this event. Archive it instead.`">
+            <UButton size="sm" color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Delete ${row.original.name} (not possible)`" disabled />
+          </UTooltip>
+          <UButton v-else size="sm" color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Delete ${row.original.name}`" @click="target = row.original" />
         </div>
       </template>
     </UTable>
