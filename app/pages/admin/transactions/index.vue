@@ -123,7 +123,7 @@ const rangeText = computed(() => {
       </div>
     </div>
 
-    <div v-if="filterOpen" id="transaction-filters" class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] items-end gap-4 rounded-lg border border-default bg-muted p-4">
+    <div v-if="filterOpen" id="transaction-filters" class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] items-end gap-4 rounded-md border border-default bg-muted p-4">
       <UFormField label="Status">
         <USelect v-model="fStatus" :items="statusItems" class="w-full" />
       </UFormField>
@@ -145,7 +145,7 @@ const rangeText = computed(() => {
       </div>
     </div>
 
-    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-brand-50 px-5 py-3 dark:bg-[#2e2a18]">
+    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center justify-between gap-4 rounded-md bg-brand-50 px-5 py-3 dark:bg-[#2e2a18]">
       <span aria-live="polite" class="text-sm font-semibold text-highlighted">{{ selected.size }} selected</span>
       <UButton class="ml-auto" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
     </div>

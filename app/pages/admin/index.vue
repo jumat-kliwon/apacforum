@@ -59,7 +59,7 @@ const now = new Date()
     </template>
   </AdminPageHeader>
 
-  <div v-if="!data?.stats && status !== 'pending'" class="rounded-lg border border-default bg-default p-10">
+  <div v-if="!data?.stats && status !== 'pending'" class="rounded-md border border-default bg-default p-10">
     <UEmpty icon="i-lucide-calendar-plus" title="No events yet" description="Create the first event to start taking registrations." :actions="[{ label: 'Add event', to: '/admin/events/new', icon: 'i-lucide-plus' }]" />
   </div>
 

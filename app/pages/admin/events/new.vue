@@ -23,7 +23,7 @@ async function create(form: EventForm) {
 <template>
   <AdminPageHeader
     title="Add event"
-    description="Fill in every section on one page. You can save the event as a draft first."
+    description="Five short steps. You can save the event as a draft at any step."
     :breadcrumb="[{ label: 'Events', to: '/admin/events' }, { label: 'Add event' }]"
   />
   <AdminEventForm :saving="saving" @submit="create" />

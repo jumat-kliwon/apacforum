@@ -64,7 +64,7 @@ function onError(e: FormErrorEvent) {
   <template v-if="data">
     <UBreadcrumb :items="[{ label: ev.name, to: `/events/${slug}` }, { label: 'Register' }]" />
 
-    <div v-if="done" class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-lg border border-default bg-default p-8 text-center shadow-xs" role="status">
+    <div v-if="done" class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-md border border-default bg-default p-8 text-center shadow-xs" role="status">
       <span class="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
         <UIcon name="i-lucide-circle-check" class="size-6" />
       </span>
@@ -86,7 +86,7 @@ function onError(e: FormErrorEvent) {
       <UButton :to="`/events/${slug}`" color="neutral" variant="outline" label="Back to event page" />
     </div>
 
-    <div v-else-if="!ev.isOpen" class="rounded-lg border border-default bg-default p-10">
+    <div v-else-if="!ev.isOpen" class="rounded-md border border-default bg-default p-10">
       <UEmpty icon="i-lucide-calendar-x" title="Registration is closed" description="This event is no longer accepting registrations." :actions="[{ label: 'Back to event page', to: `/events/${slug}` }]" />
     </div>
 
@@ -108,7 +108,7 @@ function onError(e: FormErrorEvent) {
             <URadioGroup v-model="state.ticketTypeId" :items="ticketItems" variant="card" class="w-full" />
           </UFormField>
 
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-5 sm:grid-cols-2">
             <UFormField label="Full name" name="name" required class="sm:col-span-2" help="As it should appear on your badge and certificate.">
               <UInput v-model="state.name" autocomplete="name" class="w-full" />
             </UFormField>
@@ -149,7 +149,7 @@ function onError(e: FormErrorEvent) {
         </UForm>
       </UCard>
 
-      <aside class="flex flex-col gap-3 rounded-lg border border-default bg-default p-5 shadow-xs lg:sticky lg:top-24">
+      <aside class="flex flex-col gap-3 rounded-md border border-default bg-default p-5 shadow-xs lg:sticky lg:top-24">
         <h2 class="font-semibold text-highlighted">
           {{ ev.name }}
         </h2>

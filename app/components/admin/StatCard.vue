@@ -3,7 +3,7 @@ defineProps<{ label: string, value: string, note?: string, icon: string }>()
 </script>
 
 <template>
-  <div class="flex flex-col gap-1 rounded-lg border border-default bg-default p-5 shadow-xs">
+  <div class="flex flex-col gap-1 rounded-md border border-default bg-default p-5 shadow-xs">
     <div class="flex items-center justify-between gap-2">
       <span class="text-[13px]/[18px] font-medium text-muted">{{ label }}</span>
       <span class="flex size-8 items-center justify-center rounded-sm bg-brand-50 text-brand-800">

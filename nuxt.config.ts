@@ -13,7 +13,9 @@ export default defineNuxtConfig({
   routeRules: {
     // the CMS renders in the browser only (the session is checked in middleware)
     '/admin/**': { ssr: false },
-    '/login': { ssr: false }
+    '/login': { ssr: false },
+    // public ticket scanner: the link carries a secret key, so keep it out of search engines and referrers
+    '/scan/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'no-referrer' } }
   },
   colorMode: {
     preference: 'light'

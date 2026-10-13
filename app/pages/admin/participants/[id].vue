@@ -62,6 +62,22 @@ async function submitReject(e: FormSubmitEvent<z.output<typeof rejectSchema>>) {
   }
 }
 
+const tickets = computed(() => data.value?.registrations.filter(r => r.ticketCode && r.ticketQr) ?? [])
+const ticketValid = (r: { status: string, paymentStatus: string }) => r.paymentStatus === 'paid' && r.status === 'verified'
+
+async function undoCheckIn(regId: string) {
+  working.value = `undo:${regId}`
+  try {
+    await $fetch(`/api/admin/registrations/${regId}/check-in`, { method: 'DELETE' })
+    notify.success('Check-in undone', 'The ticket can be scanned again.')
+    await refresh()
+  } catch (err) {
+    notify.error(err)
+  } finally {
+    working.value = null
+  }
+}
+
 async function sendEmail() {
   const reg = data.value?.registrations[0]
   if (reg) await act(reg.id, 'resend', 'Registration status email sent')
@@ -115,7 +131,7 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
 </script>
 
 <template>
-  <div v-if="error" class="rounded-lg border border-default bg-default p-10">
+  <div v-if="error" class="rounded-md border border-default bg-default p-10">
     <UEmpty icon="i-lucide-user-x" title="Participant not found" :actions="[{ label: 'Back to participants', to: '/admin/participants' }]" />
   </div>
 
@@ -211,6 +227,40 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
           </UTable>
         </AdminPanel>
 
+        <AdminPanel v-if="tickets.length" title="E-tickets" description="The same QR code the participant received by email. The registration desk scans it with the event's scanner link.">
+          <div class="grid gap-4 sm:grid-cols-2">
+            <article v-for="t in tickets" :key="t.id" class="flex gap-4 rounded-sm border border-default p-4">
+              <img :src="t.ticketQr!" :alt="`QR code for ticket ${t.ticketCode}`" width="128" height="128" class="size-32 shrink-0 rounded-sm border border-default bg-white" :class="{ 'opacity-40 grayscale': !ticketValid(t) }">
+              <div class="flex min-w-0 flex-col gap-1.5">
+                <p class="font-mono text-sm font-medium text-highlighted">
+                  {{ t.ticketCode }}
+                </p>
+                <p class="truncate text-[13px] text-muted">
+                  {{ t.eventName }} · {{ t.ticketTypeName }}
+                </p>
+                <div>
+                  <UBadge v-if="!ticketValid(t)" color="neutral" variant="subtle" icon="i-lucide-ban" label="No longer valid" />
+                  <UBadge v-else-if="t.checkedInAt" color="success" variant="subtle" icon="i-lucide-circle-check" :label="`Checked in ${formatDateTime(t.checkedInAt)}`" />
+                  <UBadge v-else color="info" variant="subtle" icon="i-lucide-ticket" label="Not checked in yet" />
+                </div>
+                <div class="mt-auto flex flex-wrap gap-2 pt-1">
+                  <UButton :to="t.ticketQr!" :download="`${t.ticketCode}.png`" external size="xs" color="neutral" variant="outline" icon="i-lucide-download" label="Download QR" />
+                  <UButton
+                    v-if="t.checkedInAt"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    icon="i-lucide-undo-2"
+                    label="Undo check-in"
+                    :loading="working === `undo:${t.id}`"
+                    @click="undoCheckIn(t.id)"
+                  />
+                </div>
+              </div>
+            </article>
+          </div>
+        </AdminPanel>
+
         <AdminPanel title="Transaction history">
           <template #actions>
             <span class="text-[13px] text-muted">Total paid <strong class="text-highlighted">{{ formatRupiah(data.totalPaid) }}</strong></span>
@@ -276,7 +326,7 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
 
     <UModal v-model:open="editOpen" title="Edit participant" :ui="{ content: 'max-w-2xl' }">
       <template #body>
-        <UForm id="edit-form" :schema="editSchema" :state="editState" class="grid gap-4 sm:grid-cols-2" @submit="submitEdit">
+        <UForm id="edit-form" :schema="editSchema" :state="editState" class="grid gap-5 sm:grid-cols-2" @submit="submitEdit">
           <UFormField label="Full name" name="name" class="sm:col-span-2">
             <UInput v-model="editState.name!" class="w-full" />
           </UFormField>

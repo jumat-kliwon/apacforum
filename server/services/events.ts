@@ -6,6 +6,7 @@ import { deadlineFromDate } from './registration'
 import { assertUploads, deleteObjects } from './storage'
 import type { Tx } from './context'
 import { pgError } from '../utils/db-error'
+import { sanitizeDescription } from '../utils/sanitizeDescription'
 
 type Actor = { id: string }
 
@@ -42,7 +43,7 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
     code: form.code,
     slug: form.slug,
     tagline: form.tagline,
-    description: form.description,
+    description: sanitizeDescription(form.description),
     startDate: form.startDate,
     endDate: form.endDate,
     registrationDeadline: deadlineFromDate(form.registrationDeadline),

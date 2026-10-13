@@ -69,7 +69,7 @@ async function doRefund() {
 </script>
 
 <template>
-  <div v-if="error" class="rounded-lg border border-default bg-default p-10">
+  <div v-if="error" class="rounded-md border border-default bg-default p-10">
     <UEmpty icon="i-lucide-receipt" title="Transaction not found" :actions="[{ label: 'Back to transactions', to: '/admin/transactions' }]" />
   </div>
 

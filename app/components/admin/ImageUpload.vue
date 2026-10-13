@@ -62,7 +62,7 @@ function clear() {
   <div class="flex flex-col gap-2">
     <span v-if="variant === 'banner'" class="text-sm/5 font-medium text-highlighted">{{ label }}</span>
     <div
-      class="relative flex items-center justify-center overflow-hidden rounded-md border border-dashed border-accented bg-muted"
+      class="relative flex items-center justify-center overflow-hidden rounded-sm border border-dashed border-accented bg-muted"
       :class="variant === 'banner' ? 'aspect-video w-full' : 'size-20 shrink-0'"
     >
       <img v-if="shown" :src="shown" :alt="label" class="absolute inset-0 size-full object-cover">

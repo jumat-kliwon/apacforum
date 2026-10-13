@@ -33,7 +33,12 @@ watch(() => route.fullPath, () => { open.value = false })
       :default-size="240"
       :min-size="240"
       :max-size="240"
-      :ui="{ root: 'bg-default', header: 'h-16 border-b border-default', footer: 'border-t border-default' }"
+      :ui="{
+        root: 'bg-default',
+        header: 'h-16 px-4 sm:px-4 border-b border-default',
+        body: 'p-2 sm:px-2 gap-0',
+        footer: 'p-2 sm:px-2 border-t border-default'
+      }"
     >
       <template #header>
         <NuxtLink to="/admin" class="flex items-center gap-3">
@@ -45,14 +50,22 @@ watch(() => route.fullPath, () => { open.value = false })
         </NuxtLink>
       </template>
 
-      <p class="px-2.5 pb-1 text-[11px] font-medium uppercase tracking-[1.1px] text-muted">
+      <!-- Core Menu Tree: section label 16/12/4, items 40px tall with 8/12 padding, 2px apart -->
+      <p class="px-3 pt-4 pb-1 text-[11px]/4 font-medium uppercase tracking-[1.1px] text-muted">
         Menu
       </p>
-      <UNavigationMenu :items="items" orientation="vertical" :ui="{ link: 'py-2' }" />
+      <UNavigationMenu
+        :items="items"
+        orientation="vertical"
+        :ui="{
+          list: 'flex flex-col gap-0.5',
+          link: 'min-h-10 px-3 py-2 gap-3 text-sm/5 before:inset-0 before:rounded-sm'
+        }"
+      />
 
       <template #footer>
-        <div class="flex w-full items-center gap-3">
-          <UAvatar :text="initials(name || 'A')" size="sm" class="bg-brand-100 text-brand-900" />
+        <div class="flex h-11 w-full items-center gap-2.5 px-2">
+          <UAvatar :text="initials(name || 'A')" size="md" class="bg-brand-100 text-brand-900" />
           <div class="flex min-w-0 grow flex-col">
             <span class="truncate text-sm font-semibold text-highlighted">{{ name }}</span>
             <span class="text-xs text-muted">Admin</span>
@@ -71,7 +84,7 @@ watch(() => route.fullPath, () => { open.value = false })
         </UDashboardNavbar>
       </template>
       <template #body>
-        <div class="mx-auto flex w-full max-w-[1440px] flex-col gap-6">
+        <div class="mx-auto flex w-full max-w-[1440px] grow flex-col gap-6">
           <slot />
         </div>
       </template>

@@ -45,7 +45,7 @@ async function update(form: EventForm) {
 </script>
 
 <template>
-  <div v-if="error" class="rounded-lg border border-default bg-default p-10">
+  <div v-if="error" class="rounded-md border border-default bg-default p-10">
     <UEmpty icon="i-lucide-calendar-x" title="Event not found" :actions="[{ label: 'Back to events', to: '/admin/events' }]" />
   </div>
   <template v-else-if="data && initial && previews">

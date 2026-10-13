@@ -148,7 +148,7 @@ const rangeText = computed(() => {
       </div>
     </div>
 
-    <div v-if="filterOpen" id="participant-filters" class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] items-end gap-4 rounded-lg border border-default bg-muted p-4">
+    <div v-if="filterOpen" id="participant-filters" class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] items-end gap-4 rounded-md border border-default bg-muted p-4">
       <UFormField label="Event">
         <USelect v-model="fEvent" :items="eventItems" class="w-full" />
       </UFormField>
@@ -167,7 +167,7 @@ const rangeText = computed(() => {
       </div>
     </div>
 
-    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center justify-between gap-4 rounded-lg bg-brand-50 px-5 py-3 dark:bg-[#2e2a18]">
+    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center justify-between gap-4 rounded-md bg-brand-50 px-5 py-3 dark:bg-[#2e2a18]">
       <span aria-live="polite" class="text-sm font-semibold text-highlighted">{{ selected.size }} selected</span>
       <div class="ml-auto flex flex-wrap gap-2">
         <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-user-check" label="Verify" :loading="busy" @click="bulk('verify')" />
