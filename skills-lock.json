@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "skills": {
+    "clerk-nuxt-patterns": {
+      "source": "clerk/skills",
+      "sourceType": "github",
+      "skillPath": "skills/clerk-nuxt-patterns/SKILL.md",
+      "computedHash": "4623d9890b27ad26261fb8821476036b82f91d636c423d19df1557b9db1c5d3c"
+    },
+    "nuxt-ui": {
+      "source": "onmax/nuxt-skills",
+      "sourceType": "github",
+      "skillPath": "skills/nuxt-ui/SKILL.md",
+      "computedHash": "d177489e1be5f8acd2cfbf986781694b9a3a3cbad23649d0d83b5288e53d7f20"
+    }
+  }
+}
