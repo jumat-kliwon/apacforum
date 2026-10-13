@@ -10,9 +10,12 @@ const route = useRoute()
 const { load } = useAdminEvents()
 const last = useLastEventId()
 
-/** Every page below needs an existing event; remember it so /admin opens it next time. */
+/**
+ * Every page below needs an existing event; remember it so /admin opens it next time.
+ * Always reload: another tab or admin may have created or deleted events since this tab cached the list.
+ */
 async function enter(id: string) {
-  const events = await load()
+  const events = await load(true)
   if (!events.some(e => e.id === id)) throw createError({ statusCode: 404, statusMessage: 'Event not found', fatal: true })
   last.value = id
 }

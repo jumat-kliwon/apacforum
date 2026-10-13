@@ -148,7 +148,8 @@ function translateDbError(err: unknown) {
 
 export async function deleteEvent(id: string) {
   const keys = await db.transaction(async (tx) => {
-    const [ev] = await tx.select().from(events).where(eq(events.id, id))
+    // FOR UPDATE: invoice creation bumps events.invoice_seq, so it waits for us (or we for it) and the count below is current
+    const [ev] = await tx.select().from(events).where(eq(events.id, id)).for('update')
     if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
     // a pending invoice can still be paid through its DOKU link, so it counts as money too
     const [money] = await tx.select({ n: sql<number>`count(*)::int` }).from(transactions)
