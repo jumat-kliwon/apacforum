@@ -156,6 +156,11 @@ Tidak berubah: `requireAdmin()`, endpoint CRUD events lainnya, scanner publik, s
 - Konsekuensinya, transaksi dengan `eventId = null` hanya berasal dari event yang semua transaksinya `expired`, sehingga aman kalau transaksi itu tidak muncul di list atau export per event.
 - Batasan yang diterima: ada jendela race yang sangat kecil antara pengecekan dan delete, misalnya webhook yang membuat transaksi baru di saat yang sama. Risikonya rendah karena transaksi dibuat lewat registrasi, bukan oleh webhook.
 
+### 6.2 Amandemen saat planning (2026-10-13)
+- **Aksi Archive belum ada** di aplikasi. Form hanya mengenal `draft` dan `published`. Ditambahkan `POST /api/admin/events/[id]/archive` (service `archiveEvent()`). Event yang diarsipkan bisa dikembalikan lewat Edit, karena form memetakan status non-published ke `draft`.
+- Daftar event untuk switcher memakai `useState('admin-events')` dengan `load(force)` eksplisit, menggantikan `useFetch` + `refreshNuxtData` di §5.1. Alasannya, beberapa instance `useFetch` dengan key yang sama berbagi aturan dedupe dan cache yang mudah keliru.
+- Label UI memakai bahasa Inggris seperti layar admin lainnya: "Manage events" dan "New event".
+
 ## 7. Penanganan error
 
 | Kondisi | Hasil |
