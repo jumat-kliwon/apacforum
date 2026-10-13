@@ -1,0 +1,45 @@
+import { S3Client } from 'bun'
+
+/** Cloudflare R2 lewat client S3 bawaan Bun. */
+let client: S3Client | null = null
+
+function r2() {
+  const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET } = process.env
+  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET) {
+    throw createError({ statusCode: 503, statusMessage: 'Penyimpanan file (R2) belum dikonfigurasi' })
+  }
+  client ??= new S3Client({
+    accessKeyId: R2_ACCESS_KEY_ID,
+    secretAccessKey: R2_SECRET_ACCESS_KEY,
+    bucket: R2_BUCKET,
+    endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    region: 'auto'
+  })
+  return client
+}
+
+export const UPLOAD_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
+/** URL PUT bertanda tangan, berlaku 10 menit; browser mengunggah langsung ke R2. */
+export function presignUpload(key: string, contentType: keyof typeof UPLOAD_TYPES) {
+  return r2().presign(key, { method: 'PUT', expiresIn: 600, type: contentType })
+}
+
+/** Hapus object lama; gagal hapus tidak menggagalkan request. */
+export async function deleteObjects(keys: (string | null | undefined)[]) {
+  const list = keys.filter((k): k is string => !!k)
+  if (!list.length) return
+  try {
+    const c = r2()
+    await Promise.all(list.map(k => c.delete(k)))
+  } catch (err) {
+    console.error('[r2] gagal menghapus object', list, err)
+  }
+}
+
+export function publicUrl(key: string | null | undefined) {
+  if (!key) return null
+  const base = (process.env.R2_PUBLIC_URL ?? '').replace(/\/$/, '')
+  return `${base}/${key}`
+}

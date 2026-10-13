@@ -23,6 +23,7 @@ export const transactionPaymentSchema = z.object({
   refundAmount: z.number().int().nonnegative().optional(),
   refundedAt: z.iso.datetime({ offset: true }).optional(),
   adminNote: z.string().optional(),
+  reminderSentAt: z.iso.datetime({ offset: true }).optional(),
   raw: z.unknown().optional()
 })
 

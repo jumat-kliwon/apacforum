@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm'
 import { customType, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 /**
@@ -33,3 +34,9 @@ export const timestamps = {
   createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date())
 }
+
+/**
+ * Nilai jsonb di dalam ekspresi `sql` (mis. `kolom || ...`). Dikirim sebagai teks lalu di-cast di Postgres;
+ * tanpa `::text`, Bun.SQL meng-encode string itu sebagai string JSON.
+ */
+export const jsonParam = (value: unknown) => sql`(${JSON.stringify(value)}::text)::jsonb`
