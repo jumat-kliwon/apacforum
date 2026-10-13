@@ -15,10 +15,13 @@ type RegistrationData = z.output<typeof registrationSchema>
 export const deadlineFromDate = (isoDate: string) => new Date(`${isoDate}T23:59:59+07:00`)
 
 /**
- * Public registration form: find or create the `participant` user, then add one `participants` row.
+ * Public registration form: find or create the `participant` user, add one `participants` row and
+ * invoice it straight away (no admin verification). Returns the DOKU link the registrant is sent to;
+ * `paymentUrl` is null for free tickets, or when DOKU could not be reached (the invoice email and the
+ * payment reminder retry the link).
  */
 export async function registerParticipant(slug: string, input: RegistrationData) {
-  const participantId = await db.transaction(async (tx) => {
+  const { participantId, transactionId, free } = await db.transaction(async (tx) => {
     const [event] = await tx.select().from(events).where(eq(events.slug, slug))
     if (!event || event.status !== 'published') throw createError({ statusCode: 404, statusMessage: 'Event not found' })
     if (!event.registrationOpen || event.registrationDeadline < new Date()) {
@@ -76,14 +79,29 @@ export async function registerParticipant(slug: string, input: RegistrationData)
       regNo: formatRegNo(event.code, seq!.registrationSeq, new Date()),
       userId,
       eventId: event.id,
-      ticketTypeId: ticket.id
+      ticketTypeId: ticket.id,
+      status: 'verified',
+      verifiedAt: new Date()
     }).returning({ id: participants.id })
-    return p!.id
+    const trx = await createInvoice(tx, p!.id, null)
+    return { participantId: p!.id, transactionId: trx.id, free: trx.status === 'paid' }
   })
 
+  let paymentUrl: string | null = null
+  if (!free) {
+    const trx = await ensureCheckout(transactionId).catch((err) => {
+      console.error('[doku] could not create checkout', err)
+      return null
+    })
+    paymentUrl = trx?.payment.dokuPaymentUrl ?? null
+  }
+
   const data = await loadMailData(participantId)
-  if (data) await sendTemplateSafe('registration-received', data)
-  return { participantId, regNo: data?.regNo }
+  if (data) {
+    await sendTemplateSafe(free ? 'payment-success' : 'registration-verified', data)
+    if (!free) await logInvoiceSent(transactionId)
+  }
+  return { participantId, regNo: data?.regNo, invoiceNo: data?.invoice?.no, paymentUrl, free }
 }
 
 /** Verify → invoice + DOKU link + email. Returns how many were verified. */
