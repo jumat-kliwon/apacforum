@@ -25,6 +25,15 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
     section('Event settings', 'i-lucide-settings', eventPath(id, 'settings'))
   ]
 })
+// breadcrumb after the event switcher, e.g. "Tickets" on /admin/e/:id/tickets/new
+const SECTION_LABELS: Record<string, string> = {
+  '': 'Dashboard', registrations: 'Registrations', transactions: 'Transactions', tickets: 'Tickets', settings: 'Event settings'
+}
+const sectionLabel = computed(() => {
+  const m = /^\/admin\/e\/[^/]+\/?([^/]*)/.exec(route.path)
+  return m ? SECTION_LABELS[m[1] ?? ''] : undefined
+})
+
 const workspaceItems: NavigationMenuItem[] = [
   { label: 'News & Media', icon: 'i-lucide-newspaper', to: '/admin/news' },
   { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }
@@ -68,15 +77,9 @@ watch(() => route.fullPath, () => { open.value = false })
         </NuxtLink>
       </template>
 
-      <div class="px-1 pt-3">
-        <!-- no events yet: nothing to switch between -->
-        <UButton v-if="events && !events.length" to="/admin/events/new" icon="i-lucide-plus" label="Create the first event" block />
-        <AdminEventSwitcher v-else />
-      </div>
-
       <!-- Core Menu Tree: section label 16/12/4, items 40px tall with 8/12 padding, 2px apart -->
       <template v-if="eventItems.length">
-        <p class="px-3 pt-4 pb-1 text-[11px]/4 font-medium uppercase tracking-[1.1px] text-muted">
+        <p class="px-3 pt-3 pb-1 text-[11px]/4 font-medium uppercase tracking-[1.1px] text-muted">
           Event
         </p>
         <UNavigationMenu
@@ -114,9 +117,24 @@ watch(() => route.fullPath, () => { open.value = false })
 
     <UDashboardPanel :ui="{ body: 'bg-muted px-4 pt-6 pb-10 sm:px-8 sm:pt-7 gap-6' }">
       <template #header>
-        <UDashboardNavbar class="lg:hidden" title="APCR CMS">
-          <template #leading>
-            <UDashboardSidebarCollapse />
+        <UDashboardNavbar :ui="{ root: 'h-16 bg-default sm:px-8', title: 'min-w-0 gap-2 font-normal' }">
+          <template #title>
+            <!-- no events yet: nothing to switch between -->
+            <UButton v-if="events && !events.length" to="/admin/events/new" icon="i-lucide-plus" label="Create the first event" />
+            <template v-else>
+              <AdminEventSwitcher />
+              <template v-if="sectionLabel">
+                <UIcon name="i-lucide-chevron-right" class="hidden size-4 shrink-0 text-dimmed sm:block" aria-hidden="true" />
+                <span class="hidden truncate text-sm font-medium text-toned sm:inline">{{ sectionLabel }}</span>
+              </template>
+            </template>
+          </template>
+          <template #right>
+            <UTooltip text="Switch event">
+              <span class="hidden items-center gap-1 lg:flex">
+                <UKbd value="meta" /><UKbd value="K" />
+              </span>
+            </UTooltip>
           </template>
         </UDashboardNavbar>
       </template>
