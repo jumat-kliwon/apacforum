@@ -14,6 +14,7 @@ const { q, page, pageSize, filters, query, sortHeader } = list
 const apiQuery = computed(() => ({ ...query.value, eventId }))
 
 const { data, status } = await useFetch('/api/admin/transactions', { query: apiQuery })
+const tableSkeleton = useQuerySkeleton(status, apiQuery)
 
 const summary = computed(() => data.value?.summary)
 const stats = computed(() => [
@@ -145,7 +146,10 @@ const rangeText = computed(() => {
       <UButton class="ml-auto" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
     </div>
 
-    <UTable v-model:column-visibility="columnVisibility" :data="rows" :columns="columns" :loading="status === 'pending'" empty="No transactions match these filters." class="-mx-4 sm:-mx-5">
+    <UTable v-model:column-visibility="columnVisibility" :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No transactions match these filters." class="-mx-4 sm:-mx-5">
+      <template #loading>
+        <AdminSkeletonRows :rows="6" :columns="6" />
+      </template>
       <template #select-cell="{ row }">
         <UCheckbox :model-value="selected.has(row.original.id)" :aria-label="`Select ${row.original.invoiceNo}`" @update:model-value="toggleRow(row.original.id, $event)" />
       </template>

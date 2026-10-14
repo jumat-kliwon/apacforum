@@ -1,8 +1,53 @@
-<!-- Shown while the client-only CMS (/admin, /login) boots. -->
-<div style="display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#f8fafc">
-  <div role="status" aria-label="Loading" style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#06285f;border-radius:50%;animation:apcr-spin .8s linear infinite"></div>
-</div>
+<!-- Shown by Nuxt until the client app starts on client-only pages (/admin/**, /login). -->
 <style>
-  @keyframes apcr-spin { to { transform: rotate(360deg) } }
-  @media (prefers-reduced-motion: reduce) { [role="status"] { animation-duration: 2.4s !important } }
+  .apcr-boot { position: fixed; inset: 0; display: flex; background: #f8fafc; font-family: system-ui, sans-serif; }
+  .apcr-boot__side { width: 240px; flex: none; background: #fff; border-right: 1px solid #e2e8f0; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .apcr-boot__main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .apcr-boot__bar { height: 64px; flex: none; background: #fff; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; padding: 0 32px; }
+  .apcr-boot__body { padding: 28px 32px; display: flex; flex-direction: column; gap: 24px; max-width: 1440px; }
+  .apcr-boot__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .apcr-boot__card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .apcr-boot__sk { background: #e2e8f0; border-radius: 6px; animation: apcr-pulse 1.6s ease-in-out infinite; }
+  .apcr-boot__spin { display: none; margin: auto; width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #06285f; border-radius: 50%; animation: apcr-spin .8s linear infinite; }
+  .apcr-boot--plain .apcr-boot__side, .apcr-boot--plain .apcr-boot__main { display: none; }
+  .apcr-boot--plain .apcr-boot__spin { display: block; }
+  @keyframes apcr-spin { to { transform: rotate(360deg); } }
+  @keyframes apcr-pulse { 50% { opacity: .45; } }
+  @media (max-width: 1023px) { .apcr-boot__side { display: none; } .apcr-boot__bar, .apcr-boot__body { padding-left: 16px; padding-right: 16px; } }
+  @media (prefers-reduced-motion: reduce) { .apcr-boot__sk { animation: none; } .apcr-boot__spin { animation-duration: 2.4s; } }
 </style>
+<div class="apcr-boot" id="apcr-boot" role="status" aria-label="Loading">
+  <div class="apcr-boot__spin"></div>
+  <aside class="apcr-boot__side">
+    <div class="apcr-boot__sk" style="height:32px;width:140px"></div>
+    <div class="apcr-boot__sk" style="height:10px;width:60px;margin-top:12px"></div>
+    <div class="apcr-boot__sk" style="height:16px;width:150px"></div>
+    <div class="apcr-boot__sk" style="height:16px;width:130px"></div>
+    <div class="apcr-boot__sk" style="height:16px;width:140px"></div>
+    <div class="apcr-boot__sk" style="height:16px;width:110px"></div>
+    <div class="apcr-boot__sk" style="height:16px;width:135px"></div>
+  </aside>
+  <div class="apcr-boot__main">
+    <div class="apcr-boot__bar"><div class="apcr-boot__sk" style="height:32px;width:300px;max-width:70%"></div></div>
+    <div class="apcr-boot__body">
+      <div class="apcr-boot__sk" style="height:32px;width:280px;max-width:80%"></div>
+      <div class="apcr-boot__grid">
+        <div class="apcr-boot__card"><div class="apcr-boot__sk" style="height:12px;width:90px"></div><div class="apcr-boot__sk" style="height:26px;width:70px"></div></div>
+        <div class="apcr-boot__card"><div class="apcr-boot__sk" style="height:12px;width:90px"></div><div class="apcr-boot__sk" style="height:26px;width:70px"></div></div>
+        <div class="apcr-boot__card"><div class="apcr-boot__sk" style="height:12px;width:90px"></div><div class="apcr-boot__sk" style="height:26px;width:70px"></div></div>
+        <div class="apcr-boot__card"><div class="apcr-boot__sk" style="height:12px;width:90px"></div><div class="apcr-boot__sk" style="height:26px;width:70px"></div></div>
+      </div>
+      <div class="apcr-boot__card" style="gap:18px">
+        <div class="apcr-boot__sk" style="height:40px;width:320px;max-width:100%"></div>
+        <div class="apcr-boot__sk" style="height:14px;width:100%"></div>
+        <div class="apcr-boot__sk" style="height:14px;width:92%"></div>
+        <div class="apcr-boot__sk" style="height:14px;width:96%"></div>
+        <div class="apcr-boot__sk" style="height:14px;width:88%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  // only the CMS has the sidebar layout; the sign-in page gets a spinner
+  if (!location.pathname.startsWith('/admin')) document.getElementById('apcr-boot').classList.add('apcr-boot--plain')
+</script>

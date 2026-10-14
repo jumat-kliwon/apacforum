@@ -1,4 +1,5 @@
 import { relations } from 'drizzle-orm'
+import { articles } from './articles'
 import { accounts, sessions, users } from './auth'
 import { agendaDays, events, partners, speakers, ticketTypes } from './events'
 import { participants } from './participants'
@@ -59,4 +60,8 @@ export const transactionsRelations = relations(transactions, ({ one }) => ({
   user: one(users, { fields: [transactions.userId], references: [users.id] }),
   participant: one(participants, { fields: [transactions.participantId], references: [participants.id] }),
   event: one(events, { fields: [transactions.eventId], references: [events.id] })
+}))
+
+export const articlesRelations = relations(articles, ({ one }) => ({
+  author: one(users, { fields: [articles.authorId], references: [users.id] })
 }))

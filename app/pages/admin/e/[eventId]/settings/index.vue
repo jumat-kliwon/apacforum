@@ -94,6 +94,21 @@ async function remove() {
 // events with money on them are archived instead (the server refuses to delete them)
 const locked = computed(() => (data.value?.impact.transactions ?? 0) > 0)
 const archiving = ref(false)
+// publishing needs a ticket type; the server checks it
+const publishing = ref(false)
+async function setStatus(next: 'draft' | 'published') {
+  publishing.value = true
+  try {
+    await $fetch(`/api/admin/events/${id}/status`, { method: 'PUT', body: { status: next } })
+    notify.success(next === 'published' ? 'Event published' : 'Event moved back to draft')
+    await Promise.all([load(true), refresh()])
+  } catch (err) {
+    notify.error(err)
+  } finally {
+    publishing.value = false
+  }
+}
+
 async function archive() {
   archiving.value = true
   try {
@@ -130,6 +145,8 @@ async function archive() {
         <UButton v-if="ev.status !== 'archived'" color="neutral" variant="ghost" icon="i-lucide-archive" label="Archive" :loading="archiving" @click="archive" />
         <UButton v-if="ev.status === 'published'" :to="`/events/${ev.slug}`" target="_blank" color="neutral" variant="outline" icon="i-lucide-external-link" label="View on website" />
         <UButton color="neutral" variant="outline" icon="i-lucide-scan-line" label="Ticket scanner" @click="scannerOpen = true" />
+        <UButton v-if="ev.status === 'published'" color="neutral" variant="outline" icon="i-lucide-eye-off" label="Unpublish" :loading="publishing" @click="setStatus('draft')" />
+        <UButton v-else color="neutral" variant="outline" icon="i-lucide-send" label="Publish" :loading="publishing" @click="setStatus('published')" />
         <UButton :to="eventPath(id, 'settings', 'edit')" icon="i-lucide-pencil" label="Edit event" />
       </template>
     </AdminPageHeader>
@@ -242,6 +259,10 @@ async function archive() {
 
       <template #tickets>
         <AdminPanel title="Tickets">
+          <template #actions>
+            <UButton :to="eventPath(id, 'tickets')" color="neutral" variant="outline" size="sm" icon="i-lucide-ticket" label="Manage tickets" />
+            <UButton :to="eventPath(id, 'tickets', 'new')" size="sm" icon="i-lucide-plus" label="Add ticket type" />
+          </template>
           <UTable
             :data="data.ticketTypes"
             :columns="[{ id: 'name', header: 'Ticket type' }, { id: 'price', header: 'Price' }, { id: 'sold', header: 'Sold / quota' }, { id: 'status', header: 'Status' }]"
