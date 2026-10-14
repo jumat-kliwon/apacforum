@@ -14,6 +14,7 @@ const list = useListQuery({
 const { q, page, pageSize, filters, query, sortHeader } = list
 const apiQuery = computed(() => ({ ...query.value, eventId }))
 const { data, status, refresh } = await useFetch('/api/admin/tickets', { query: apiQuery })
+const tableSkeleton = useQuerySkeleton(status, apiQuery)
 
 const ALL = '__all'
 const pick = (key: keyof typeof filters) => computed({
@@ -109,7 +110,10 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       </div>
     </div>
 
-    <UTable :data="data?.rows ?? []" :columns="columns" :loading="status === 'pending'" empty="No ticket types yet." class="-mx-4 sm:-mx-5">
+    <UTable :data="tableSkeleton ? [] : data?.rows ?? []" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No ticket types yet." class="-mx-4 sm:-mx-5">
+      <template #loading>
+        <AdminSkeletonRows :rows="6" :columns="5" />
+      </template>
       <template #name-cell="{ row }">
         <div class="flex items-center gap-3">
           <span class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-brand-50 text-brand-800"><UIcon name="i-lucide-ticket" class="size-5" /></span>

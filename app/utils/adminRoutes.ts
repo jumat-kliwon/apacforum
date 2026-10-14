@@ -19,3 +19,21 @@ export function switchEventPath(path: string, query: Record<string, unknown>, ev
   const tab = section === 'settings' && typeof query.tab === 'string' ? query.tab : undefined
   return tab ? `${target}?tab=${encodeURIComponent(tab)}` : target
 }
+
+export type PageSkeleton = 'list' | 'detail' | 'form' | 'dashboard'
+
+/** Which loading skeleton fits a CMS page, from its path. */
+export function pageSkeleton(path: string): PageSkeleton {
+  const p = path.replace(/\/+$/, '')
+  const ev = /^\/admin\/e\/[^/]+(?:\/([^/]+)(?:\/([^/]+))?)?/.exec(p)
+  if (ev) {
+    const [, section, record] = ev
+    if (!section) return 'dashboard'
+    if (section === 'settings') return record === 'edit' ? 'form' : 'detail'
+    if (section === 'tickets') return record ? 'form' : 'list'
+    return record ? 'detail' : 'list'
+  }
+  if (/^\/admin\/(events|news)\/(new|[^/]+\/edit|[0-9a-f-]{36})$/.test(p)) return 'form'
+  if (p === '/admin/email-templates') return 'detail'
+  return 'list'
+}

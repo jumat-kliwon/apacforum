@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { eventPath, switchEventPath } from '../../app/utils/adminRoutes'
+import { eventPath, pageSkeleton, switchEventPath } from '../../app/utils/adminRoutes'
 
 const A = '0190a0b0-0000-7000-8000-00000000000a'
 const B = '0190a0b0-0000-7000-8000-00000000000b'
@@ -57,5 +57,27 @@ describe('switchEventPath', () => {
   })
   it('encodes the tab', () => {
     expect(switchEventPath(`/admin/e/${A}/settings`, { tab: 'a b&c' }, B)).toBe(`/admin/e/${B}/settings?tab=a%20b%26c`)
+  })
+})
+
+describe('pageSkeleton', () => {
+  it('matches event pages', () => {
+    expect(pageSkeleton(`/admin/e/${A}`)).toBe('dashboard')
+    expect(pageSkeleton(`/admin/e/${A}/`)).toBe('dashboard')
+    expect(pageSkeleton(`/admin/e/${A}/registrations`)).toBe('list')
+    expect(pageSkeleton(`/admin/e/${A}/registrations/u1`)).toBe('detail')
+    expect(pageSkeleton(`/admin/e/${A}/transactions/t1`)).toBe('detail')
+    expect(pageSkeleton(`/admin/e/${A}/tickets`)).toBe('list')
+    expect(pageSkeleton(`/admin/e/${A}/tickets/new`)).toBe('form')
+    expect(pageSkeleton(`/admin/e/${A}/tickets/t1`)).toBe('form')
+    expect(pageSkeleton(`/admin/e/${A}/settings`)).toBe('detail')
+    expect(pageSkeleton(`/admin/e/${A}/settings/edit`)).toBe('form')
+  })
+  it('matches workspace pages', () => {
+    expect(pageSkeleton('/admin/events')).toBe('list')
+    expect(pageSkeleton('/admin/events/new')).toBe('form')
+    expect(pageSkeleton('/admin/news')).toBe('list')
+    expect(pageSkeleton(`/admin/news/${A}`)).toBe('form')
+    expect(pageSkeleton('/admin/email-templates')).toBe('detail')
   })
 })

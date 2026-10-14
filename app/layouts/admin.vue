@@ -3,6 +3,10 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 const session = useAdminSession()
 const route = useRoute()
+const router = useRouter()
+// where the admin is going: the menu and breadcrumb follow a click at once, before the page has loaded
+const nextPath = ref(route.path)
+watch(() => route.path, (p) => { nextPath.value = p })
 
 const { events, load } = useAdminEvents()
 const { event: current } = useCurrentEvent()
@@ -10,7 +14,7 @@ load()
 
 // a section stays highlighted on its add, edit and detail pages too
 const section = (label: string, icon: string, to: string): NavigationMenuItem => ({
-  label, icon, to, active: route.path === to || route.path.startsWith(`${to}/`)
+  label, icon, to, active: nextPath.value === to || nextPath.value.startsWith(`${to}/`)
 })
 
 // links follow the event in the URL, or the last one opened when on a global page
@@ -30,7 +34,7 @@ const SECTION_LABELS: Record<string, string> = {
   '': 'Dashboard', registrations: 'Registrations', transactions: 'Transactions', tickets: 'Tickets', settings: 'Event settings'
 }
 const sectionLabel = computed(() => {
-  const m = /^\/admin\/e\/[^/]+\/?([^/]*)/.exec(route.path)
+  const m = /^\/admin\/e\/[^/]+\/?([^/]*)/.exec(nextPath.value)
   return m ? SECTION_LABELS[m[1] ?? ''] : undefined
 })
 
@@ -47,6 +51,31 @@ async function signOut() {
   sessionCheckedAt.value = 0
   await navigateTo('/login')
 }
+
+// Pages wait for their data before they render, so show a skeleton shaped like the page that is
+// opening. The short delay keeps fast navigations from flashing it.
+const nuxtApp = useNuxtApp()
+const pageLoading = ref(false)
+let skeletonTimer: ReturnType<typeof setTimeout> | undefined
+const offBeforeEach = router.beforeEach((to) => { nextPath.value = to.path })
+// a cancelled or failed navigation stays on the current page
+const offAfterEach = router.afterEach((_to, _from, failure) => { if (failure) nextPath.value = route.path })
+const offPageStart = nuxtApp.hook('page:start', () => {
+  clearTimeout(skeletonTimer)
+  skeletonTimer = setTimeout(() => { pageLoading.value = true }, 120)
+})
+const offPageFinish = nuxtApp.hook('page:finish', () => {
+  clearTimeout(skeletonTimer)
+  pageLoading.value = false
+})
+onBeforeUnmount(() => {
+  offBeforeEach()
+  offAfterEach()
+  offPageStart()
+  offPageFinish()
+  clearTimeout(skeletonTimer)
+})
+const skeleton = computed(() => pageSkeleton(nextPath.value))
 
 // close the mobile drawer on navigation
 const open = ref(false)
@@ -140,7 +169,10 @@ watch(() => route.fullPath, () => { open.value = false })
       </template>
       <template #body>
         <div class="mx-auto flex w-full max-w-[1440px] grow flex-col gap-6">
-          <slot />
+          <AdminSkeletonPage v-if="pageLoading" :variant="skeleton" />
+          <div v-show="!pageLoading" class="contents">
+            <slot />
+          </div>
         </div>
       </template>
     </UDashboardPanel>

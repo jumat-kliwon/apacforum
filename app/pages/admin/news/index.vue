@@ -7,6 +7,7 @@ const notify = useNotify()
 const list = useListQuery({ sort: 'updated', dir: 'desc', filters: { status: undefined } as Record<'status', string | undefined> })
 const { q, page, pageSize, filters, query, sortHeader } = list
 const { data, status, refresh } = await useFetch('/api/admin/articles', { query, watch: [query] })
+const tableSkeleton = useQuerySkeleton(status, query)
 
 type Row = NonNullable<typeof data.value>['rows'][number]
 const columns: TableColumn<Row>[] = [
@@ -67,7 +68,10 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       <USelect v-model="statusFilter" :items="[{ label: 'All statuses', value: ALL }, ...toItems(PUBLISH_STATUS)]" icon="i-lucide-list-filter" aria-label="Filter by status" class="ml-auto w-44" />
     </div>
 
-    <UTable :data="data?.rows ?? []" :columns="columns" :loading="status === 'pending'" empty="No articles yet." class="-mx-4 sm:-mx-5">
+    <UTable :data="tableSkeleton ? [] : data?.rows ?? []" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No articles yet." class="-mx-4 sm:-mx-5">
+      <template #loading>
+        <AdminSkeletonRows :rows="6" :columns="4" />
+      </template>
       <template #title-cell="{ row }">
         <div class="flex items-center gap-3">
           <div class="flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-brand-50 text-brand-800">
