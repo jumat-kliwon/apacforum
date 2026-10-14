@@ -13,7 +13,8 @@
     "db:migrate": "bun run server/db/migrate.ts",
     "db:seed": "bun run server/db/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "db:bootstrap": "bun run server/db/bootstrap.ts"
+    "db:bootstrap": "bun run server/db/bootstrap.ts",
+    "db:fresh": "bun run server/db/fresh.ts && bun run db:migrate && bun run db:bootstrap"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.143",

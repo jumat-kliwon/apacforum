@@ -34,6 +34,23 @@
   --color-brand-900: #6b4d0a;
   --color-brand-950: #4a3506;
 
+  /*
+   * Public site (landing / about / news) palette, from docs/design/apcr-design.pen.
+   * Separate from the gold `brand-*` ramp above, which dresses the CMS.
+   */
+  --color-navy: #06285f;
+  --color-navy-deep: #031735;
+  --color-ink: #10131a;
+  --color-paper: #f4f1e9;
+  --color-paper-soft: #fbfaf7;
+  --color-gold: #d4a13b;
+  --color-gold-soft: #ead7a8;
+  --color-prose: #555f6e;
+  --color-prose-dim: #8a93a0;
+
+  /* The public site is set in Helvetica Neue, unlike the Rethink Sans CMS. */
+  --font-display: 'Helvetica Neue', Helvetica, Arial, system-ui, -apple-system, sans-serif;
+
   /* shadow-xs … shadow-xl from the design system */
   --shadow-xs: 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
   --shadow-sm: 0px 1px 3px 0px rgba(0, 0, 0, 0.10), 0px 1px 2px 0px rgba(0, 0, 0, 0.05);
@@ -126,3 +143,26 @@
 .article-content :where(hr) { border: 0; border-top: 1px solid var(--ui-border); margin: 2em 0; }
 .article-content :where(code) { font-family: var(--font-mono); font-size: .9em; background: var(--ui-bg-elevated); padding: .1em .35em; border-radius: 4px; }
 .article-content :where(img) { border-radius: var(--radius-md); max-width: 100%; height: auto; }
+
+/*
+ * Public site shell. Scoped to `.site` so none of it reaches the CMS, which
+ * keeps the Nuxt UI tokens from :root above.
+ */
+.site {
+  font-family: var(--font-display);
+  color: var(--color-ink);
+  /* Every page frame in the design sits on paper-soft; sections opt into white. */
+  background: var(--color-paper-soft);
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+.site ::selection { background: var(--color-gold); color: var(--color-navy-deep); }
+.site :where(a, button, [role="button"]):focus-visible {
+  outline: 3px solid var(--color-gold);
+  outline-offset: 3px;
+}
+.site :where(section[id]) { scroll-margin-top: 90px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .site { scroll-behavior: auto; }
+}
