@@ -599,6 +599,7 @@ function onTabKeydown(e: KeyboardEvent, i: number) {
             <h4>Ecosystem</h4>
             <a href="#knowledge">Knowledge</a>
             <a href="#apcr365">APCR 365</a>
+            <NuxtLink to="/news">News &amp; Media</NuxtLink>
             <a href="#initiator">About the Initiator</a>
             <a :href="WHATSAPP_URL" target="_blank" rel="noopener noreferrer">Contact via WhatsApp</a>
           </div>

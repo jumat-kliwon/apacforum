@@ -5,7 +5,7 @@
  */
 const key = defineModel<string | null | undefined>({ default: null })
 const props = defineProps<{
-  folder: 'events' | 'speakers' | 'partners'
+  folder: 'events' | 'speakers' | 'partners' | 'articles'
   previewUrl?: string | null
   label: string
   hint?: string
@@ -68,7 +68,7 @@ function clear() {
       <img v-if="shown" :src="shown" :alt="label" class="absolute inset-0 size-full object-cover">
       <label class="relative z-10 flex cursor-pointer flex-col items-center gap-1 rounded-sm p-3 text-center focus-within:outline-2 focus-within:outline-(--focus-ring)" :class="shown ? 'bg-default/90 shadow-sm' : ''">
         <UIcon :name="uploading ? 'i-lucide-loader-circle' : 'i-lucide-upload'" class="size-5 text-muted" :class="{ 'animate-spin': uploading }" />
-        <span v-if="variant === 'banner'" class="text-sm font-medium text-highlighted">{{ shown ? 'Replace banner' : 'Upload banner' }}</span>
+        <span v-if="variant === 'banner'" class="text-sm font-medium text-highlighted">{{ shown ? 'Replace image' : 'Upload image' }}</span>
         <span v-else class="sr-only">{{ label }}</span>
         <span v-if="hint && variant === 'banner'" class="text-xs text-muted">{{ hint }}</span>
         <input ref="input" type="file" accept="image/jpeg,image/png,image/webp" class="sr-only" :aria-label="label" :disabled="uploading" @change="onChange">

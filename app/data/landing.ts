@@ -24,7 +24,8 @@ export const NAV_LINKS = [
   { label: 'Trust Framework', href: '#framework' },
   { label: 'APCR 2026', href: '#apcr2026' },
   { label: 'Knowledge', href: '#knowledge' },
-  { label: 'APCR 365', href: '#apcr365' }
+  { label: 'APCR 365', href: '#apcr365' },
+  { label: 'News & Media', href: '/news' }
 ]
 
 export const RISKS: EditorialRow[] = [

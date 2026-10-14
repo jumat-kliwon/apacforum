@@ -15,6 +15,7 @@ const { q, page, pageSize, filters, query, sortHeader } = list
 const apiQuery = computed(() => ({ ...query.value, eventId }))
 
 const { data, status, refresh } = await useFetch('/api/admin/participants', { query: apiQuery })
+const tableSkeleton = useQuerySkeleton(status, apiQuery)
 const { data: options } = await useFetch('/api/admin/event-options', { query: { eventId } })
 
 // ── filters (applied with the "Apply" button) ──
@@ -175,12 +176,16 @@ const rangeText = computed(() => {
 
     <UTable
       v-model:column-visibility="columnVisibility"
-      :data="rows"
+      :data="tableSkeleton ? [] : rows"
       :columns="columns"
       :loading="status === 'pending'"
+      :ui="{ loading: 'p-0' }"
       empty="No participants match these filters."
       class="-mx-4 sm:-mx-5"
     >
+      <template #loading>
+        <AdminSkeletonRows :rows="6" :columns="6" />
+      </template>
       <template #select-cell="{ row }">
         <UCheckbox :model-value="selected.has(row.original.id)" :aria-label="`Select ${row.original.name}`" @update:model-value="toggleRow(row.original.id, $event)" />
       </template>

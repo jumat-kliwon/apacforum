@@ -1,7 +1,7 @@
 /** Sections of the event-scoped CMS under /admin/e/[eventId]. '' is the dashboard. */
-export type EventSection = '' | 'registrations' | 'transactions' | 'settings'
+export type EventSection = '' | 'registrations' | 'transactions' | 'tickets' | 'settings'
 
-const SECTIONS: EventSection[] = ['registrations', 'transactions', 'settings']
+const SECTIONS: EventSection[] = ['registrations', 'transactions', 'tickets', 'settings']
 
 /** URL of a page inside an event, e.g. eventPath(id, 'transactions', trxId). */
 export function eventPath(eventId: string, section: EventSection = '', ...rest: string[]) {
@@ -18,4 +18,22 @@ export function switchEventPath(path: string, query: Record<string, unknown>, ev
   const target = eventPath(eventId, section)
   const tab = section === 'settings' && typeof query.tab === 'string' ? query.tab : undefined
   return tab ? `${target}?tab=${encodeURIComponent(tab)}` : target
+}
+
+export type PageSkeleton = 'list' | 'detail' | 'form' | 'dashboard'
+
+/** Which loading skeleton fits a CMS page, from its path. */
+export function pageSkeleton(path: string): PageSkeleton {
+  const p = path.replace(/\/+$/, '')
+  const ev = /^\/admin\/e\/[^/]+(?:\/([^/]+)(?:\/([^/]+))?)?/.exec(p)
+  if (ev) {
+    const [, section, record] = ev
+    if (!section) return 'dashboard'
+    if (section === 'settings') return record === 'edit' ? 'form' : 'detail'
+    if (section === 'tickets') return record ? 'form' : 'list'
+    return record ? 'detail' : 'list'
+  }
+  if (/^\/admin\/(events|news)\/(new|[^/]+\/edit|[0-9a-f-]{36})$/.test(p)) return 'form'
+  if (p === '/admin/email-templates') return 'detail'
+  return 'list'
 }

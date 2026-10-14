@@ -18,8 +18,7 @@ const initial = computed<EventFormInput | undefined>(() => {
     bannerKey: e.bannerKey, registrationOpen: e.registrationOpen, status: e.status === 'published' ? 'published' : 'draft',
     agendaDays: d.agendaDays.map(a => ({ id: a.id, label: a.label, date: a.date, theme: a.theme, body: a.body })),
     speakers: d.speakers.map(s => ({ id: s.id, name: s.name, title: s.title, category: s.category, agendaDayIndex: s.agendaDayIndex != null && s.agendaDayIndex >= 0 ? s.agendaDayIndex : null, photoKey: s.photoKey, status: s.status })),
-    partners: d.partners.map(p => ({ id: p.id, name: p.name, category: p.category, logoKey: p.logoKey })),
-    ticketTypes: d.ticketTypes.map(t => ({ id: t.id, code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale }))
+    partners: d.partners.map(p => ({ id: p.id, name: p.name, category: p.category, logoKey: p.logoKey }))
   }
 })
 const previews = computed(() => data.value && {
@@ -51,7 +50,7 @@ async function update(form: EventForm) {
   <template v-else-if="data && initial && previews">
     <AdminPageHeader
       :title="`Edit ${data.event.name}`"
-      description="Changes to a published event show on the website right after you save."
+      description="General details, agenda, speakers and partners. Ticket types are managed on the Tickets page."
       :breadcrumb="[{ label: 'Events', to: '/admin/events' }, { label: data.event.name, to: eventPath(id, 'settings') }, { label: 'Edit' }]"
     />
     <AdminEventForm :initial="initial" :previews="previews" :event-id="id" :saving="saving" @submit="update" />

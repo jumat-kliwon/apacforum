@@ -9,6 +9,7 @@ const list = useListQuery({ sort: 'date', dir: 'asc', filters: { status: undefin
 const { q, filters, sort, dir, sortHeader } = list
 const query = computed(() => ({ q: list.query.value.q, status: filters.status, sort: sort.value, dir: dir.value }))
 const { data, status, refresh } = await useFetch('/api/admin/events', { query })
+const tableSkeleton = useQuerySkeleton(status, query)
 
 type Row = NonNullable<typeof data.value>[number]
 const columns: TableColumn<Row>[] = [
@@ -85,7 +86,10 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       <USelect v-model="statusFilter" :items="[{ label: 'All statuses', value: ALL }, ...toItems(EVENT_STATUS)]" icon="i-lucide-list-filter" aria-label="Filter by status" class="ml-auto w-44" />
     </div>
 
-    <UTable :data="data ?? []" :columns="columns" :loading="status === 'pending'" empty="No events yet." class="-mx-4 sm:-mx-5">
+    <UTable :data="tableSkeleton ? [] : data ?? []" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No events yet." class="-mx-4 sm:-mx-5">
+      <template #loading>
+        <AdminSkeletonRows :rows="6" :columns="5" />
+      </template>
       <template #name-cell="{ row }">
         <div class="flex items-center gap-3">
           <span class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-brand-50 text-brand-800"><UIcon name="i-lucide-calendar-days" class="size-5" /></span>
