@@ -98,6 +98,10 @@ export async function registerParticipant(slug: string, input: RegistrationData)
   }
 
   async function notify() {
+    // DOKU failed during the request: try again so the invoice email carries the DOKU link
+    if (!free && !paymentUrl) {
+      await ensureCheckout(transactionId).catch(err => console.error('[doku] could not create checkout for the invoice email', err))
+    }
     const data = await loadMailData(participantId)
     if (!data) return
     await sendTemplateSafe(free ? 'payment-success' : 'registration-verified', data)
