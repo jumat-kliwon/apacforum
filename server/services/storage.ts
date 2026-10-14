@@ -26,6 +26,28 @@ export function presignUpload(key: string, contentType: keyof typeof UPLOAD_TYPE
   return r2().presign(key, { method: 'PUT', expiresIn: 600, type: contentType })
 }
 
+/** Keys handed out by `/api/admin/uploads`: `<folder>/<uuid>.<ext>`. */
+const UPLOAD_KEY = /^(events|speakers|partners)\/[0-9a-f-]{36}\.(jpg|png|webp)$/
+
+/**
+ * Checks newly uploaded files before their keys are saved. A presigned PUT cannot cap the file size,
+ * so size and type are read back from R2; a file that breaks the rules is deleted.
+ */
+export async function assertUploads(keys: (string | null | undefined)[]) {
+  const list = [...new Set(keys.filter((k): k is string => !!k))]
+  if (!list.length) return
+  const c = r2()
+  await Promise.all(list.map(async (key) => {
+    if (!UPLOAD_KEY.test(key)) throw createError({ statusCode: 422, statusMessage: 'Invalid image reference' })
+    const stat = await c.stat(key).catch(() => null)
+    if (!stat) throw createError({ statusCode: 422, statusMessage: 'An image upload did not finish. Please upload it again.' })
+    if (stat.size > MAX_UPLOAD_BYTES || !(stat.type in UPLOAD_TYPES)) {
+      await c.delete(key).catch(() => null)
+      throw createError({ statusCode: 422, statusMessage: 'Images must be JPG, PNG or WebP and 5 MB at most' })
+    }
+  }))
+}
+
 /** Deletes old objects; a failed delete never fails the request. */
 export async function deleteObjects(keys: (string | null | undefined)[]) {
   const list = keys.filter((k): k is string => !!k)

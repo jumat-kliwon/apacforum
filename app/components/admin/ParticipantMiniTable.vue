@@ -10,6 +10,7 @@ type Row = {
   createdAt: string | Date
 }
 defineProps<{ rows: Row[] }>()
+const eventId = useEventId()
 
 const columns = [
   { accessorKey: 'name', header: 'Participant' },
@@ -23,7 +24,7 @@ const columns = [
 <template>
   <UTable :data="rows" :columns="columns" empty="No registrations yet." class="-mx-4 sm:-mx-5">
     <template #name-cell="{ row }">
-      <NuxtLink :to="`/admin/participants/${row.original.userId}`" class="flex items-center gap-3">
+      <NuxtLink :to="eventPath(eventId, 'registrations', row.original.userId)" class="flex items-center gap-3">
         <UAvatar :text="initials(row.original.name)" size="sm" class="bg-brand-50 text-brand-900" />
         <div class="min-w-0">
           <div class="font-medium text-highlighted">{{ row.original.name }}</div>

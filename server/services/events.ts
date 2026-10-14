@@ -2,14 +2,18 @@ import { and, asc, desc, eq, ilike, inArray, notInArray, or, sql } from 'drizzle
 import type { z } from 'zod'
 import type { EventForm, TicketTypeForm, ticketTypeListQuery } from '../../shared/schemas/event'
 import { db } from '../db'
-import { agendaDays, events, partners, participants, speakers, ticketTypes } from '../db/schema'
+import { agendaDays, events, partners, participants, speakers, ticketTypes, transactions } from '../db/schema'
 import { deadlineFromDate } from './registration'
-import { deleteObjects } from './storage'
+import { assertUploads, deleteObjects } from './storage'
 import type { Tx } from './context'
 import { pgError } from '../utils/db-error'
 import { likePattern } from '../utils/validate'
+import { sanitizeDescription } from '../utils/sanitizeDescription'
 
 type Actor = { id: string }
+
+/** Transaction states that hold money or may still receive it. An event with any of these is archived, not deleted. */
+const MONEY_STATUSES: ('pending' | 'paid' | 'refunded')[] = ['pending', 'paid', 'refunded']
 
 /** Syncs child rows: delete removed ones, update existing ones, insert new ones. */
 async function syncChildren<T extends { id?: string }>(
@@ -44,7 +48,7 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
     code: form.code,
     slug: form.slug,
     tagline: form.tagline,
-    description: form.description,
+    description: sanitizeDescription(form.description),
     startDate: form.startDate,
     endDate: form.endDate,
     registrationDeadline: deadlineFromDate(form.registrationDeadline),
@@ -56,6 +60,11 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
     registrationOpen: form.registrationOpen,
     status: form.status
   }
+
+  // only files uploaded since the last save need checking
+  const savedKeys = eventId ? await imageKeys(eventId) : new Set<string | null>()
+  await assertUploads([form.bannerKey, ...form.speakers.map(s => s.photoKey), ...form.partners.map(p => p.logoKey)]
+    .filter(k => !savedKeys.has(k ?? null)))
 
   const staleKeys: (string | null)[] = []
   try {
@@ -236,6 +245,16 @@ export async function setEventStatus(eventId: string, status: 'draft' | 'publish
   })
 }
 
+/** Image keys an event currently uses. */
+async function imageKeys(eventId: string) {
+  const [ev, sp, pa] = await Promise.all([
+    db.select({ k: events.bannerKey }).from(events).where(eq(events.id, eventId)),
+    db.select({ k: speakers.photoKey }).from(speakers).where(eq(speakers.eventId, eventId)),
+    db.select({ k: partners.logoKey }).from(partners).where(eq(partners.eventId, eventId))
+  ])
+  return new Set([...ev, ...sp, ...pa].map(r => r.k))
+}
+
 /** Readable messages for constraint violations. */
 function translateDbError(err: unknown) {
   if ((err as { statusCode?: number }).statusCode) return err
@@ -254,8 +273,18 @@ function translateDbError(err: unknown) {
 
 export async function deleteEvent(id: string) {
   const keys = await db.transaction(async (tx) => {
-    const [ev] = await tx.select().from(events).where(eq(events.id, id))
+    // FOR UPDATE: invoice creation bumps events.invoice_seq, so it waits for us (or we for it) and the count below is current
+    const [ev] = await tx.select().from(events).where(eq(events.id, id)).for('update')
     if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
+    // a pending invoice can still be paid through its DOKU link, so it counts as money too
+    const [money] = await tx.select({ n: sql<number>`count(*)::int` }).from(transactions)
+      .where(and(eq(transactions.eventId, id), inArray(transactions.status, MONEY_STATUSES)))
+    if (money && money.n > 0) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: `This event has ${money.n} active or paid ${money.n === 1 ? 'transaction' : 'transactions'}. Archive it instead of deleting.`
+      })
+    }
     const files = [
       ev.bannerKey,
       ...(await tx.select({ k: speakers.photoKey }).from(speakers).where(eq(speakers.eventId, id))).map(r => r.k),
@@ -269,12 +298,27 @@ export async function deleteEvent(id: string) {
   await deleteObjects(keys)
 }
 
-/** How much data a delete removes — for the confirmation dialog. */
+/** How much data a delete removes, for the confirmation dialog. `transactions` > 0 means it cannot be deleted. */
 export async function deleteImpact(ids: string[]) {
-  if (!ids.length) return new Map<string, { days: number, speakers: number, partners: number, tickets: number, participants: number }>()
+  if (!ids.length) return new Map<string, { days: number, speakers: number, partners: number, tickets: number, participants: number, transactions: number }>()
   const count = (table: typeof agendaDays | typeof speakers | typeof partners | typeof ticketTypes | typeof participants) =>
     db.select({ eventId: table.eventId, n: sql<number>`count(*)::int` }).from(table).where(inArray(table.eventId, ids)).groupBy(table.eventId)
-  const [d, s, p, t, pa] = await Promise.all([count(agendaDays), count(speakers), count(partners), count(ticketTypes), count(participants)])
-  const get = (rows: { eventId: string, n: number }[], id: string) => rows.find(r => r.eventId === id)?.n ?? 0
-  return new Map(ids.map(id => [id, { days: get(d, id), speakers: get(s, id), partners: get(p, id), tickets: get(t, id), participants: get(pa, id) }]))
+  const [d, s, p, t, pa, tr] = await Promise.all([
+    count(agendaDays), count(speakers), count(partners), count(ticketTypes), count(participants),
+    db.select({ eventId: transactions.eventId, n: sql<number>`count(*)::int` }).from(transactions)
+      .where(and(inArray(transactions.eventId, ids), inArray(transactions.status, MONEY_STATUSES))).groupBy(transactions.eventId)
+  ])
+  const get = (rows: { eventId: string | null, n: number }[], id: string) => rows.find(r => r.eventId === id)?.n ?? 0
+  return new Map(ids.map(id => [id, {
+    days: get(d, id), speakers: get(s, id), partners: get(p, id), tickets: get(t, id), participants: get(pa, id), transactions: get(tr, id)
+  }]))
+}
+
+/**
+ * Takes an event off the website: public pages and registration only serve `published` events.
+ * Editing it later saves it back as a draft or published event.
+ */
+export async function archiveEvent(id: string) {
+  const [ev] = await db.update(events).set({ status: 'archived' }).where(eq(events.id, id)).returning({ id: events.id })
+  if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
 }

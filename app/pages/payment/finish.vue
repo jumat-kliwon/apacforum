@@ -7,7 +7,7 @@ const simulated = computed(() => route.query.simulated === '1')
 </script>
 
 <template>
-  <div class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-lg border border-default bg-default p-8 text-center shadow-xs">
+  <div class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-md border border-default bg-default p-8 text-center shadow-xs">
     <span class="flex size-12 items-center justify-center rounded-full bg-brand-50 text-brand-800">
       <UIcon name="i-lucide-receipt" class="size-6" />
     </span>

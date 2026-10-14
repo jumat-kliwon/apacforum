@@ -28,7 +28,8 @@ export default defineEventHandler(async (event) => {
       ...ev,
       // the form uses a date; registration closes at 23:59 WIB
       registrationDeadlineDate: new Date(ev.registrationDeadline.getTime() + 7 * 3600_000).toISOString().slice(0, 10),
-      bannerUrl: publicUrl(ev.bannerKey)
+      bannerUrl: publicUrl(ev.bannerKey),
+      scannerPath: scannerPath(ev.id)
     },
     agendaDays: days,
     speakers: sp.map(s => ({ ...s, photoUrl: publicUrl(s.photoKey), agendaDayIndex: s.agendaDayId ? days.findIndex(d => d.id === s.agendaDayId) : null })),

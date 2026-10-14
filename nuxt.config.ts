@@ -13,7 +13,9 @@ export default defineNuxtConfig({
   routeRules: {
     // the CMS renders in the browser only (the session is checked in middleware)
     '/admin/**': { ssr: false },
-    '/login': { ssr: false }
+    '/login': { ssr: false },
+    // public ticket scanner: the link carries a secret key, so keep it out of search engines and referrers
+    '/scan/**': { ssr: false, headers: { 'X-Robots-Tag': 'noindex', 'Referrer-Policy': 'no-referrer' } }
   },
   colorMode: {
     preference: 'light'
@@ -41,8 +43,10 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      siteUrl: 'http://localhost:3000',
-      r2PublicUrl: ''
+      // NUXT_PUBLIC_SITE_URL; empty falls back to BETTER_AUTH_URL / the Vercel URL (server/services/context.ts)
+      siteUrl: '',
+      // the same R2_PUBLIC_URL the server uses; NUXT_PUBLIC_R2_PUBLIC_URL still overrides it at runtime
+      r2PublicUrl: process.env.R2_PUBLIC_URL || ''
     }
   }
 })

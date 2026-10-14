@@ -32,7 +32,7 @@ const statusColor = (label: string) => {
   <AdminPageHeader title="Participant email templates" description="Sent automatically when a registration or payment status changes. Content is fixed in the code; this page shows a preview with sample data." />
 
   <div class="grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-    <nav aria-label="Email templates" class="flex flex-col gap-4 rounded-lg border border-default bg-default p-3 shadow-xs">
+    <nav aria-label="Email templates" class="flex flex-col gap-4 rounded-md border border-default bg-default p-3 shadow-xs">
       <div v-for="g in groups" :key="g.label" class="flex flex-col gap-1">
         <p class="px-2 pt-1 text-[11px] font-medium uppercase tracking-[1.1px] text-muted">
           {{ g.label }}
@@ -41,7 +41,7 @@ const statusColor = (label: string) => {
           v-for="t in g.items"
           :key="t.key"
           type="button"
-          class="flex items-start gap-3 rounded-md border p-2.5 text-left transition-colors"
+          class="flex items-start gap-3 rounded-sm border p-2.5 text-left transition-colors"
           :class="selected === t.key ? 'border-brand-700 bg-brand-50 dark:bg-[#2e2a18]' : 'border-transparent hover:bg-muted'"
           :aria-pressed="selected === t.key"
           @click="selected = t.key"
@@ -74,7 +74,7 @@ const statusColor = (label: string) => {
         </dl>
       </AdminPanel>
 
-      <div class="overflow-hidden rounded-lg border border-default bg-default shadow-xs">
+      <div class="overflow-hidden rounded-md border border-default bg-default shadow-xs">
         <iframe
           :srcdoc="preview.html"
           :title="`Email preview: ${preview.name}`"

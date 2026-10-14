@@ -3,21 +3,14 @@ import * as z from 'zod'
 import { db } from '~~/server/db'
 import { events, participants, ticketTypes, transactions, users } from '~~/server/db/schema'
 
-const query = z.object({ eventId: z.uuid().optional() })
+const query = z.object({ eventId: z.uuid() })
 
 export default defineEventHandler(async (event) => {
   await requireAdmin(event)
-  let { eventId } = parseQuery(event, query)
+  const { eventId } = parseQuery(event, query)
 
-  const evs = await db.select({ id: events.id, name: events.name, timezone: events.timezone }).from(events).orderBy(desc(events.startDate))
-  if (!eventId) {
-    // default: the event with the most registrations
-    const [top] = await db.select({ id: participants.eventId }).from(participants)
-      .groupBy(participants.eventId).orderBy(desc(sql`count(*)`)).limit(1)
-    eventId = top?.id ?? evs[0]?.id
-  }
-  const ev = evs.find(e => e.id === eventId)
-  if (!ev) return { events: evs, eventId: null, stats: null, daily: [], quotas: [], payStatus: { pending: 0, paid: 0, expired: 0, refunded: 0 }, recent: [] }
+  const [ev] = await db.select({ id: events.id, timezone: events.timezone }).from(events).where(eq(events.id, eventId))
+  if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
 
   const byEvent = eq(participants.eventId, ev.id)
   const tz = ev.timezone
@@ -71,8 +64,6 @@ export default defineEventHandler(async (event) => {
     .limit(5)
 
   return {
-    events: evs,
-    eventId: ev.id,
     stats: { ...stats!, revenue: Number(revenue?.sum ?? 0) },
     daily: [...daily].map(r => ({ day: String(r.day), n: Number(r.n) })),
     quotas,

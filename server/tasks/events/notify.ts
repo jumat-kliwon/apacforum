@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '../../db'
 import { events, participants } from '../../db/schema'
 import { loadMailData } from '../../services/context'
@@ -8,10 +8,24 @@ import { sendTemplateSafe } from '../../services/mail/send'
 const wibDate = (offsetDays: number) =>
   new Date(Date.now() + 7 * 3600_000 + offsetDays * 86_400_000).toISOString().slice(0, 10)
 
-async function notify(dateColumn: typeof events.startDate | typeof events.endDate, date: string, key: 'event-reminder-h3' | 'event-thank-you') {
-  const rows = await db.select({ id: participants.id }).from(participants)
-    .innerJoin(events, eq(events.id, participants.eventId))
-    .where(and(eq(dateColumn, date), eq(events.status, 'published'), eq(participants.status, 'verified'), eq(participants.paymentStatus, 'paid')))
+const SENT_AT = {
+  'event-reminder-h3': participants.eventReminderSentAt,
+  'event-thank-you': participants.thankYouSentAt
+} as const
+
+async function notify(dateColumn: typeof events.startDate | typeof events.endDate, date: string, key: keyof typeof SENT_AT) {
+  const sentAt = SENT_AT[key]
+  const eventIds = db.select({ id: events.id }).from(events).where(and(eq(dateColumn, date), eq(events.status, 'published')))
+  // claim the rows first, so a second run on the same day (cron + manual trigger) sends nothing
+  const rows = await db.update(participants)
+    .set(key === 'event-reminder-h3' ? { eventReminderSentAt: new Date() } : { thankYouSentAt: new Date() })
+    .where(and(
+      inArray(participants.eventId, eventIds),
+      eq(participants.status, 'verified'),
+      eq(participants.paymentStatus, 'paid'),
+      isNull(sentAt)
+    ))
+    .returning({ id: participants.id })
   for (const r of rows) {
     const data = await loadMailData(r.id)
     if (data) await sendTemplateSafe(key, data)

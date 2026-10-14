@@ -6,7 +6,11 @@ import { registrationSchema, type RegistrationInput } from '~~/shared/schemas/pa
 const route = useRoute()
 const slug = String(route.params.slug)
 const { data, error } = await useFetch(`/api/public/events/${slug}`)
-if (error.value) throw createError({ statusCode: 404, statusMessage: 'Event not found', fatal: true })
+if (error.value) {
+  // only a real 404 says "not found"; a server error must not look like a missing page to visitors or crawlers
+  const statusCode = error.value.statusCode ?? 500
+  throw createError({ statusCode, statusMessage: statusCode === 404 ? 'Event not found' : 'We could not load this event', fatal: true })
+}
 
 const ev = computed(() => data.value!.event)
 useHead({ title: () => `Register · ${ev.value.name}` })
@@ -29,20 +33,26 @@ const agree = computed({ get: () => state.agree === true, set: (v: boolean) => {
 
 const submitting = ref(false)
 const serverError = ref('')
-const done = ref<{ regNo?: string } | null>(null)
+type RegisterResult = { regNo?: string, invoiceNo?: string, paymentUrl: string | null, free: boolean }
+const done = ref<RegisterResult | null>(null)
 
 async function onSubmit(e: FormSubmitEvent<z.output<typeof registrationSchema>>) {
   submitting.value = true
   serverError.value = ''
   try {
     const url: string = `/api/public/events/${slug}/register`
-    done.value = await $fetch<{ regNo?: string }>(url, { method: 'POST', body: e.data })
+    const result = await $fetch<RegisterResult>(url, { method: 'POST', body: e.data })
+    if (result.paymentUrl) {
+      // keep the button loading while the browser leaves for DOKU Checkout
+      await navigateTo(result.paymentUrl, { external: true })
+      return
+    }
+    done.value = result
     window.scrollTo({ top: 0, behavior: 'smooth' })
   } catch (err) {
     serverError.value = errorMessage(err, 'We could not submit your registration. Please try again.')
-  } finally {
-    submitting.value = false
   }
+  submitting.value = false
 }
 function onError(e: FormErrorEvent) {
   const first = e.errors[0]
@@ -54,23 +64,29 @@ function onError(e: FormErrorEvent) {
   <template v-if="data">
     <UBreadcrumb :items="[{ label: ev.name, to: `/events/${slug}` }, { label: 'Register' }]" />
 
-    <div v-if="done" class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-lg border border-default bg-default p-8 text-center shadow-xs" role="status">
+    <div v-if="done" class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-md border border-default bg-default p-8 text-center shadow-xs" role="status">
       <span class="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
         <UIcon name="i-lucide-circle-check" class="size-6" />
       </span>
       <h1 class="text-2xl font-bold text-highlighted">
         Thanks for registering
       </h1>
-      <p class="text-muted">
-        We sent a confirmation to <strong class="text-highlighted">{{ state.email }}</strong>. Our team verifies your details within 2 working days, then emails you the invoice and payment link.
+      <p v-if="done.free" class="text-muted">
+        Your registration is confirmed. We emailed your e-ticket with a QR code to <strong class="text-highlighted">{{ state.email }}</strong>.
+      </p>
+      <p v-else class="text-muted">
+        We could not open the payment page right now. We emailed the invoice to <strong class="text-highlighted">{{ state.email }}</strong> — use the payment link in it within 48 hours.
       </p>
       <p v-if="done.regNo" class="text-sm">
         Registration no. <span class="font-mono font-medium">{{ done.regNo }}</span>
       </p>
+      <p v-if="done.invoiceNo && !done.free" class="text-sm">
+        Invoice <span class="font-mono font-medium">{{ done.invoiceNo }}</span>
+      </p>
       <UButton :to="`/events/${slug}`" color="neutral" variant="outline" label="Back to event page" />
     </div>
 
-    <div v-else-if="!ev.isOpen" class="rounded-lg border border-default bg-default p-10">
+    <div v-else-if="!ev.isOpen" class="rounded-md border border-default bg-default p-10">
       <UEmpty icon="i-lucide-calendar-x" title="Registration is closed" description="This event is no longer accepting registrations." :actions="[{ label: 'Back to event page', to: `/events/${slug}` }]" />
     </div>
 
@@ -92,7 +108,7 @@ function onError(e: FormErrorEvent) {
             <URadioGroup v-model="state.ticketTypeId" :items="ticketItems" variant="card" class="w-full" />
           </UFormField>
 
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div class="grid gap-5 sm:grid-cols-2">
             <UFormField label="Full name" name="name" required class="sm:col-span-2" help="As it should appear on your badge and certificate.">
               <UInput v-model="state.name" autocomplete="name" class="w-full" />
             </UFormField>
@@ -129,11 +145,11 @@ function onError(e: FormErrorEvent) {
             <UCheckbox v-model="agree" label="I confirm these details are correct and agree to be contacted about this event." />
           </UFormField>
 
-          <UButton type="submit" size="lg" label="Submit registration" :loading="submitting" class="self-start" />
+          <UButton type="submit" size="lg" label="Register and pay" :loading="submitting" class="self-start" />
         </UForm>
       </UCard>
 
-      <aside class="flex flex-col gap-3 rounded-lg border border-default bg-default p-5 shadow-xs lg:sticky lg:top-24">
+      <aside class="flex flex-col gap-3 rounded-md border border-default bg-default p-5 shadow-xs lg:sticky lg:top-24">
         <h2 class="font-semibold text-highlighted">
           {{ ev.name }}
         </h2>
@@ -146,9 +162,8 @@ function onError(e: FormErrorEvent) {
         <USeparator />
         <ol class="flex flex-col gap-2 text-sm text-muted">
           <li>1. Submit this form.</li>
-          <li>2. We verify your details within 2 working days.</li>
-          <li>3. Pay the invoice through DOKU within 48 hours.</li>
-          <li>4. Receive your e-ticket with a QR code by email.</li>
+          <li>2. You are taken to DOKU to pay — the invoice stays payable for 48 hours.</li>
+          <li>3. Receive your e-ticket with a QR code by email.</li>
         </ol>
       </aside>
     </div>

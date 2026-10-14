@@ -33,22 +33,22 @@ const page = {
 export const participantListQuery = z.object({
   ...page,
   q: z.string().trim().max(100).optional(),
-  eventId: z.uuid().optional(),
+  eventId: z.uuid(),
   ticketTypeName: z.string().max(120).optional(),
   status: z.enum(Object.keys(REGISTRATION_STATUS) as [keyof typeof REGISTRATION_STATUS]).optional(),
   paymentStatus: z.enum(Object.keys(PAYMENT_STATUS) as [keyof typeof PAYMENT_STATUS]).optional(),
-  sort: z.enum(['name', 'type', 'event', 'org', 'reg', 'pay', 'date']).default('date')
+  sort: z.enum(['name', 'type', 'org', 'reg', 'pay', 'date']).default('date')
 })
 
 export const transactionListQuery = z.object({
   ...page,
   q: z.string().trim().max(100).optional(),
-  eventId: z.uuid().optional(),
+  eventId: z.uuid(),
   status: z.enum(Object.keys(TRANSACTION_STATUS) as [keyof typeof TRANSACTION_STATUS]).optional(),
   method: z.enum(Object.keys(PAYMENT_METHOD) as [keyof typeof PAYMENT_METHOD]).optional(),
   from: z.iso.date().optional(),
   to: z.iso.date().optional(),
-  sort: z.enum(['id', 'name', 'type', 'event', 'amount', 'method', 'status', 'date']).default('date')
+  sort: z.enum(['id', 'name', 'type', 'amount', 'method', 'status', 'date']).default('date')
 })
 
 export const bulkParticipantSchema = z.object({

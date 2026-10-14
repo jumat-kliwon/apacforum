@@ -26,6 +26,9 @@ export const participants = pgTable('participants', {
   ticketCode: varchar({ length: 32 }).unique(),
   ticketIssuedAt: timestamp({ withTimezone: true }),
   checkedInAt: timestamp({ withTimezone: true }),
+  /** Set when the 3-day reminder / next-day thank-you email went out, so the daily task sends each once. */
+  eventReminderSentAt: timestamp({ withTimezone: true }),
+  thankYouSentAt: timestamp({ withTimezone: true }),
   ...timestamps
 }, t => [
   // one active registration per user per event; re-registering after rejection/cancellation is allowed

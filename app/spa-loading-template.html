@@ -1,0 +1,8 @@
+<!-- Shown while the client-only CMS (/admin, /login) boots. -->
+<div style="display:flex;min-height:100dvh;align-items:center;justify-content:center;background:#f8fafc">
+  <div role="status" aria-label="Loading" style="width:32px;height:32px;border:3px solid #e2e8f0;border-top-color:#06285f;border-radius:50%;animation:apcr-spin .8s linear infinite"></div>
+</div>
+<style>
+  @keyframes apcr-spin { to { transform: rotate(360deg) } }
+  @media (prefers-reduced-motion: reduce) { [role="status"] { animation-duration: 2.4s !important } }
+</style>

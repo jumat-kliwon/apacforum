@@ -1,5 +1,5 @@
 {
-  "id": "31b32787-4b0a-42e1-9578-98fac0a1fcf5",
+  "id": "2485efec-35ed-4184-8a37-4f6479dae7fd",
   "prevId": "4ac4d8ff-4f23-4bc3-bfae-61a76e9a2f9f",
   "version": "7",
   "dialect": "postgresql",
@@ -1302,6 +1302,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "event_reminder_sent_at": {
+          "name": "event_reminder_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "thank_you_sent_at": {
+          "name": "thank_you_sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1783,186 +1795,6 @@
           "nullsNotDistinct": false,
           "columns": [
             "invoice_no"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.articles": {
-      "name": "articles",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "slug": {
-          "name": "slug",
-          "type": "varchar(160)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "excerpt": {
-          "name": "excerpt",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "content": {
-          "name": "content",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "thumbnail_key": {
-          "name": "thumbnail_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "status": {
-          "name": "status",
-          "type": "publish_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'draft'"
-        },
-        "published_at": {
-          "name": "published_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "author_id": {
-          "name": "author_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "seo_title": {
-          "name": "seo_title",
-          "type": "varchar(70)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "seo_description": {
-          "name": "seo_description",
-          "type": "varchar(160)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "seo_keywords": {
-          "name": "seo_keywords",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "og_image_key": {
-          "name": "og_image_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "canonical_url": {
-          "name": "canonical_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "no_index": {
-          "name": "no_index",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "articles_status_published_at_index": {
-          "name": "articles_status_published_at_index",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "published_at",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "articles_title_trgm": {
-          "name": "articles_title_trgm",
-          "columns": [
-            {
-              "expression": "\"title\" gin_trgm_ops",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "gin",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "articles_author_id_users_id_fk": {
-          "name": "articles_author_id_users_id_fk",
-          "tableFrom": "articles",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "articles_slug_unique": {
-          "name": "articles_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "slug"
           ]
         }
       },

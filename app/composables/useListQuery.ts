@@ -48,7 +48,8 @@ export function useListQuery<F extends Record<string, string | undefined>>(defau
   return { q, page, pageSize, sort, dir, filters, query, toggleSort, sortHeader, ariaSort }
 }
 
-function refDebounced<T>(source: Ref<T>, ms: number) {
+/** A copy of `source` that only updates after `ms` without changes. */
+export function refDebounced<T>(source: Ref<T>, ms: number) {
   const out = ref(source.value) as Ref<T>
   let t: ReturnType<typeof setTimeout> | undefined
   watch(source, (v) => {

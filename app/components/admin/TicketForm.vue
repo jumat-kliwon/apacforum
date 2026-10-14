@@ -2,10 +2,10 @@
 import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
 import { ticketTypeFormSchema, type TicketTypeForm, type TicketTypeFormInput } from '~~/shared/schemas/event'
 
-/** One ticket type. Used by "Add ticket type" and "Edit ticket type". */
+/** One ticket type of the selected event. Used by "Add ticket type" and "Edit ticket type". */
 const props = defineProps<{
+  eventId: string
   initial?: TicketTypeFormInput
-  events: { id: string, name: string }[]
   saving?: boolean
   ticketId?: string
   /** Sales so far, shown next to the quota while editing. */
@@ -15,9 +15,7 @@ const emit = defineEmits<{ submit: [TicketTypeForm] }>()
 
 const state = reactive<TicketTypeFormInput>(props.initial
   ? structuredClone(toRaw(props.initial))
-  : { eventId: props.events[0]?.id ?? '', code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true })
-
-const eventItems = computed(() => props.events.map(e => ({ label: e.name, value: e.id })))
+  : { eventId: props.eventId, code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true })
 const pricePerPerson = computed(() => {
   const pax = Number(state.paxPerTicket) || 1
   return pax > 1 ? formatRupiah(Math.round((Number(state.price) || 0) / pax)) : null
@@ -33,13 +31,7 @@ function onError(e: FormErrorEvent) {
 </script>
 
 <template>
-  <UForm :schema="ticketTypeFormSchema" :state="state" class="flex flex-col gap-6" @submit="onSubmit" @error="onError">
-    <AdminPanel title="Event" description="The ticket type appears on this event's registration form.">
-      <UFormField label="Event" name="eventId" required :help="ticketId ? 'The event cannot change after the ticket type is created.' : undefined">
-        <USelect v-model="state.eventId" :items="eventItems" :disabled="!!ticketId" placeholder="Choose an event" icon="i-lucide-calendar-days" class="w-full" />
-      </UFormField>
-    </AdminPanel>
-
+  <UForm :schema="ticketTypeFormSchema" :state="state" class="flex grow flex-col gap-6" @submit="onSubmit" @error="onError">
     <AdminPanel title="Ticket details">
       <div class="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <UFormField label="Ticket type name" name="name" required help="Shown to participants as the participant type.">
@@ -80,9 +72,9 @@ function onError(e: FormErrorEvent) {
       </div>
     </AdminPanel>
 
-    <div class="sticky bottom-0 z-10 -mx-4 -mb-10 flex flex-wrap items-center gap-3 border-t border-default bg-default px-4 py-4 sm:-mx-8 sm:px-8">
+    <div class="sticky bottom-0 z-10 -mx-4 -mb-10 mt-auto flex flex-wrap items-center gap-3 border-t border-default bg-default px-4 py-4 sm:-mx-8 sm:px-8">
       <div class="ml-auto flex flex-wrap gap-2">
-        <UButton to="/admin/tickets" color="neutral" variant="ghost" label="Cancel" />
+        <UButton :to="eventPath(eventId, 'tickets')" color="neutral" variant="ghost" label="Cancel" />
         <UButton type="submit" :label="ticketId ? 'Save changes' : 'Add ticket type'" :loading="saving" />
       </div>
     </div>

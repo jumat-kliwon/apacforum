@@ -74,7 +74,9 @@ export async function createCheckout(input: CheckoutInput): Promise<CheckoutResu
   if (!cfg) {
     // Development without credentials: a fake link so the rest of the flow can still be tried.
     console.warn(`[doku] DOKU_CLIENT_ID/DOKU_SECRET_KEY not set — simulating checkout for ${input.invoiceNo}`)
-    return { url: `${input.callbackUrl}?simulated=1&invoice=${input.invoiceNo}`, tokenId: null, requestId: `sim-${randomUUID()}`, expiresAt: null }
+    const url = new URL(input.callbackUrl)
+    url.searchParams.set('simulated', '1')
+    return { url: url.toString(), tokenId: null, requestId: `sim-${randomUUID()}`, expiresAt: null }
   }
 
   const requestId = randomUUID()

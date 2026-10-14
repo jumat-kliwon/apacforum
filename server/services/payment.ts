@@ -19,10 +19,10 @@ const appendHistory = (...items: TransactionHistoryEntry[]) =>
   sql`${transactions.history} || ${jsonParam(items)}`
 
 /**
- * Creates the invoice for a newly verified participant (inside the caller's DB transaction).
- * Free tickets are marked paid straight away.
+ * Creates the invoice for a new registration (inside the caller's DB transaction).
+ * `actor` is null when the public registration form creates it. Free tickets are marked paid straight away.
  */
-export async function createInvoice(tx: Tx, participantId: string, actor: { id: string, name: string }) {
+export async function createInvoice(tx: Tx, participantId: string, actor: { id: string, name: string } | null) {
   const [row] = await tx.select({ p: participants, u: users, e: events, t: ticketTypes })
     .from(participants)
     .innerJoin(users, eq(users.id, participants.userId))
@@ -56,7 +56,7 @@ export async function createInvoice(tx: Tx, participantId: string, actor: { id: 
       subtotal: row.t.price,
       discount: 0
     },
-    history: [entry('created', { description: `by ${actor.name} after verification`, actor })]
+    history: [entry('created', { description: actor ? `by ${actor.name} after verification` : 'on registration', actor })]
   }).returning()
 
   await tx.update(participants).set({ paymentStatus: free ? 'paid' : 'pending' }).where(eq(participants.id, participantId))

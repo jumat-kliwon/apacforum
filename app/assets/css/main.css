@@ -1,6 +1,9 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+/* keyboard: applies only after Tab navigation (see plugins/focus-mode.client.ts) */
+@custom-variant keyboard (html[data-focus-mode="keyboard"] &);
+
 /*
  * Core Design System → Nuxt UI.
  * Gold brand (#ECBD56) as the single accent with ink text on it, slate neutrals,
@@ -82,6 +85,16 @@
 [data-slot="overlay"] {
   background-color: rgba(15, 23, 42, 0.55);
 }
+
+/* Event description HTML from the rich text editor (shared/utils/richText.ts) */
+.rich-text > * + * { margin-top: 12px; }
+.rich-text h2 { font-size: 20px; line-height: 28px; font-weight: 600; color: var(--ui-text-highlighted); }
+.rich-text h3 { font-size: 16px; line-height: 24px; font-weight: 600; color: var(--ui-text-highlighted); }
+.rich-text ul { list-style: disc; padding-inline-start: 24px; }
+.rich-text ol { list-style: decimal; padding-inline-start: 24px; }
+.rich-text li + li { margin-top: 4px; }
+.rich-text blockquote { border-inline-start: 4px solid var(--ui-border-accented); padding-inline-start: 16px; font-style: italic; }
+.rich-text a { color: var(--ui-primary); font-weight: 500; text-decoration: underline; text-underline-offset: 2px; }
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;

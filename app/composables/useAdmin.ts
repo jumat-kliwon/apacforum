@@ -17,3 +17,8 @@ export function useNotify() {
 export function useAdminSession() {
   return authClient.useSession()
 }
+
+/** When the admin middleware last confirmed the session (0 = not confirmed). */
+export function useAdminSessionCheckedAt() {
+  return useState('admin-session-checked-at', () => 0)
+}

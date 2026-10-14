@@ -272,14 +272,16 @@ Public registration (one DB transaction):
    - Found with `role = 'admin'` → use that user; the profile and role are not touched.
 3. Reject if the user already has an active registration for this event (also enforced by the partial unique index).
 4. Check the event is `published` + `registration_open` + before `registration_deadline`, and the ticket type is `is_on_sale` with quota left (the ticket type row is locked `FOR UPDATE`).
-5. Insert the `participants` row with `reg_no` from `events.registration_seq`.
+5. Insert the `participants` row with `reg_no` from `events.registration_seq`, already `verified` (no admin verification).
+6. Create the invoice in the same DB transaction, then the DOKU Checkout link; the form redirects the registrant to it.
 
 ```
-Public form ──► user (created/filled) + participant(pending_verification, payment none)
-                                                                  + email registration-received
-Admin verifies ──► verified + transaction(pending, expires in 48 hours,
-                   history: created, invoice_sent) + DOKU Checkout link
+Public form ──► user (created/filled) + participant(verified)
+               + transaction(pending, expires in 48 hours, history: created, invoice_sent)
+               + DOKU Checkout link → browser redirected to DOKU
                                                                   + email registration-verified
+               (free ticket → transaction paid + ticket_code)    + email payment-success (QR)
+Admin verifies (older pending_verification rows only) ──► same invoice + link + email registration-verified
 Admin rejects ──► rejected (+ rejection_reason)                    + email registration-rejected
 Every 15 min, 24 h before deadline ──►                             email payment-reminder
 DOKU notification SUCCESS ──► transaction paid (history: paid, ticket_sent),
@@ -297,11 +299,11 @@ Daily 08:00 WIB ──► 3 days before start: event-reminder-h3; 1 day after en
 
 Docs: https://docs.doku.com/accept-payments/integration-tools/doku-checkout
 
-- When an admin verifies a registration, the server calls `POST {DOKU_BASE_URL}/checkout/v1/payment` with
+- When the public registration form is submitted, the server calls `POST {DOKU_BASE_URL}/checkout/v1/payment` with
   `order.invoice_number = transactions.invoice_no`, `order.amount = total`, `order.line_items`, `order.callback_url`
   (`/payment/finish`), `payment.payment_due_date` (minutes left until `expires_at`), `customer`, and
   `additional_info.override_notification_url` (`/api/payments/doku/notify`).
-- The returned `response.payment.url` is stored in `payment.dokuPaymentUrl` and sent in the "Verified + invoice" email.
+- The returned `response.payment.url` is stored in `payment.dokuPaymentUrl`, returned to the form (which redirects the registrant there) and sent in the "Registration + invoice" email. If DOKU fails, the registration and invoice still stand; the link is retried by the reminder job and the admin "Send email" action.
 - The participant picks a method on the DOKU page (VA, QRIS, credit card, e-wallet…); the method and bank come from the notification → `method` + `payment.channel`.
 - Notification endpoint `POST /api/payments/doku/notify`:
   1. Verify the `Signature` header (HMAC-SHA256 with the DOKU secret key, Request-Target = the notification path) — reject on mismatch.
