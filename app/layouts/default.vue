@@ -9,6 +9,9 @@
             <span class="text-xs text-muted">ASEAN Public Communication &amp; Reputation Forum</span>
           </span>
         </NuxtLink>
+        <nav aria-label="Main" class="ml-auto">
+          <UButton to="/news" color="neutral" variant="ghost" label="News & Media" />
+        </nav>
       </div>
     </header>
     <main class="mx-auto flex w-full max-w-6xl grow flex-col gap-8 px-4 py-8 sm:px-6 sm:py-12">

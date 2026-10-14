@@ -189,6 +189,9 @@ async function remove() {
     </AdminPanel>
 
     <AdminPanel id="tickets" title="Tickets" class="scroll-mt-6">
+      <template #actions>
+        <UButton :to="`/admin/tickets?event=${id}`" color="neutral" variant="outline" size="sm" icon="i-lucide-ticket" label="Manage tickets" />
+      </template>
       <UTable
         :data="data.ticketTypes"
         :columns="[{ id: 'name', header: 'Ticket type' }, { id: 'price', header: 'Price' }, { id: 'sold', header: 'Sold / quota' }, { id: 'status', header: 'Status' }]"

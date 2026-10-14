@@ -9,6 +9,8 @@ const items: NavigationMenuItem[] = [
   { label: 'Registrations', icon: 'i-lucide-users', to: '/admin/participants' },
   { label: 'Transactions', icon: 'i-lucide-credit-card', to: '/admin/transactions' },
   { label: 'Events', icon: 'i-lucide-calendar-days', to: '/admin/events' },
+  { label: 'Tickets', icon: 'i-lucide-ticket', to: '/admin/tickets' },
+  { label: 'News & Media', icon: 'i-lucide-newspaper', to: '/admin/news' },
   { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }
 ]
 

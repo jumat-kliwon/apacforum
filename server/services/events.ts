@@ -1,5 +1,5 @@
 import { and, eq, inArray, notInArray, sql } from 'drizzle-orm'
-import type { EventForm } from '../../shared/schemas/event'
+import type { EventForm, TicketsForm } from '../../shared/schemas/event'
 import { db } from '../db'
 import { agendaDays, events, partners, participants, speakers, ticketTypes } from '../db/schema'
 import { deadlineFromDate } from './registration'
@@ -94,9 +94,7 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
       await syncChildren(tx, partners, id, form.partners, (p, i) => ({
         name: p.name, category: p.category, logoKey: p.logoKey ?? null, sortOrder: i + 1
       }))
-      await syncChildren(tx, ticketTypes, id, form.ticketTypes, (t, i) => ({
-        code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale, sortOrder: i + 1
-      }))
+      if (form.status === 'published') await requireTicketTypes(tx, id)
 
       // old files that were replaced or removed
       const newPhotos = new Set(form.speakers.map(s => s.photoKey))
@@ -110,6 +108,45 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
   } catch (err: unknown) {
     throw translateDbError(err)
   }
+}
+
+/** A published event must sell at least one ticket type (managed on the Tickets page). */
+async function requireTicketTypes(tx: Tx, eventId: string) {
+  const [row] = await tx.select({ n: sql<number>`count(*)::int` }).from(ticketTypes).where(eq(ticketTypes.eventId, eventId))
+  if (!row?.n) {
+    throw createError({ statusCode: 422, statusMessage: 'Add at least one ticket type on the Tickets page before publishing this event' })
+  }
+}
+
+/** Replaces the ticket types of one event (the Tickets page). */
+export async function saveTicketTypes(eventId: string, form: TicketsForm) {
+  try {
+    await db.transaction(async (tx) => {
+      const [ev] = await tx.select({ status: events.status }).from(events).where(eq(events.id, eventId)).for('update')
+      if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
+      if (ev.status === 'published' && form.ticketTypes.length === 0) {
+        throw createError({ statusCode: 422, statusMessage: 'A published event needs at least one ticket type' })
+      }
+      await syncChildren(tx, ticketTypes, eventId, form.ticketTypes, (t, i) => ({
+        code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale, sortOrder: i + 1
+      }))
+    })
+  } catch (err: unknown) {
+    throw translateDbError(err)
+  }
+}
+
+/** Publish or unpublish without touching the rest of the event (the Tickets page). */
+export async function setEventStatus(eventId: string, status: 'draft' | 'published') {
+  await db.transaction(async (tx) => {
+    const [ev] = await tx.select({ publishedAt: events.publishedAt }).from(events).where(eq(events.id, eventId)).for('update')
+    if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
+    if (status === 'published') await requireTicketTypes(tx, eventId)
+    await tx.update(events).set({
+      status,
+      publishedAt: status === 'published' ? (ev.publishedAt ?? new Date()) : ev.publishedAt
+    }).where(eq(events.id, eventId))
+  })
 }
 
 /** Readable messages for constraint violations. */

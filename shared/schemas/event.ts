@@ -60,8 +60,7 @@ export const eventFormSchema = z.object({
   status: z.enum(['draft', 'published']),
   agendaDays: z.array(agendaDaySchema).max(14).default([]),
   speakers: z.array(speakerSchema).max(200).default([]),
-  partners: z.array(partnerSchema).max(200).default([]),
-  ticketTypes: z.array(ticketTypeSchema).max(20).default([])
+  partners: z.array(partnerSchema).max(200).default([])
 }).superRefine((v, ctx) => {
   if (v.endDate < v.startDate) {
     ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'Cannot be before the start date' })
@@ -69,19 +68,25 @@ export const eventFormSchema = z.object({
   if (v.registrationDeadline > v.endDate) {
     ctx.addIssue({ code: 'custom', path: ['registrationDeadline'], message: 'Cannot be after the event ends' })
   }
-  const codes = v.ticketTypes.map(t => t.code)
-  codes.forEach((c, i) => {
-    if (codes.indexOf(c) !== i) ctx.addIssue({ code: 'custom', path: ['ticketTypes', i, 'code'], message: 'Ticket code is already used' })
-  })
   v.speakers.forEach((s, i) => {
     if (s.agendaDayIndex !== null && s.agendaDayIndex >= v.agendaDays.length) {
       ctx.addIssue({ code: 'custom', path: ['speakers', i, 'agendaDayIndex'], message: 'Day does not exist' })
     }
   })
-  if (v.status === 'published' && v.ticketTypes.length === 0) {
-    ctx.addIssue({ code: 'custom', path: ['ticketTypes'], message: 'A published event needs at least one ticket type' })
-  }
 })
 
 export type EventFormInput = z.input<typeof eventFormSchema>
 export type EventForm = z.output<typeof eventFormSchema>
+
+/** Ticket types are managed on their own page (Tickets), per event. */
+export const ticketsFormSchema = z.object({
+  ticketTypes: z.array(ticketTypeSchema).max(20).default([])
+}).superRefine((v, ctx) => {
+  const codes = v.ticketTypes.map(t => t.code)
+  codes.forEach((c, i) => {
+    if (codes.indexOf(c) !== i) ctx.addIssue({ code: 'custom', path: ['ticketTypes', i, 'code'], message: 'Ticket code is already used' })
+  })
+})
+
+export type TicketsFormInput = z.input<typeof ticketsFormSchema>
+export type TicketsForm = z.output<typeof ticketsFormSchema>

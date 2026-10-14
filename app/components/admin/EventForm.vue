@@ -3,8 +3,8 @@ import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
 import { eventFormSchema, type EventForm, type EventFormInput } from '~~/shared/schemas/event'
 
 /**
- * One-page event form: details, agenda, speakers, partners, tickets.
- * Used by "Add event" and "Edit event".
+ * One-page event form: details, agenda, speakers, partners.
+ * Ticket types live on their own page (Tickets). Used by "Add event" and "Edit event".
  */
 type Previews = { banner?: string | null, speakers: (string | null)[], partners: (string | null)[] }
 const props = defineProps<{ initial?: EventFormInput, previews?: Previews, saving?: boolean, eventId?: string }>()
@@ -13,14 +13,13 @@ const emit = defineEmits<{ submit: [EventForm] }>()
 const blankDay = () => ({ label: '', date: '', theme: '', body: '' })
 const blankSpeaker = () => ({ name: '', title: '', category: 'government' as const, agendaDayIndex: null, status: 'published' as const, photoKey: null })
 const blankPartner = () => ({ name: '', category: 'strategic' as const, logoKey: null })
-const blankTicket = () => ({ code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true })
 
 const state = reactive<EventFormInput>(props.initial
   ? structuredClone(toRaw(props.initial))
   : {
       name: '', code: '', slug: '', tagline: '', description: '', startDate: '', endDate: '', registrationDeadline: '',
       venueName: '', venueAddress: '', city: '', capacity: 0, bannerKey: null, registrationOpen: true, status: 'draft',
-      agendaDays: [blankDay()], speakers: [blankSpeaker()], partners: [blankPartner()], ticketTypes: [blankTicket()]
+      agendaDays: [blankDay()], speakers: [blankSpeaker()], partners: [blankPartner()]
     })
 const previews = reactive<Previews>(props.previews ? structuredClone(toRaw(props.previews)) : { banner: null, speakers: [null], partners: [null] })
 
@@ -35,7 +34,6 @@ watch(() => state.name, (name) => {
 const days = computed(() => state.agendaDays!)
 const speakers = computed(() => state.speakers!)
 const partners = computed(() => state.partners!)
-const tickets = computed(() => state.ticketTypes!)
 
 function addSpeaker() {
   speakers.value.push(blankSpeaker())
@@ -234,50 +232,15 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
       </div>
     </AdminPanel>
 
-    <!-- 5. Tickets -->
-    <AdminPanel title="5. Tickets" description="Ticket types become the participant types on the registration form.">
-      <template #actions>
-        <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add ticket type" @click="tickets.push(blankTicket())" />
-      </template>
-      <UFormField name="ticketTypes" />
-      <div v-for="(t, i) in tickets" :key="i" class="flex flex-wrap items-end gap-4 rounded-md border border-default p-4">
-        <div class="grid min-w-0 grow gap-4 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1.4fr_1fr_1fr]">
-          <UFormField label="Ticket type name" :name="`ticketTypes.${i}.name`">
-            <UInput v-model="t.name" placeholder="For example: Indonesia Delegate" class="w-full" />
-          </UFormField>
-          <UFormField label="Code" :name="`ticketTypes.${i}.code`">
-            <UInput v-model="t.code" placeholder="ID" class="w-full font-mono uppercase" />
-          </UFormField>
-          <UFormField label="Price" :name="`ticketTypes.${i}.price`">
-            <UInput v-model.number="t.price" type="number" min="0" class="w-full" :ui="{ base: 'ps-13' }">
-              <template #leading>
-                <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">Rp</span>
-              </template>
-            </UInput>
-          </UFormField>
-          <UFormField label="People per ticket" :name="`ticketTypes.${i}.paxPerTicket`">
-            <UInput v-model.number="t.paxPerTicket" type="number" min="1" class="w-full" />
-          </UFormField>
-          <UFormField label="Quota" :name="`ticketTypes.${i}.quota`">
-            <UInput v-model.number="t.quota" type="number" min="0" class="w-full" />
-          </UFormField>
-        </div>
-        <div class="flex h-11 items-center gap-3">
-          <USwitch v-model="t.isOnSale" label="On sale" />
-          <UButton color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Remove ticket type ${t.name || i + 1}`" @click="tickets.splice(i, 1)" />
-        </div>
-      </div>
-    </AdminPanel>
-
     <div class="sticky bottom-0 z-10 -mx-4 -mb-10 flex flex-wrap items-center gap-3 border-t border-default bg-default px-4 py-4 sm:-mx-8 sm:px-8">
       <span class="flex items-center gap-2 text-[13px]/[18px] text-muted">
         <UIcon name="i-lucide-info" class="size-4" />
-        {{ state.status === 'published' && eventId ? 'This event is live on the website.' : 'Drafts are not visible on the website.' }}
+        {{ !eventId ? 'The event is saved as a draft. Add ticket types next, then publish it.' : state.status === 'published' ? 'This event is live on the website.' : 'Drafts are not visible on the website.' }}
       </span>
       <div class="ml-auto flex flex-wrap gap-2">
         <UButton :to="eventId ? `/admin/events/${eventId}` : '/admin/events'" color="neutral" variant="ghost" label="Cancel" />
-        <UButton color="neutral" variant="outline" label="Save as draft" :loading="saving && submitAs === 'draft'" @click="save('draft')" />
-        <UButton :label="eventId ? 'Save and publish' : 'Publish event'" :loading="saving && submitAs === 'published'" @click="save('published')" />
+        <UButton :color="eventId ? 'neutral' : 'primary'" :variant="eventId ? 'outline' : 'solid'" :label="eventId ? 'Save as draft' : 'Create event'" :loading="saving && submitAs === 'draft'" @click="save('draft')" />
+        <UButton v-if="eventId" label="Save and publish" :loading="saving && submitAs === 'published'" @click="save('published')" />
       </div>
     </div>
   </UForm>
