@@ -10,8 +10,8 @@ async function create(form: EventForm) {
   saving.value = true
   try {
     const { id } = await $fetch('/api/admin/events', { method: 'POST', body: form })
-    notify.success('Event created', 'Add the ticket types, then publish the event.')
-    await navigateTo(`/admin/tickets?event=${id}`)
+    notify.success('Event created', 'Add its first ticket type, then publish the event.')
+    await navigateTo(`/admin/tickets/new?event=${id}`)
   } catch (err) {
     notify.error(err, 'Could not save the event')
   } finally {

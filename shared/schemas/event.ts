@@ -78,15 +78,20 @@ export const eventFormSchema = z.object({
 export type EventFormInput = z.input<typeof eventFormSchema>
 export type EventForm = z.output<typeof eventFormSchema>
 
-/** Ticket types are managed on their own page (Tickets), per event. */
-export const ticketsFormSchema = z.object({
-  ticketTypes: z.array(ticketTypeSchema).max(20).default([])
-}).superRefine((v, ctx) => {
-  const codes = v.ticketTypes.map(t => t.code)
-  codes.forEach((c, i) => {
-    if (codes.indexOf(c) !== i) ctx.addIssue({ code: 'custom', path: ['ticketTypes', i, 'code'], message: 'Ticket code is already used' })
-  })
+/** One ticket type — the form on the Tickets page. The event cannot change after it is created. */
+export const ticketTypeFormSchema = ticketTypeSchema.omit({ id: true }).extend({
+  eventId: z.uuid('Choose an event')
 })
 
-export type TicketsFormInput = z.input<typeof ticketsFormSchema>
-export type TicketsForm = z.output<typeof ticketsFormSchema>
+export type TicketTypeFormInput = z.input<typeof ticketTypeFormSchema>
+export type TicketTypeForm = z.output<typeof ticketTypeFormSchema>
+
+export const ticketTypeListQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().refine(n => [10, 25, 50, 100].includes(n)).default(10),
+  dir: z.enum(['asc', 'desc']).default('asc'),
+  q: z.string().trim().max(100).optional(),
+  eventId: z.uuid().optional(),
+  status: z.enum(['on_sale', 'off_sale']).optional(),
+  sort: z.enum(['name', 'event', 'price', 'sold', 'status']).default('event')
+})

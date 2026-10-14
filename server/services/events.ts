@@ -1,11 +1,13 @@
-import { and, eq, inArray, notInArray, sql } from 'drizzle-orm'
-import type { EventForm, TicketsForm } from '../../shared/schemas/event'
+import { and, asc, desc, eq, ilike, inArray, notInArray, or, sql } from 'drizzle-orm'
+import type { z } from 'zod'
+import type { EventForm, TicketTypeForm, ticketTypeListQuery } from '../../shared/schemas/event'
 import { db } from '../db'
 import { agendaDays, events, partners, participants, speakers, ticketTypes } from '../db/schema'
 import { deadlineFromDate } from './registration'
 import { deleteObjects } from './storage'
 import type { Tx } from './context'
 import { pgError } from '../utils/db-error'
+import { likePattern } from '../utils/validate'
 
 type Actor = { id: string }
 
@@ -118,25 +120,110 @@ async function requireTicketTypes(tx: Tx, eventId: string) {
   }
 }
 
-/** Replaces the ticket types of one event (the Tickets page). */
-export async function saveTicketTypes(eventId: string, form: TicketsForm) {
+// ── ticket types (the Tickets page) ──
+
+const ticketValues = (f: Omit<TicketTypeForm, 'eventId'>) => ({
+  code: f.code, name: f.name, price: f.price, paxPerTicket: f.paxPerTicket, quota: f.quota, isOnSale: f.isOnSale
+})
+
+export async function createTicketType(form: TicketTypeForm) {
   try {
-    await db.transaction(async (tx) => {
-      const [ev] = await tx.select({ status: events.status }).from(events).where(eq(events.id, eventId)).for('update')
+    return await db.transaction(async (tx) => {
+      const [ev] = await tx.select({ id: events.id }).from(events).where(eq(events.id, form.eventId)).for('update')
       if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
-      if (ev.status === 'published' && form.ticketTypes.length === 0) {
-        throw createError({ statusCode: 422, statusMessage: 'A published event needs at least one ticket type' })
-      }
-      await syncChildren(tx, ticketTypes, eventId, form.ticketTypes, (t, i) => ({
-        code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale, sortOrder: i + 1
-      }))
+      const [last] = await tx.select({ n: sql<number>`coalesce(max(${ticketTypes.sortOrder}), 0)::int` }).from(ticketTypes).where(eq(ticketTypes.eventId, form.eventId))
+      const [row] = await tx.insert(ticketTypes).values({ ...ticketValues(form), eventId: form.eventId, sortOrder: (last?.n ?? 0) + 1 }).returning({ id: ticketTypes.id })
+      return row!.id
     })
   } catch (err: unknown) {
     throw translateDbError(err)
   }
 }
 
-/** Publish or unpublish without touching the rest of the event (the Tickets page). */
+export async function updateTicketType(id: string, form: TicketTypeForm) {
+  try {
+    const [row] = await db.update(ticketTypes).set(ticketValues(form))
+      .where(and(eq(ticketTypes.id, id), eq(ticketTypes.eventId, form.eventId)))
+      .returning({ id: ticketTypes.id })
+    if (!row) throw createError({ statusCode: 404, statusMessage: 'Ticket type not found' })
+    return row.id
+  } catch (err: unknown) {
+    throw translateDbError(err)
+  }
+}
+
+export async function deleteTicketType(id: string) {
+  try {
+    await db.transaction(async (tx) => {
+      const [t] = await tx.select({ eventId: ticketTypes.eventId, status: events.status }).from(ticketTypes)
+        .innerJoin(events, eq(events.id, ticketTypes.eventId))
+        .where(eq(ticketTypes.id, id))
+        .for('update')
+      if (!t) throw createError({ statusCode: 404, statusMessage: 'Ticket type not found' })
+      if (t.status === 'published') {
+        const [n] = await tx.select({ n: sql<number>`count(*)::int` }).from(ticketTypes).where(eq(ticketTypes.eventId, t.eventId))
+        if ((n?.n ?? 0) <= 1) throw createError({ statusCode: 422, statusMessage: 'A published event needs at least one ticket type' })
+      }
+      await tx.delete(ticketTypes).where(eq(ticketTypes.id, id))
+    })
+  } catch (err: unknown) {
+    throw translateDbError(err)
+  }
+}
+
+/** Paid and registered counts per ticket type, as correlated subqueries. */
+const soldCount = sql<number>`(select count(*) from ${participants} where ${participants.ticketTypeId} = ${ticketTypes.id} and ${participants.paymentStatus} = 'paid')::int`
+const registeredCount = sql<number>`(select count(*) from ${participants} where ${participants.ticketTypeId} = ${ticketTypes.id} and ${participants.status} not in ('rejected', 'cancelled'))::int`
+/** Any registration, even a rejected one, blocks deleting: participants → ticket_types is RESTRICT. */
+const usedCount = sql<number>`(select count(*) from ${participants} where ${participants.ticketTypeId} = ${ticketTypes.id})::int`
+
+export const ticketTypeSelect = {
+  id: ticketTypes.id,
+  eventId: ticketTypes.eventId,
+  eventName: events.name,
+  eventStatus: events.status,
+  code: ticketTypes.code,
+  name: ticketTypes.name,
+  price: ticketTypes.price,
+  paxPerTicket: ticketTypes.paxPerTicket,
+  quota: ticketTypes.quota,
+  isOnSale: ticketTypes.isOnSale,
+  createdAt: ticketTypes.createdAt,
+  updatedAt: ticketTypes.updatedAt,
+  sold: soldCount,
+  registered: registeredCount,
+  used: usedCount
+}
+
+export async function listTicketTypes(q: z.output<typeof ticketTypeListQuery>) {
+  const where = and(
+    q.q ? or(ilike(ticketTypes.name, likePattern(q.q)), ilike(ticketTypes.code, likePattern(q.q))) : undefined,
+    q.eventId ? eq(ticketTypes.eventId, q.eventId) : undefined,
+    q.status ? eq(ticketTypes.isOnSale, q.status === 'on_sale') : undefined
+  )
+  const sortCol = { name: ticketTypes.name, event: events.startDate, price: ticketTypes.price, sold: soldCount, status: ticketTypes.isOnSale }[q.sort]
+  const order = q.dir === 'asc' ? asc(sortCol) : desc(sortCol)
+  const [rows, [summary]] = await Promise.all([
+    db.select(ticketTypeSelect).from(ticketTypes)
+      .innerJoin(events, eq(events.id, ticketTypes.eventId))
+      .where(where)
+      .orderBy(order, asc(events.name), asc(ticketTypes.sortOrder))
+      .limit(q.pageSize).offset((q.page - 1) * q.pageSize),
+    db.select({
+      total: sql<number>`count(*)::int`,
+      quota: sql<number>`coalesce(sum(${ticketTypes.quota}), 0)::int`,
+      sold: sql<number>`coalesce(sum(${soldCount}), 0)::int`,
+      revenue: sql<string>`coalesce(sum(${soldCount} * ${ticketTypes.price}), 0)::bigint`
+    }).from(ticketTypes).where(where)
+  ])
+  return {
+    rows,
+    total: summary?.total ?? 0,
+    summary: { quota: summary?.quota ?? 0, sold: summary?.sold ?? 0, revenue: Number(summary?.revenue ?? 0) }
+  }
+}
+
+/** Publish or unpublish without touching the rest of the event (event detail page). */
 export async function setEventStatus(eventId: string, status: 'draft' | 'published') {
   await db.transaction(async (tx) => {
     const [ev] = await tx.select({ publishedAt: events.publishedAt }).from(events).where(eq(events.id, eventId)).for('update')
@@ -155,6 +242,7 @@ function translateDbError(err: unknown) {
   const { code, constraint = '' } = pgError(err)
   if (code === '23505') {
     if (constraint.includes('slug')) return createError({ statusCode: 409, statusMessage: 'Another event already uses this slug' })
+    if (constraint.includes('ticket_types')) return createError({ statusCode: 409, statusMessage: 'This event already has a ticket type with this code' })
     if (constraint.includes('code')) return createError({ statusCode: 409, statusMessage: 'This code is already used' })
     return createError({ statusCode: 409, statusMessage: 'Duplicate data' })
   }

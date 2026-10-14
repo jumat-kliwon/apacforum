@@ -4,7 +4,7 @@ definePageMeta({ layout: 'admin', middleware: 'admin' })
 const route = useRoute()
 const notify = useNotify()
 const id = String(route.params.id)
-const { data, error } = await useFetch(`/api/admin/events/${id}`)
+const { data, error, refresh } = await useFetch(`/api/admin/events/${id}`)
 
 const ev = computed(() => data.value?.event)
 const stats = computed(() => {
@@ -58,6 +58,20 @@ const impactText = computed(() => {
   const people = i.participants ? `${plural(i.participants, 'participant loses their', 'participants lose their')} e-tickets; transactions are kept. ` : ''
   return `${nested}${people}This cannot be undone.`
 })
+const publishing = ref(false)
+async function setStatus(next: 'draft' | 'published') {
+  publishing.value = true
+  try {
+    await $fetch(`/api/admin/events/${id}/status`, { method: 'PUT', body: { status: next } })
+    notify.success(next === 'published' ? 'Event published' : 'Event moved back to draft')
+    await refresh()
+  } catch (err) {
+    notify.error(err)
+  } finally {
+    publishing.value = false
+  }
+}
+
 async function remove() {
   deleting.value = true
   try {
@@ -88,6 +102,8 @@ async function remove() {
       <template #actions>
         <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="deleteOpen = true" />
         <UButton v-if="ev.status === 'published'" :to="`/events/${ev.slug}`" target="_blank" color="neutral" variant="outline" icon="i-lucide-external-link" label="View on website" />
+        <UButton v-if="ev.status === 'published'" color="neutral" variant="outline" icon="i-lucide-eye-off" label="Unpublish" :loading="publishing" @click="setStatus('draft')" />
+        <UButton v-else color="neutral" variant="outline" icon="i-lucide-send" label="Publish" :loading="publishing" @click="setStatus('published')" />
         <UButton :to="`/admin/events/${id}/edit`" icon="i-lucide-pencil" label="Edit event" />
       </template>
     </AdminPageHeader>
@@ -190,7 +206,8 @@ async function remove() {
 
     <AdminPanel id="tickets" title="Tickets" class="scroll-mt-6">
       <template #actions>
-        <UButton :to="`/admin/tickets?event=${id}`" color="neutral" variant="outline" size="sm" icon="i-lucide-ticket" label="Manage tickets" />
+        <UButton :to="`/admin/tickets?eventId=${id}`" color="neutral" variant="outline" size="sm" icon="i-lucide-ticket" label="Manage tickets" />
+        <UButton :to="`/admin/tickets/new?event=${id}`" size="sm" icon="i-lucide-plus" label="Add ticket type" />
       </template>
       <UTable
         :data="data.ticketTypes"

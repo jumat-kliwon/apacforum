@@ -1,203 +1,171 @@
 <script setup lang="ts">
-import type { FormErrorEvent } from '@nuxt/ui'
-import { ticketsFormSchema, type TicketsFormInput } from '~~/shared/schemas/event'
+import type { TableColumn } from '@nuxt/ui'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
-const route = useRoute()
-const router = useRouter()
 const notify = useNotify()
-
+const list = useListQuery({
+  sort: 'event',
+  dir: 'asc',
+  filters: { eventId: undefined, status: undefined } as Record<'eventId' | 'status', string | undefined>
+})
+const { q, page, pageSize, filters, query, sortHeader } = list
+const { data, status, refresh } = await useFetch('/api/admin/tickets', { query, watch: [query] })
 const { data: options } = await useFetch('/api/admin/event-options')
-const eventItems = computed(() => (options.value?.events ?? []).map(e => ({ label: e.name, value: e.id })))
 
-// selected event, kept in `?event=` so links from other pages land on it
-const eventId = computed({
-  get: () => (typeof route.query.event === 'string' && route.query.event) || options.value?.events[0]?.id || '',
-  set: (v: string) => router.replace({ query: { ...route.query, event: v } })
+const ALL = '__all'
+const pick = (key: keyof typeof filters) => computed({
+  get: () => filters[key] ?? ALL,
+  set: (v: string) => { filters[key] = v === ALL ? undefined : v }
+})
+const eventFilter = pick('eventId')
+const statusFilter = pick('status')
+const eventItems = computed(() => [{ label: 'All events', value: ALL }, ...(options.value?.events ?? []).map(e => ({ label: e.name, value: e.id }))])
+const statusItems = [{ label: 'All statuses', value: ALL }, { label: 'On sale', value: 'on_sale' }, { label: 'Not on sale', value: 'off_sale' }]
+
+type Row = NonNullable<typeof data.value>['rows'][number]
+const columns: TableColumn<Row>[] = [
+  { id: 'name', header: sortHeader('name', 'Ticket type') },
+  { id: 'event', header: sortHeader('event', 'Event') },
+  { id: 'price', header: sortHeader('price', 'Price') },
+  { id: 'sold', header: sortHeader('sold', 'Sold / quota') },
+  { id: 'status', header: sortHeader('status', 'Status') },
+  { id: 'actions', header: () => h('span', { class: 'sr-only' }, 'Actions') }
+]
+
+const stats = computed(() => {
+  const s = data.value?.summary
+  return [
+    { label: 'Ticket types', value: formatNumber(data.value?.total ?? 0), icon: 'i-lucide-ticket' },
+    { label: 'Total quota', value: formatNumber(s?.quota ?? 0), icon: 'i-lucide-users' },
+    { label: 'Tickets sold', value: formatNumber(s?.sold ?? 0), icon: 'i-lucide-badge-check' },
+    { label: 'Ticket revenue', value: formatRupiah(s?.revenue ?? 0), icon: 'i-lucide-wallet', note: 'Paid tickets × price' }
+  ]
 })
 
-const { data, status, refresh } = await useFetch(() => `/api/admin/events/${eventId.value}/tickets`, {
-  immediate: !!eventId.value,
-  watch: [eventId]
+const total = computed(() => data.value?.total ?? 0)
+const rangeText = computed(() => {
+  if (!total.value) return 'No ticket types'
+  const from = (page.value - 1) * pageSize.value + 1
+  const to = Math.min(total.value, page.value * pageSize.value)
+  return `Showing ${formatNumber(from)}–${formatNumber(to)} of ${formatNumber(total.value)} ticket types`
 })
+const newHref = computed(() => filters.eventId ? `/admin/tickets/new?event=${filters.eventId}` : '/admin/tickets/new')
 
-type Row = NonNullable<typeof data.value>['ticketTypes'][number]
-type Ticket = NonNullable<TicketsFormInput['ticketTypes']>[number] & { stats?: Pick<Row, 'sold' | 'registered' | 'used'> }
-
-const blankTicket = (): Ticket => ({ code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true })
-const state = reactive<{ ticketTypes: Ticket[] }>({ ticketTypes: [] })
-function reset() {
-  state.ticketTypes = (data.value?.ticketTypes ?? []).map(t => ({
-    id: t.id, code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale,
-    stats: { sold: t.sold, registered: t.registered, used: t.used }
-  }))
-}
-watch(data, reset, { immediate: true })
-
-const dirty = computed(() => {
-  const strip = (list: Ticket[]) => JSON.stringify(list.map(({ stats: _, ...t }) => t))
-  const saved = (data.value?.ticketTypes ?? []).map(t => ({
-    id: t.id, code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale
-  }))
-  return strip(state.ticketTypes) !== JSON.stringify(saved)
-})
-
-const totals = computed(() => {
-  const list = data.value?.ticketTypes ?? []
-  return {
-    types: list.length,
-    quota: list.reduce((n, t) => n + t.quota, 0),
-    sold: list.reduce((n, t) => n + t.sold, 0),
-    revenue: list.reduce((n, t) => n + t.sold * t.price, 0)
-  }
-})
-const stats = computed(() => [
-  { label: 'Ticket types', value: formatNumber(totals.value.types), icon: 'i-lucide-ticket' },
-  { label: 'Total quota', value: formatNumber(totals.value.quota), icon: 'i-lucide-users' },
-  { label: 'Tickets sold', value: formatNumber(totals.value.sold), icon: 'i-lucide-badge-check' },
-  { label: 'Ticket revenue', value: formatRupiah(totals.value.revenue), icon: 'i-lucide-wallet' }
-])
-
-const saving = ref(false)
-async function save() {
-  saving.value = true
+// ── quick on-sale toggle ──
+const toggling = ref<string | null>(null)
+async function toggleSale(r: Row, isOnSale: boolean) {
+  toggling.value = r.id
   try {
-    const body = { ticketTypes: state.ticketTypes.map(({ stats: _, ...t }) => t) }
-    await $fetch(`/api/admin/events/${eventId.value}/tickets`, { method: 'PUT', body })
-    notify.success('Tickets saved')
-    await refresh()
-  } catch (err) {
-    notify.error(err, 'Could not save the tickets')
-  } finally {
-    saving.value = false
-  }
-}
-function onError(e: FormErrorEvent) {
-  const first = e.errors[0]
-  if (first?.id) document.getElementById(first.id)?.focus()
-}
-
-const publishing = ref(false)
-async function setStatus(next: 'draft' | 'published') {
-  publishing.value = true
-  try {
-    await $fetch(`/api/admin/events/${eventId.value}/status`, { method: 'PUT', body: { status: next } })
-    notify.success(next === 'published' ? 'Event published' : 'Event moved back to draft')
+    await $fetch(`/api/admin/tickets/${r.id}`, {
+      method: 'PUT',
+      body: { eventId: r.eventId, code: r.code, name: r.name, price: r.price, paxPerTicket: r.paxPerTicket, quota: r.quota, isOnSale }
+    })
+    notify.success(`${r.name} is ${isOnSale ? 'on sale' : 'no longer on sale'}`)
     await refresh()
   } catch (err) {
     notify.error(err)
   } finally {
-    publishing.value = false
+    toggling.value = null
   }
 }
+
+// ── delete ──
+const target = ref<Row | null>(null)
+const deleting = ref(false)
+async function remove() {
+  if (!target.value) return
+  deleting.value = true
+  try {
+    await $fetch(`/api/admin/tickets/${target.value.id}`, { method: 'DELETE' })
+    notify.success(`${target.value.name} deleted`)
+    target.value = null
+    await refresh()
+  } catch (err) {
+    notify.error(err)
+  } finally {
+    deleting.value = false
+  }
+}
+const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) target.value = null } })
 </script>
 
 <template>
-  <AdminPageHeader title="Tickets" description="Ticket types become the participant types on the registration form. Pick an event to manage its tickets.">
+  <AdminPageHeader title="Tickets" description="Ticket types become the participant types on each event's registration form.">
     <template #actions>
-      <USelect
-        v-if="eventItems.length"
-        v-model="eventId"
-        :items="eventItems"
-        icon="i-lucide-calendar-days"
-        aria-label="Event"
-        class="w-72"
-      />
+      <UButton :to="newHref" icon="i-lucide-plus" label="Add ticket type" />
     </template>
   </AdminPageHeader>
 
-  <div v-if="!eventItems.length" class="rounded-lg border border-default bg-default p-10">
-    <UEmpty icon="i-lucide-ticket" title="No events yet" description="Create an event first, then add its ticket types here." :actions="[{ label: 'Add event', to: '/admin/events/new', icon: 'i-lucide-plus' }]" />
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <AdminStatCard v-for="s in stats" :key="s.label" v-bind="s" />
   </div>
 
-  <template v-else-if="data">
-    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <AdminStatCard v-for="s in stats" :key="s.label" v-bind="s" />
+  <AdminPanel>
+    <div class="flex flex-wrap items-center gap-4 p-2">
+      <UInput v-model="q" icon="i-lucide-search" placeholder="Search name or code" aria-label="Search name or code" class="w-full sm:w-80 sm:min-w-[200px]" />
+      <div class="ml-auto flex flex-wrap gap-3">
+        <USelect v-model="eventFilter" :items="eventItems" icon="i-lucide-calendar-days" aria-label="Filter by event" class="w-56" />
+        <USelect v-model="statusFilter" :items="statusItems" icon="i-lucide-list-filter" aria-label="Filter by status" class="w-44" />
+      </div>
     </div>
 
-    <UAlert
-      v-if="data.event.status !== 'published'"
-      color="info"
-      variant="subtle"
-      icon="i-lucide-info"
-      :title="`${data.event.name} is a draft`"
-      :description="data.ticketTypes.length ? 'Its ticket types are ready. Publish the event to open it on the website.' : 'Add at least one ticket type and save, then publish the event.'"
-      :actions="data.ticketTypes.length ? [{ label: 'Publish event', loading: publishing, onClick: () => setStatus('published') }] : []"
-    />
-
-    <UForm :schema="ticketsFormSchema" :state="state" class="flex flex-col gap-6" @submit="save" @error="onError">
-      <AdminPanel :title="`Ticket types · ${data.event.name}`" description="A ticket type that already has registrations cannot be deleted. Turn off &quot;On sale&quot; instead.">
-        <template #actions>
-          <UButton :to="`/admin/events/${data.event.id}`" color="neutral" variant="ghost" icon="i-lucide-calendar-days" label="View event" />
-          <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add ticket type" @click="state.ticketTypes.push(blankTicket())" />
-        </template>
-
-        <div v-for="(t, i) in state.ticketTypes" :key="t.id ?? `new-${i}`" class="flex flex-col gap-3 rounded-md border border-default p-4">
-          <div class="flex flex-wrap items-end gap-4">
-            <div class="grid min-w-0 grow gap-4 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1.4fr_1fr_1fr]">
-              <UFormField label="Ticket type name" :name="`ticketTypes.${i}.name`">
-                <UInput v-model="t.name" placeholder="For example: Indonesia Delegate" class="w-full" />
-              </UFormField>
-              <UFormField label="Code" :name="`ticketTypes.${i}.code`">
-                <UInput v-model="t.code" placeholder="ID" class="w-full font-mono uppercase" />
-              </UFormField>
-              <UFormField label="Price" :name="`ticketTypes.${i}.price`">
-                <UInput v-model.number="t.price" type="number" min="0" class="w-full" :ui="{ base: 'ps-13' }">
-                  <template #leading>
-                    <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">Rp</span>
-                  </template>
-                </UInput>
-              </UFormField>
-              <UFormField label="People per ticket" :name="`ticketTypes.${i}.paxPerTicket`">
-                <UInput v-model.number="t.paxPerTicket" type="number" min="1" class="w-full" />
-              </UFormField>
-              <UFormField label="Quota" :name="`ticketTypes.${i}.quota`">
-                <UInput v-model.number="t.quota" type="number" min="0" class="w-full" />
-              </UFormField>
-            </div>
-            <div class="flex h-11 items-center gap-3">
-              <USwitch v-model="t.isOnSale" label="On sale" />
-              <UTooltip :text="t.stats?.used ? 'Has registrations — turn off On sale instead' : undefined" :disabled="!t.stats?.used">
-                <UButton
-                  color="error"
-                  variant="ghost"
-                  icon="i-lucide-trash-2"
-                  :disabled="!!t.stats?.used"
-                  :aria-label="`Remove ticket type ${t.name || i + 1}`"
-                  @click="state.ticketTypes.splice(i, 1)"
-                />
-              </UTooltip>
-            </div>
-          </div>
-          <div v-if="t.stats" class="flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px] text-muted">
-            <div class="flex items-center gap-3">
-              <UProgress :model-value="t.quota ? Math.min(100, (t.stats.sold / t.quota) * 100) : 0" size="sm" :ui="{ indicator: 'bg-brand-400' }" :aria-label="`${t.stats.sold} of ${t.quota} sold`" class="w-24" />
-              <span class="tabular-nums">{{ formatNumber(t.stats.sold) }} / {{ formatNumber(t.quota) }} sold</span>
-            </div>
-            <span class="tabular-nums">{{ formatNumber(t.stats.registered) }} active {{ t.stats.registered === 1 ? 'registration' : 'registrations' }}</span>
+    <UTable :data="data?.rows ?? []" :columns="columns" :loading="status === 'pending'" empty="No ticket types yet." class="-mx-4 sm:-mx-5">
+      <template #name-cell="{ row }">
+        <div class="flex items-center gap-3">
+          <span class="flex size-9 shrink-0 items-center justify-center rounded-sm bg-brand-50 text-brand-800"><UIcon name="i-lucide-ticket" class="size-5" /></span>
+          <div class="min-w-0">
+            <NuxtLink :to="`/admin/tickets/${row.original.id}`" class="font-semibold text-highlighted hover:underline">{{ row.original.name }}</NuxtLink>
+            <div class="font-mono text-xs text-muted">{{ row.original.code }}{{ row.original.paxPerTicket > 1 ? ` · ${row.original.paxPerTicket} people per ticket` : '' }}</div>
           </div>
         </div>
-        <p v-if="!state.ticketTypes.length" class="text-sm text-muted">
-          No ticket types yet.
-        </p>
-      </AdminPanel>
-
-      <div class="sticky bottom-0 z-10 -mx-4 -mb-10 flex flex-wrap items-center gap-3 border-t border-default bg-default px-4 py-4 sm:-mx-8 sm:px-8">
-        <span class="flex items-center gap-2 text-[13px]/[18px] text-muted">
-          <UIcon name="i-lucide-info" class="size-4" />
-          {{ dirty ? 'You have unsaved changes.' : data.event.status === 'published' ? 'Changes show on the registration form right after you save.' : 'This event is not on the website yet.' }}
-        </span>
-        <div class="ml-auto flex flex-wrap gap-2">
-          <UButton v-if="data.event.status === 'published'" color="neutral" variant="ghost" label="Unpublish event" :loading="publishing" @click="setStatus('draft')" />
-          <UButton color="neutral" variant="outline" label="Discard changes" :disabled="!dirty || saving" @click="reset" />
-          <UButton type="submit" label="Save tickets" :loading="saving" :disabled="!dirty" />
+      </template>
+      <template #event-cell="{ row }">
+        <div class="flex flex-col items-start gap-1">
+          <NuxtLink :to="`/admin/events/${row.original.eventId}`" class="hover:underline">{{ row.original.eventName }}</NuxtLink>
+          <UBadge v-bind="EVENT_STATUS[row.original.eventStatus]" size="sm" />
         </div>
-      </div>
-    </UForm>
-  </template>
+      </template>
+      <template #price-cell="{ row }">
+        <span class="whitespace-nowrap tabular-nums">{{ formatRupiah(row.original.price) }}</span>
+      </template>
+      <template #sold-cell="{ row }">
+        <div class="flex min-w-40 flex-col gap-1">
+          <div class="flex items-center gap-3">
+            <UProgress :model-value="row.original.quota ? Math.min(100, (row.original.sold / row.original.quota) * 100) : 0" size="sm" :ui="{ indicator: 'bg-brand-400' }" :aria-label="`${row.original.sold} of ${row.original.quota} sold`" class="w-20" />
+            <span class="whitespace-nowrap tabular-nums">{{ formatNumber(row.original.sold) }} / {{ formatNumber(row.original.quota) }}</span>
+          </div>
+          <span class="text-xs text-muted tabular-nums">{{ formatNumber(row.original.registered) }} active {{ row.original.registered === 1 ? 'registration' : 'registrations' }}</span>
+        </div>
+      </template>
+      <template #status-cell="{ row }">
+        <USwitch
+          :model-value="row.original.isOnSale"
+          :label="row.original.isOnSale ? 'On sale' : 'Not on sale'"
+          :loading="toggling === row.original.id"
+          :disabled="toggling === row.original.id"
+          @update:model-value="v => toggleSale(row.original, v)"
+        />
+      </template>
+      <template #actions-cell="{ row }">
+        <div class="flex items-center justify-end gap-1">
+          <UButton :to="`/admin/tickets/${row.original.id}`" size="sm" color="neutral" variant="outline" icon="i-lucide-pencil" :aria-label="`Edit ${row.original.name}`" />
+          <UTooltip :text="row.original.used ? 'Has registrations — turn off On sale instead' : undefined" :disabled="!row.original.used">
+            <UButton size="sm" color="error" variant="ghost" icon="i-lucide-trash-2" :disabled="!!row.original.used" :aria-label="`Delete ${row.original.name}`" @click="target = row.original" />
+          </UTooltip>
+        </div>
+      </template>
+    </UTable>
 
-  <div v-else-if="status === 'pending'" class="flex justify-center p-10">
-    <UIcon name="i-lucide-loader-circle" class="size-6 animate-spin text-muted" />
-  </div>
+    <AdminListFooter v-model:page="page" v-model:page-size="pageSize" :total="total" :range-text="rangeText" />
+  </AdminPanel>
+
+  <AdminConfirmDialog
+    v-model:open="deleteOpen"
+    :title="`Delete ${target?.name ?? ''}?`"
+    :description="`It is removed from the registration form of ${target?.eventName ?? 'the event'}. This cannot be undone.`"
+    confirm-label="Delete ticket type"
+    :loading="deleting"
+    @confirm="remove"
+  />
 </template>
