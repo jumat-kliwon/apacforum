@@ -1,6 +1,11 @@
-/** Static copy for the public landing page (APCR 2026). */
+/**
+ * The session-level rundown for APCR 2026.
+ *
+ * Not yet surfaced anywhere: the `apcr-2026-page` design publishes confirmed
+ * tracks only, and says the hour-by-hour agenda follows "progressively from
+ * October 2026". Kept here so that detail is not lost when it is needed.
+ */
 
-export interface EditorialRow { title: string, copy: string }
 export interface RundownRow {
   time: string
   title: string
@@ -18,76 +23,6 @@ export interface ProgrammeDay {
   summary: string
   rows: RundownRow[]
 }
-
-export const NAV_LINKS = [
-  { label: 'About', href: '#about' },
-  { label: 'Trust Framework', href: '#framework' },
-  { label: 'APCR 2026', href: '#apcr2026' },
-  { label: 'Knowledge', href: '#knowledge' },
-  { label: 'APCR 365', href: '#apcr365' },
-  { label: 'News & Media', href: '/news' }
-]
-
-export const RISKS: EditorialRow[] = [
-  { title: 'DEEPFAKE & IMPERSONATION', copy: 'AI-generated video, voice and content can imitate government leaders, CEOs and trusted institutions.' },
-  { title: 'ONLINE SCAMS & DIGITAL FRAUD', copy: 'Fraud increasingly operates across platforms, industries and national borders.' },
-  { title: 'DISINFORMATION', copy: 'False or manipulated information can influence public perception before institutions have time to respond.' },
-  { title: 'CYBERSECURITY & DATA BREACHES', copy: 'A technology incident can quickly become a customer-trust and corporate-reputation crisis.' },
-  { title: 'CROSS-BORDER REPUTATION CRISIS', copy: 'A problem originating in one country can affect customers, investors, tourists and stakeholders elsewhere.' },
-  { title: 'AI & INSTITUTIONAL TRUST', copy: 'As organisations increasingly use AI, questions of privacy, accountability, transparency and responsible AI become reputation issues.' }
-]
-
-export const CONNECTIONS: EditorialRow[] = [
-  { title: 'MORE CONNECTIVITY', copy: 'Business • Investment • Tourism • Digital Payments • Data • AI • Social Media' },
-  { title: 'MORE OPPORTUNITY', copy: 'Trade • Growth • Innovation • Collaboration • Investment • Mobility' },
-  { title: 'MORE REPUTATION RISK', copy: 'Deepfake • Scam • Cyberattack • Disinformation • Impersonation • Data Breach' }
-]
-
-export const LEADERS = [
-  'Government Leaders, who manage public trust.',
-  'Business Leaders, who depend on customer and investor confidence.',
-  'Communication & Corporate Affairs Leaders, who manage reputation and stakeholder relationships.',
-  'Technology & Data Leaders, who understand emerging digital risks.',
-  'Academics & Researchers, who help transform experience into knowledge.'
-]
-
-export const SCENARIOS = [
-  {
-    title: 'A CITY',
-    image: '/landing/city.webp',
-    alt: 'City setting',
-    copy: [
-      'Imagine an AI-generated video appearing to show a mayor announcing a policy that was never made.',
-      'Within hours it spreads through social media and messaging platforms.',
-      'Who verifies the information? Who responds? How quickly? How does the city protect public confidence?'
-    ]
-  },
-  {
-    title: 'A BUSINESS',
-    image: '/landing/business.webp',
-    alt: 'Business district',
-    copy: [
-      'Imagine a deepfake video or cloned executive voice being used to promote a fraudulent investment or transaction.',
-      'The problem is no longer only cybersecurity.',
-      'It becomes: Customer Protection × Corporate Communication × Crisis Management × Reputation.'
-    ]
-  },
-  {
-    title: 'A DESTINATION',
-    image: '/landing/city.webp',
-    alt: 'Destination heritage',
-    copy: [
-      'Imagine misleading information about safety at a tourism destination spreading across several ASEAN markets immediately before a major holiday period.',
-      'The impact could move rapidly from social media to: Tourist Confidence → Bookings → Local Economy → Destination Reputation.'
-    ]
-  }
-]
-
-export const FRAMEWORK = [
-  { title: '01 — BUILD TRUST', items: ['Leadership', 'Governance', 'Public Communication', 'Stakeholder Engagement', 'Institutional Performance'] },
-  { title: '02 — CREATE VALUE', items: ['Business Confidence', 'Investment', 'Tourism', 'Collaboration', 'Economic Growth'] },
-  { title: '03 — PROTECT TRUST', items: ['AI Governance', 'Cyber Resilience', 'Crisis Communication', 'Disinformation Response', 'Reputation Management'] }
-]
 
 export const PROGRAMME: ProgrammeDay[] = [
   {
@@ -200,29 +135,3 @@ export const PROGRAMME: ProgrammeDay[] = [
     ]
   }
 ]
-
-export const OUTPUTS: EditorialRow[] = [
-  { title: 'APCR Research & Outlook.', copy: 'Research and insights on emerging trust and reputation issues.' },
-  { title: 'ASEAN Trust & Reputation Framework', copy: 'Exploring common approaches to understanding and measuring institutional trust.' },
-  { title: 'ASEAN Trust Room', copy: 'Focused conversations around emerging reputation and communication challenges.' },
-  { title: 'Executive Education', copy: 'Learning programmes for communication, corporate affairs and institutional leaders.' },
-  { title: 'Academic–Industry Collaboration', copy: 'Connecting research with real-world institutional challenges.' },
-  { title: 'ASEAN Professional Network', copy: 'Connecting leaders and professionals beyond the annual forum.' }
-]
-
-export const AUDIENCE: EditorialRow[] = [
-  { title: 'GOVERNMENT', copy: 'Governors • Mayors • Public Institutions • Policymakers • Government Communication Leaders' },
-  { title: 'BUSINESS', copy: 'CEOs • Directors • Corporate Affairs • Public Affairs • Sustainability • Business Strategy' },
-  { title: 'COMMUNICATION', copy: 'Corporate Communication • Public Relations • Reputation • Crisis Communication • Stakeholder Engagement' },
-  { title: 'TECHNOLOGY', copy: 'AI • Digital Platforms • Data • Cybersecurity • Digital Infrastructure' },
-  { title: 'KNOWLEDGE', copy: 'Universities • Researchers • Academics • Think Tanks' },
-  { title: 'NEXT GENERATION', copy: 'Future Communication Leaders • Young Professionals • Students' }
-]
-
-export const MEDIA_PARTNERS = [
-  { name: 'Sumut Pos', logo: '/landing/sumut-pos.jpg' },
-  { name: 'MATA net', logo: '/landing/matanet.jpg' },
-  { name: 'Sumut24.co', logo: '/landing/sumut24.jpg' }
-]
-
-export const WHATSAPP_URL = 'https://wa.me/6285161274620'
