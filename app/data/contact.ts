@@ -6,7 +6,7 @@
 import { HERO } from './home'
 import { WHATSAPP_URL } from './site'
 
-/** `https://wa.me/6285161274620` → `+62 851-6127-4620`. */
+/** `https://wa.me/6285229909931` → `+62 852-2990-9931`. */
 const digits = WHATSAPP_URL.split('/').pop() ?? ''
 export const WHATSAPP_DISPLAY = `+${digits.slice(0, 2)} ${digits.slice(2, 5)}-${digits.slice(5, 9)}-${digits.slice(9)}`
 

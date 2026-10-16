@@ -4,7 +4,7 @@
  * content mirrors apcrforum.com.
  */
 
-export const WHATSAPP_URL = 'https://wa.me/6285161274620'
+export const WHATSAPP_URL = 'https://wa.me/6285229909931'
 
 /**
  * A link whose page has not been built yet omits `to`; the header and footer
