@@ -36,37 +36,37 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
       <div class="absolute inset-0" style="background: linear-gradient(to right, #031735f7 0%, #031735eb 50%, #03173599 100%)" />
 
       <SiteContainer>
-        <div class="relative flex min-h-[560px] flex-col justify-center gap-[26px] py-20 lg:min-h-[716px]">
+        <div class="relative flex min-h-[480px] flex-col justify-center gap-5 py-16 lg:min-h-[600px] lg:py-20">
           <SiteEyebrow dark>
             {{ HERO.eyebrow }}
           </SiteEyebrow>
 
-          <h1 class="text-[clamp(38px,6.4vw,76.8px)] font-extrabold leading-[0.96] tracking-[-0.055em] text-white">
+          <h1 class="text-[clamp(34px,5vw,60px)] font-extrabold leading-[0.98] tracking-[-0.05em] text-white">
             <template v-for="(line, i) in HERO.title" :key="line">
               {{ line }}<br v-if="i < HERO.title.length - 1">
             </template>
           </h1>
 
           <div class="flex flex-wrap items-center gap-3.5 text-white">
-            <p class="text-[19px] font-extrabold">
+            <p class="text-[17px] font-extrabold">
               {{ HERO.date }}
             </p>
             <span class="hidden h-4 w-px bg-white/35 sm:block" />
-            <p class="text-[17px] text-white/85">
+            <p class="text-[16px] text-white/85">
               {{ HERO.location }}
             </p>
           </div>
 
-          <div class="flex max-w-[790px] flex-col gap-4">
-            <h2 class="text-[clamp(20px,2.2vw,26px)] font-extrabold leading-[1.2] tracking-[-0.03em] text-gold-soft">
+          <div class="flex max-w-[720px] flex-col gap-3">
+            <h2 class="text-[clamp(18px,1.9vw,22px)] font-extrabold leading-[1.2] tracking-[-0.03em] text-gold-soft">
               {{ HERO.positioning }}
             </h2>
-            <p v-for="p in HERO.copy" :key="p" class="text-[18px] leading-[1.65] text-white/85">
+            <p v-for="p in HERO.copy" :key="p" class="text-[16px] leading-[1.6] text-white/85">
               {{ p }}
             </p>
           </div>
 
-          <div class="flex flex-wrap items-center gap-3 pt-2.5">
+          <div class="flex flex-wrap items-center gap-3 pt-1">
             <SiteButton :to="registerHref" size="lg" icon="i-lucide-arrow-right">
               REGISTER NOW
             </SiteButton>
