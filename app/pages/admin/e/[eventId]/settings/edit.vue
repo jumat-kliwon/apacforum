@@ -15,16 +15,14 @@ const initial = computed<EventFormInput | undefined>(() => {
     name: e.name, code: e.code, slug: e.slug, tagline: e.tagline ?? '', description: e.description,
     startDate: e.startDate, endDate: e.endDate, registrationDeadline: e.registrationDeadlineDate,
     venueName: e.venueName, venueAddress: e.venueAddress ?? '', city: e.city, capacity: e.capacity,
-    bannerKey: e.bannerKey, registrationOpen: e.registrationOpen, status: e.status === 'published' ? 'published' : 'draft',
+    bannerKey: e.bannerKey, registrationOpen: e.registrationOpen, isDefault: e.isDefault, status: e.status === 'published' ? 'published' : 'draft',
     agendaDays: d.agendaDays.map(a => ({ id: a.id, label: a.label, date: a.date, theme: a.theme, body: a.body })),
-    speakers: d.speakers.map(s => ({ id: s.id, name: s.name, title: s.title, category: s.category, agendaDayIndex: s.agendaDayIndex != null && s.agendaDayIndex >= 0 ? s.agendaDayIndex : null, photoKey: s.photoKey, status: s.status })),
-    partners: d.partners.map(p => ({ id: p.id, name: p.name, category: p.category, logoKey: p.logoKey }))
+    speakers: d.speakers.map(s => ({ id: s.id, name: s.name, title: s.title, category: s.category, agendaDayIndex: s.agendaDayIndex != null && s.agendaDayIndex >= 0 ? s.agendaDayIndex : null, photoKey: s.photoKey, status: s.status }))
   }
 })
 const previews = computed(() => data.value && {
   banner: data.value.event.bannerUrl,
-  speakers: data.value.speakers.map(s => s.photoUrl),
-  partners: data.value.partners.map(p => p.logoUrl)
+  speakers: data.value.speakers.map(s => s.photoUrl)
 })
 
 const saving = ref(false)
@@ -50,7 +48,7 @@ async function update(form: EventForm) {
   <template v-else-if="data && initial && previews">
     <AdminPageHeader
       :title="`Edit ${data.event.name}`"
-      description="General details, agenda, speakers and partners. Ticket types are managed on the Tickets page."
+      description="General details, agenda and speakers. Ticket types and partners have their own pages."
       :breadcrumb="[{ label: 'Events', to: '/admin/events' }, { label: data.event.name, to: eventPath(id, 'settings') }, { label: 'Edit' }]"
     />
     <AdminEventForm :initial="initial" :previews="previews" :event-id="id" :saving="saving" @submit="update" />

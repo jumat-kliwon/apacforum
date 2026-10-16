@@ -16,14 +16,6 @@ const apiQuery = computed(() => ({ ...query.value, eventId }))
 const { data, status } = await useFetch('/api/admin/transactions', { query: apiQuery })
 const tableSkeleton = useQuerySkeleton(status, apiQuery)
 
-const summary = computed(() => data.value?.summary)
-const stats = computed(() => [
-  { label: 'Total transactions', value: formatNumber(summary.value?.total ?? 0), icon: 'i-lucide-receipt' },
-  { label: 'Paid', value: formatNumber(summary.value?.paid ?? 0), icon: 'i-lucide-circle-check' },
-  { label: 'Awaiting payment', value: formatNumber(summary.value?.pending ?? 0), icon: 'i-lucide-clock' },
-  { label: 'Total revenue', value: formatRupiah(summary.value?.revenue ?? 0), icon: 'i-lucide-wallet' }
-])
-
 // ── filters ──
 const filterOpen = ref(Object.values(filters).some(Boolean))
 const draft = reactive({ ...filters })
@@ -106,10 +98,6 @@ const rangeText = computed(() => {
       <UButton :to="exportUrl()" external download color="neutral" variant="outline" icon="i-lucide-download" label="Export CSV" />
     </template>
   </AdminPageHeader>
-
-  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    <AdminStatCard v-for="s in stats" :key="s.label" v-bind="s" />
-  </div>
 
   <AdminPanel>
     <div class="flex flex-wrap items-center gap-4 p-2">

@@ -18,7 +18,7 @@ const MONEY_STATUSES: ('pending' | 'paid' | 'refunded')[] = ['pending', 'paid', 
 /** Syncs child rows: delete removed ones, update existing ones, insert new ones. */
 async function syncChildren<T extends { id?: string }>(
   tx: Tx,
-  table: typeof agendaDays | typeof speakers | typeof partners | typeof ticketTypes,
+  table: typeof agendaDays | typeof speakers | typeof ticketTypes,
   eventId: string,
   items: T[],
   toRow: (item: T, index: number) => Record<string, unknown>
@@ -58,18 +58,24 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
     capacity: form.capacity,
     bannerKey: form.bannerKey ?? null,
     registrationOpen: form.registrationOpen,
+    isDefault: form.isDefault,
     status: form.status
   }
 
   // only files uploaded since the last save need checking
   const savedKeys = eventId ? await imageKeys(eventId) : new Set<string | null>()
-  await assertUploads([form.bannerKey, ...form.speakers.map(s => s.photoKey), ...form.partners.map(p => p.logoKey)]
+  await assertUploads([form.bannerKey, ...form.speakers.map(s => s.photoKey)]
     .filter(k => !savedKeys.has(k ?? null)))
 
   const staleKeys: (string | null)[] = []
   try {
     const id = await db.transaction(async (tx) => {
       let id = eventId
+      // one default at a time: hand it over before this row claims it
+      if (form.isDefault) {
+        await tx.update(events).set({ isDefault: false })
+          .where(eventId ? and(eq(events.isDefault, true), sql`${events.id} <> ${eventId}`) : eq(events.isDefault, true))
+      }
       if (id) {
         const [prev] = await tx.select().from(events).where(eq(events.id, id)).for('update')
         if (!prev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
@@ -101,17 +107,11 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
         photoKey: s.photoKey ?? null,
         agendaDayId: s.agendaDayIndex != null ? days.ids[s.agendaDayIndex] ?? null : null
       }))
-      const oldPartners = await tx.select({ id: partners.id, logoKey: partners.logoKey }).from(partners).where(eq(partners.eventId, id))
-      await syncChildren(tx, partners, id, form.partners, (p, i) => ({
-        name: p.name, category: p.category, logoKey: p.logoKey ?? null, sortOrder: i + 1
-      }))
       if (form.status === 'published') await requireTicketTypes(tx, id)
 
       // old files that were replaced or removed
       const newPhotos = new Set(form.speakers.map(s => s.photoKey))
-      const newLogos = new Set(form.partners.map(p => p.logoKey))
       staleKeys.push(...oldSpeakers.map(s => s.photoKey).filter(k => k && !newPhotos.has(k)))
-      staleKeys.push(...oldPartners.map(p => p.logoKey).filter(k => k && !newLogos.has(k)))
       return id
     })
     await deleteObjects(staleKeys)
@@ -212,24 +212,15 @@ export async function listTicketTypes(q: z.output<typeof ticketTypeListQuery>) {
   )
   const sortCol = { name: ticketTypes.name, event: events.startDate, price: ticketTypes.price, sold: soldCount, status: ticketTypes.isOnSale }[q.sort]
   const order = q.dir === 'asc' ? asc(sortCol) : desc(sortCol)
-  const [rows, [summary]] = await Promise.all([
+  const [rows, [count]] = await Promise.all([
     db.select(ticketTypeSelect).from(ticketTypes)
       .innerJoin(events, eq(events.id, ticketTypes.eventId))
       .where(where)
       .orderBy(order, asc(events.name), asc(ticketTypes.sortOrder))
       .limit(q.pageSize).offset((q.page - 1) * q.pageSize),
-    db.select({
-      total: sql<number>`count(*)::int`,
-      quota: sql<number>`coalesce(sum(${ticketTypes.quota}), 0)::int`,
-      sold: sql<number>`coalesce(sum(${soldCount}), 0)::int`,
-      revenue: sql<string>`coalesce(sum(${soldCount} * ${ticketTypes.price}), 0)::bigint`
-    }).from(ticketTypes).where(where)
+    db.select({ total: sql<number>`count(*)::int` }).from(ticketTypes).where(where)
   ])
-  return {
-    rows,
-    total: summary?.total ?? 0,
-    summary: { quota: summary?.quota ?? 0, sold: summary?.sold ?? 0, revenue: Number(summary?.revenue ?? 0) }
-  }
+  return { rows, total: count?.total ?? 0 }
 }
 
 /** Publish or unpublish without touching the rest of the event (event detail page). */
@@ -245,14 +236,33 @@ export async function setEventStatus(eventId: string, status: 'draft' | 'publish
   })
 }
 
-/** Image keys an event currently uses. */
+/**
+ * Makes an event the website's default, or clears it. Setting one clears the previous default
+ * in the same transaction; the `events_single_default` index backs this up under concurrency.
+ */
+export async function setDefaultEvent(eventId: string, isDefault: boolean) {
+  try {
+    await db.transaction(async (tx) => {
+      const [ev] = await tx.select({ status: events.status }).from(events).where(eq(events.id, eventId)).for('update')
+      if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
+      if (isDefault && ev.status === 'archived') {
+        throw createError({ statusCode: 409, statusMessage: 'An archived event cannot be the default event' })
+      }
+      if (isDefault) await tx.update(events).set({ isDefault: false }).where(and(eq(events.isDefault, true), sql`${events.id} <> ${eventId}`))
+      await tx.update(events).set({ isDefault }).where(eq(events.id, eventId))
+    })
+  } catch (err) {
+    throw translateDbError(err)
+  }
+}
+
+/** Image keys the event form manages: the banner and speaker photos. */
 async function imageKeys(eventId: string) {
-  const [ev, sp, pa] = await Promise.all([
+  const [ev, sp] = await Promise.all([
     db.select({ k: events.bannerKey }).from(events).where(eq(events.id, eventId)),
-    db.select({ k: speakers.photoKey }).from(speakers).where(eq(speakers.eventId, eventId)),
-    db.select({ k: partners.logoKey }).from(partners).where(eq(partners.eventId, eventId))
+    db.select({ k: speakers.photoKey }).from(speakers).where(eq(speakers.eventId, eventId))
   ])
-  return new Set([...ev, ...sp, ...pa].map(r => r.k))
+  return new Set([...ev, ...sp].map(r => r.k))
 }
 
 /** Readable messages for constraint violations. */
@@ -260,6 +270,7 @@ function translateDbError(err: unknown) {
   if ((err as { statusCode?: number }).statusCode) return err
   const { code, constraint = '' } = pgError(err)
   if (code === '23505') {
+    if (constraint === 'events_single_default') return createError({ statusCode: 409, statusMessage: 'Another event was just made the default. Reload and try again.' })
     if (constraint.includes('slug')) return createError({ statusCode: 409, statusMessage: 'Another event already uses this slug' })
     if (constraint.includes('ticket_types')) return createError({ statusCode: 409, statusMessage: 'This event already has a ticket type with this code' })
     if (constraint.includes('code')) return createError({ statusCode: 409, statusMessage: 'This code is already used' })
@@ -316,9 +327,10 @@ export async function deleteImpact(ids: string[]) {
 
 /**
  * Takes an event off the website: public pages and registration only serve `published` events.
+ * An archived event also stops being the default.
  * Editing it later saves it back as a draft or published event.
  */
 export async function archiveEvent(id: string) {
-  const [ev] = await db.update(events).set({ status: 'archived' }).where(eq(events.id, id)).returning({ id: events.id })
+  const [ev] = await db.update(events).set({ status: 'archived', isDefault: false }).where(eq(events.id, id)).returning({ id: events.id })
   if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
 }

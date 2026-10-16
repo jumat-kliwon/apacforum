@@ -115,16 +115,11 @@ const transactionSelect = {
 export async function listTransactions(q: TQuery) {
   const where = transactionWhere(q)
   const order = q.dir === 'asc' ? asc(transactionSort[q.sort]) : desc(transactionSort[q.sort])
-  const [rows, [summary]] = await Promise.all([
+  const [rows, [count]] = await Promise.all([
     db.select(transactionSelect).from(transactions).where(where).orderBy(order, desc(transactions.id)).limit(q.pageSize).offset((q.page - 1) * q.pageSize),
-    db.select({
-      total: sql<number>`count(*)::int`,
-      paid: sql<number>`count(*) filter (where ${transactions.status} = 'paid')::int`,
-      pending: sql<number>`count(*) filter (where ${transactions.status} = 'pending')::int`,
-      revenue: sql<string>`coalesce(sum(${transactions.total}) filter (where ${transactions.status} = 'paid'), 0)::bigint`
-    }).from(transactions).where(where)
+    db.select({ total: sql<number>`count(*)::int` }).from(transactions).where(where)
   ])
-  return { rows, total: summary?.total ?? 0, summary: { ...summary!, revenue: Number(summary?.revenue ?? 0) } }
+  return { rows, total: count?.total ?? 0 }
 }
 
 export function exportTransactions(q: TQuery, ids?: string[]) {

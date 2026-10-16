@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
+
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
 const route = useRoute()
@@ -38,6 +40,7 @@ const info = computed(() => {
     ['Capacity', `${formatNumber(e.capacity)} participants`],
     ['Registration deadline', `${formatDateTime(e.registrationDeadline)} WIB`],
     ['Event code', e.code],
+    ['Slug', `/events/${e.slug}`],
     ['Description', e.description]
   ] as [string, string | null][]
 })
@@ -57,7 +60,6 @@ const tabs = computed(() => {
     { label: 'Overview', value: 'overview', icon: 'i-lucide-info', slot: 'overview' as const },
     { label: 'Agenda', value: 'agenda', icon: 'i-lucide-calendar-days', badge: count(d?.agendaDays.length), slot: 'agenda' as const },
     { label: 'Speakers', value: 'speakers', icon: 'i-lucide-mic', badge: count(d?.speakers.length), slot: 'speakers' as const },
-    { label: 'Partners', value: 'partners', icon: 'i-lucide-handshake', badge: count(d?.partners.length), slot: 'partners' as const },
     { label: 'Tickets', value: 'tickets', icon: 'i-lucide-ticket', badge: count(d?.ticketTypes.length), slot: 'tickets' as const }
   ]
 })
@@ -109,6 +111,39 @@ async function setStatus(next: 'draft' | 'published') {
   }
 }
 
+// the website's default event; the server clears the previous one
+const savingDefault = ref(false)
+async function setDefault(isDefault: boolean) {
+  savingDefault.value = true
+  try {
+    await $fetch(`/api/admin/events/${id}/default`, { method: 'PUT', body: { isDefault } })
+    notify.success(isDefault ? 'Set as the default event' : 'No longer the default event')
+    await Promise.all([load(true), refresh()])
+  } catch (err) {
+    notify.error(err)
+  } finally {
+    savingDefault.value = false
+  }
+}
+
+// Publish and Edit stay as buttons; everything else lives in the ⋯ menu.
+const menu = computed<DropdownMenuItem[][]>(() => {
+  const e = ev.value
+  if (!e) return []
+  return [
+    [
+      ...(e.status === 'published' ? [{ label: 'View on website', icon: 'i-lucide-external-link', to: `/events/${e.slug}`, target: '_blank' }] : []),
+      { label: 'Ticket scanner', icon: 'i-lucide-scan-line', onSelect: () => { scannerOpen.value = true } }
+    ],
+    [
+      ...(e.status !== 'archived' ? [{ label: 'Archive', icon: 'i-lucide-archive', onSelect: archive }] : []),
+      locked.value
+        ? { label: 'Delete', icon: 'i-lucide-trash-2', color: 'error' as const, disabled: true, description: 'Has transactions: archive it instead' }
+        : { label: 'Delete', icon: 'i-lucide-trash-2', color: 'error' as const, onSelect: () => { deleteOpen.value = true } }
+    ]
+  ]
+})
+
 async function archive() {
   archiving.value = true
   try {
@@ -125,7 +160,20 @@ async function archive() {
 
 <template>
   <div v-if="error" class="rounded-md border border-default bg-default p-10">
-    <UEmpty icon="i-lucide-calendar-x" title="Event not found" :actions="[{ label: 'Back to events', to: '/admin/events' }]" />
+    <!-- only a 404 means the event is gone; anything else is a failure worth reading -->
+    <UEmpty
+      v-if="error.statusCode === 404"
+      icon="i-lucide-calendar-x"
+      title="Event not found"
+      :actions="[{ label: 'Back to events', to: '/admin/events' }]"
+    />
+    <UEmpty
+      v-else
+      icon="i-lucide-triangle-alert"
+      title="Could not load the event"
+      :description="error.statusMessage || error.message"
+      :actions="[{ label: 'Try again', onClick: () => refresh() }]"
+    />
   </div>
 
   <template v-else-if="data && ev">
@@ -133,18 +181,15 @@ async function archive() {
       <template #badges>
         <UBadge v-bind="EVENT_STATUS[ev.status]" />
         <UBadge :color="isOpen ? 'info' : 'neutral'" :label="isOpen ? 'Registration open' : 'Registration closed'" />
+        <UBadge v-if="ev.isDefault" color="primary" variant="subtle" icon="i-lucide-star" label="Default" />
       </template>
       <template #description>
         {{ formatDateRange(ev.startDate, ev.endDate) }} · {{ ev.venueName }}, {{ ev.city }}
       </template>
       <template #actions>
-        <UTooltip v-if="locked" :text="`${formatNumber(data.impact.transactions)} pending, paid or refunded transactions keep this event. Archive it instead.`">
-          <UButton color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" disabled />
-        </UTooltip>
-        <UButton v-else color="error" variant="ghost" icon="i-lucide-trash-2" label="Delete" @click="deleteOpen = true" />
-        <UButton v-if="ev.status !== 'archived'" color="neutral" variant="ghost" icon="i-lucide-archive" label="Archive" :loading="archiving" @click="archive" />
-        <UButton v-if="ev.status === 'published'" :to="`/events/${ev.slug}`" target="_blank" color="neutral" variant="outline" icon="i-lucide-external-link" label="View on website" />
-        <UButton color="neutral" variant="outline" icon="i-lucide-scan-line" label="Ticket scanner" @click="scannerOpen = true" />
+        <UDropdownMenu :items="menu" :content="{ align: 'end' }">
+          <UButton color="neutral" variant="outline" icon="i-lucide-ellipsis" aria-label="More actions" :loading="archiving" />
+        </UDropdownMenu>
         <UButton v-if="ev.status === 'published'" color="neutral" variant="outline" icon="i-lucide-eye-off" label="Unpublish" :loading="publishing" @click="setStatus('draft')" />
         <UButton v-else color="neutral" variant="outline" icon="i-lucide-send" label="Publish" :loading="publishing" @click="setStatus('published')" />
         <UButton :to="eventPath(id, 'settings', 'edit')" icon="i-lucide-pencil" label="Edit event" />
@@ -157,6 +202,28 @@ async function archive() {
 
     <UTabs v-model="tab" :items="tabs" variant="link" :unmount-on-hide="false" :ui="{ list: 'overflow-x-auto', content: 'pt-2' }">
       <template #overview>
+        <AdminPanel class="mb-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm font-medium text-highlighted">
+                Default event
+              </p>
+              <p class="text-[13px]/[18px] text-muted">
+                {{ ev.status === 'archived'
+                  ? 'Archived events cannot be the default.'
+                  : 'The website\'s Register buttons use this event. Only one event can be the default; turning this on removes it from the current one.' }}
+              </p>
+            </div>
+            <USwitch
+              :model-value="ev.isDefault"
+              aria-label="Default event"
+              :loading="savingDefault"
+              :disabled="savingDefault || (ev.status === 'archived' && !ev.isDefault)"
+              @update:model-value="setDefault"
+            />
+          </div>
+        </AdminPanel>
+
         <AdminPanel title="Details">
           <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-3 text-sm">
@@ -165,7 +232,7 @@ async function archive() {
                   {{ k }}
                 </dt>
                 <dd v-if="k === 'Description' && v" class="rich-text text-highlighted" v-html="descriptionToHtml(v)" />
-                <dd v-else class="font-medium text-highlighted" :class="{ 'font-mono': k === 'Event code' }">
+                <dd v-else class="font-medium text-highlighted" :class="{ 'font-mono': k === 'Event code' || k === 'Slug' }">
                   {{ v || '—' }}
                 </dd>
               </template>
@@ -239,23 +306,6 @@ async function archive() {
 
       </template>
 
-      <template #partners>
-        <AdminPanel title="Partners">
-          <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            <div v-for="p in data.partners" :key="p.id" class="flex items-center gap-3 rounded-sm border border-default p-3">
-              <UAvatar :src="p.logoUrl ?? undefined" :text="initials(p.name)" :alt="p.name" size="lg" class="rounded-sm bg-muted text-highlighted" />
-              <div class="min-w-0">
-                <div class="truncate text-sm font-semibold text-highlighted">{{ p.name }}</div>
-                <div class="truncate text-xs text-muted">{{ PARTNER_CATEGORY[p.category] }}</div>
-              </div>
-            </div>
-            <p v-if="!data.partners.length" class="text-sm text-muted">
-              No partners yet.
-            </p>
-          </div>
-        </AdminPanel>
-
-      </template>
 
       <template #tickets>
         <AdminPanel title="Tickets">

@@ -1,7 +1,7 @@
 /**
- * Shared chrome for the public site (header nav, footer), transcribed from the
- * `Header / Global Nav` and `Footer / Global` components in
- * docs/design/apcr-design.pen.
+ * Shared chrome for the public site (header nav, footer). The layout comes from
+ * docs/design/apcr-design.pen; the links follow the sections of each page, whose
+ * content mirrors apcrforum.com.
  */
 
 export const WHATSAPP_URL = 'https://wa.me/6285161274620'
@@ -20,10 +20,11 @@ export const NAV: NavEntry[] = [
     to: '/about',
     items: [
       { label: 'About APCR', to: '/about' },
-      { label: 'Vision & Mission', to: '/about#vision' },
-      { label: 'Why APCR', to: '/about#why' },
+      { label: 'Why APCR? Why Now?', to: '/about#why' },
+      { label: 'The New Reputation Landscape', to: '/about#risks' },
+      { label: 'Trust Framework', to: '/about#framework' },
       { label: 'From Sumatra to ASEAN', to: '/about#sumatra' },
-      { label: 'Governance', to: '/about#governance' }
+      { label: 'About the Initiator', to: '/about#initiator' }
     ]
   },
   {
@@ -34,8 +35,7 @@ export const NAV: NavEntry[] = [
       { label: 'Programme', to: '/apcr-2026#programme' },
       { label: 'Speakers', to: '/apcr-2026#speakers' },
       { label: 'Who Should Attend', to: '/apcr-2026#audience' },
-      { label: 'Venue & Travel', to: '/apcr-2026#venue' },
-      { label: 'FAQ', to: '/apcr-2026#faq' },
+      { label: 'Venue', to: '/apcr-2026#venue' },
       { label: 'Registration', to: '/apcr-2026#registration' }
     ]
   },
@@ -43,23 +43,10 @@ export const NAV: NavEntry[] = [
     label: 'Knowledge',
     to: '/knowledge',
     items: [
-      { label: 'Insights', to: '/knowledge#insights' },
-      { label: 'Research', to: '/knowledge#research' },
-      { label: 'APCR Outlook', to: '/knowledge#outlook' },
-      { label: 'Case Studies', to: '/knowledge#cases' },
-      { label: 'Executive Perspectives', to: '/knowledge#perspectives' },
-      { label: 'Publications', to: '/knowledge#publications' }
-    ]
-  },
-  {
-    label: 'Community',
-    to: '/community',
-    items: [
-      { label: 'ASEAN Trust Room', to: '/community#trust-room' },
-      { label: 'Executive Communication Lab', to: '/community#lab' },
-      { label: 'APCR Academy', to: '/community#academy' },
-      { label: 'Young Communication Fellows', to: '/community#fellows' },
-      { label: 'APCR Community', to: '/community' }
+      { label: 'What APCR Produces', to: '/knowledge#research' },
+      { label: 'APCR Research & Outlook', to: '/knowledge#outlook' },
+      { label: 'Trust & Reputation Framework', to: '/knowledge#framework' },
+      { label: 'Knowledge Forum', to: '/knowledge#forum' }
     ]
   },
   {
@@ -67,22 +54,11 @@ export const NAV: NavEntry[] = [
     to: '/partners',
     items: [
       { label: 'Our Partners', to: '/partners' },
+      { label: 'About the Initiator', to: '/partners#initiator' },
       { label: 'Become a Partner', to: '/partners#become' }
     ]
   },
-  {
-    label: 'News & Media',
-    to: '/news',
-    items: [
-      { label: 'Latest News', to: '/news' },
-      { label: 'Press Releases', to: '/news#press-releases' },
-      { label: 'Media Coverage', to: '/news#coverage' },
-      { label: 'Speaker Perspectives', to: '/news#speaker-perspectives' },
-      { label: 'Partner Stories', to: '/news#partner-stories' },
-      { label: 'Gallery', to: '/news#gallery' },
-      { label: 'Media Kit', to: '/news#media-kit' }
-    ]
-  },
+  { label: 'News & Media', to: '/news' },
   { label: 'Contact', to: '/contact' }
 ]
 
@@ -103,7 +79,7 @@ export const FOOTER_COLUMNS: { title: string, links: NavLink[] }[] = [
     links: [
       { label: 'About APCR', to: '/about' },
       { label: 'From Sumatra to ASEAN', to: '/about#sumatra' },
-      { label: 'The New Reputation Landscape', to: '/about#why' }
+      { label: 'The New Reputation Landscape', to: '/about#risks' }
     ]
   },
   {
@@ -120,7 +96,7 @@ export const FOOTER_COLUMNS: { title: string, links: NavLink[] }[] = [
       { label: 'Knowledge', to: '/knowledge' },
       { label: 'APCR 365', to: '/community' },
       { label: 'News & Media', to: '/news' },
-      { label: 'About the Initiator', to: '/about' },
+      { label: 'About the Initiator', to: '/about#initiator' },
       { label: 'Contact via WhatsApp', to: WHATSAPP_URL }
     ]
   }

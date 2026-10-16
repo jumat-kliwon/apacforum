@@ -1,0 +1,1 @@
+ALTER TABLE "partners" ADD COLUMN "show_home" boolean DEFAULT false NOT NULL;

@@ -29,6 +29,20 @@
       "when": 1791957812710,
       "tag": "0003_articles",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792136532477,
+      "tag": "0004_event_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792138709865,
+      "tag": "0005_partner_show_home",
+      "breakpoints": true
     }
   ]
 }

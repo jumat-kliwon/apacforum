@@ -1,27 +1,33 @@
 <script setup lang="ts">
 import {
-  CONSTITUENCIES, DAYS, ECOSYSTEM, EDITION_FACTS, FEATURED_INSIGHT, HERO,
-  INSIGHTS, PARTNERS, PRESSURES, PROGRAMMES, PROGRESSION, STORIES
+  AUDIENCE, CONNECTIONS, ECOSYSTEM, FRAMEWORK, HERO, OUTPUTS,
+  RISKS, SCENARIOS, STAKEHOLDERS, WHY_NOW
 } from '~/data/home'
-import { WHATSAPP_URL } from '~/data/site'
 
 definePageMeta({ layout: 'site' })
 
 useSeoMeta({
-  title: 'APCR — ASEAN Public Communication & Reputation Forum',
+  title: 'APCR 2026 — ASEAN Public Communication & Reputation Forum',
   titleTemplate: null,
-  description: HERO.blurb,
+  description: HERO.copy[0],
   themeColor: '#031735'
 })
+
+const registerHref = await useRegisterHref()
+
+const { data: partners } = await useFetch('/api/public/partners', { default: () => [] })
+const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof typeof PARTNER_CATEGORY)[])
+  .map(key => ({ label: PARTNER_CATEGORY[key].toUpperCase(), items: partners.value.filter(p => p.category === key) }))
+  .filter(g => g.items.length))
 </script>
 
 <template>
   <div>
     <!-- Hero -->
-    <section class="relative overflow-hidden bg-navy-deep">
+    <section id="home" class="relative overflow-hidden bg-navy-deep">
       <img
         src="/landing/networking.webp"
-        alt=""
+        alt="ASEAN professionals networking at a regional forum"
         width="1100"
         height="825"
         fetchpriority="high"
@@ -51,59 +57,101 @@ useSeoMeta({
             </p>
           </div>
 
-          <p class="max-w-[790px] text-[19px] leading-[1.65] text-white/85">
-            {{ HERO.blurb }}
-          </p>
+          <div class="flex max-w-[790px] flex-col gap-4">
+            <h2 class="text-[clamp(20px,2.2vw,26px)] font-extrabold leading-[1.2] tracking-[-0.03em] text-gold-soft">
+              {{ HERO.positioning }}
+            </h2>
+            <p v-for="p in HERO.copy" :key="p" class="text-[18px] leading-[1.65] text-white/85">
+              {{ p }}
+            </p>
+          </div>
 
           <div class="flex flex-wrap items-center gap-3 pt-2.5">
-            <NuxtLink
-              to="/apcr-2026"
-              class="inline-flex items-center gap-2 rounded-[2px] bg-gold-soft px-6 py-4 text-[12px] font-extrabold tracking-[0.067em] text-navy-deep transition-colors hover:bg-white"
-            >
+            <SiteButton :to="registerHref" size="lg" icon="i-lucide-arrow-right">
+              REGISTER NOW
+            </SiteButton>
+            <SiteButton to="#apcr2026" variant="light" size="lg">
               EXPLORE APCR 2026
-              <UIcon name="i-lucide-arrow-right" class="size-[15px]" />
-            </NuxtLink>
-            <a
-              :href="WHATSAPP_URL"
-              target="_blank"
-              rel="noopener"
-              class="inline-flex items-center rounded-[2px] border border-white/40 px-6 py-4 text-[12px] font-extrabold tracking-[0.067em] text-white transition-colors hover:bg-white/10"
-            >
-              BECOME A PARTNER
-            </a>
+            </SiteButton>
           </div>
         </div>
       </SiteContainer>
     </section>
 
-    <!-- Why APCR -->
+    <!-- Why APCR? Why now? -->
     <section id="about" class="py-20 lg:pb-20 lg:pt-[88px]">
       <SiteContainer>
         <div class="flex flex-col gap-9">
           <div class="flex flex-col gap-[22px]">
-            <SiteEyebrow>WHY APCR</SiteEyebrow>
-            <h2 class="text-[clamp(30px,4.6vw,54px)] font-extrabold leading-[1.04] tracking-[-0.045em] text-ink">
-              APCR IS NOT A CONFERENCE.<br>IT IS REGIONAL TRUST INFRASTRUCTURE.
+            <SiteEyebrow>WHY APCR? WHY NOW?</SiteEyebrow>
+            <h2 class="max-w-[980px] text-[clamp(30px,4.6vw,54px)] font-extrabold leading-[1.04] tracking-[-0.045em] text-ink">
+              A MORE CONNECTED ASEAN NEEDS A STRONGER TRUST ECOSYSTEM
             </h2>
           </div>
 
           <div class="grid gap-8 lg:grid-cols-2 lg:gap-14">
-            <p class="text-[19px] leading-[1.72] text-ink">
-              ASEAN is more connected than it has ever been — through trade, investment, technology, data, tourism and people. That same connectivity moves reputational risk across borders in hours.
+            <div class="flex flex-col gap-5">
+              <p class="text-[19px] font-bold leading-[1.6] text-ink">
+                {{ WHY_NOW.intro }}
+              </p>
+              <p class="text-[17px] leading-[1.75] text-prose">
+                {{ WHY_NOW.context }}
+              </p>
+              <p class="text-[17px] leading-[1.75] text-prose">
+                {{ WHY_NOW.turn }}
+              </p>
+            </div>
+            <ul class="border-t border-ink/16">
+              <li v-for="ex in WHY_NOW.examples" :key="ex" class="flex gap-3 border-b border-ink/16 py-4">
+                <span class="mt-2.5 size-[5px] shrink-0 rounded-full bg-gold" />
+                <span class="text-[16px] leading-[1.65] text-ink">{{ ex }}</span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="flex flex-col gap-3 border-l-2 border-gold pl-6">
+            <p class="text-[16px] leading-[1.7] text-prose">
+              The question is no longer simply how ASEAN becomes more connected. The question is:
             </p>
-            <p class="text-[17px] leading-[1.75] text-prose">
-              APCR exists so the region does not meet those moments unprepared. The December forum is the visible part; underneath it sits a framework, a research engine and a community that work through the whole year.
+            <p class="text-[clamp(22px,2.6vw,30px)] font-extrabold leading-[1.2] tracking-[-0.03em] text-navy">
+              {{ WHY_NOW.question }}
+            </p>
+            <p class="text-[16px] leading-[1.7] text-prose">
+              That is the conversation APCR wants to build.
+            </p>
+          </div>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- The new reputation landscape -->
+    <section id="risks" class="bg-paper py-20 lg:py-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-8">
+          <div class="flex flex-col gap-8 lg:flex-row lg:items-end lg:gap-[72px]">
+            <div class="flex flex-col gap-5 lg:w-[640px] lg:shrink-0">
+              <SiteEyebrow>THE NEW REPUTATION LANDSCAPE</SiteEyebrow>
+              <h2 class="text-[clamp(28px,3.9vw,46px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
+                THE RISKS HAVE CHANGED
+              </h2>
+            </div>
+            <p class="text-[16px] leading-[1.75] text-prose">
+              The age of AI is changing the way trust is created—and destroyed.
             </p>
           </div>
 
-          <ul class="grid gap-7 pt-3 sm:grid-cols-2 lg:grid-cols-4">
-            <li v-for="(item, i) in ECOSYSTEM" :key="item.title" class="flex flex-col gap-3 border-t border-ink/16 pt-5">
-              <span class="text-[13px] font-extrabold tracking-[0.09em] text-gold">{{ String(i + 1).padStart(2, '0') }}</span>
+          <ul class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <li
+              v-for="(risk, i) in RISKS"
+              :key="risk.title"
+              class="flex flex-col gap-3.5 rounded-[2px] border border-ink/16 bg-white px-[26px] pb-7 pt-[26px]"
+            >
+              <span class="text-[12px] font-extrabold tracking-[0.1em] text-gold">{{ String(i + 1).padStart(2, '0') }}</span>
               <h3 class="text-[19px] font-extrabold leading-[1.25] tracking-[-0.026em] text-ink">
-                {{ item.title }}
+                {{ risk.title }}
               </h3>
               <p class="text-[14px] leading-[1.7] text-prose">
-                {{ item.copy }}
+                {{ risk.copy }}
               </p>
             </li>
           </ul>
@@ -111,44 +159,168 @@ useSeoMeta({
       </SiteContainer>
     </section>
 
-    <!-- Policy × Business × Communication -->
-    <section class="bg-navy-deep py-20 lg:pb-[88px] lg:pt-[84px]">
+    <!-- From risk to opportunity -->
+    <section id="opportunity" class="bg-navy-deep py-20 lg:pb-[88px] lg:pt-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-[34px]">
+          <SiteEyebrow dark>
+            FROM RISK TO OPPORTUNITY
+          </SiteEyebrow>
+
+          <div class="flex flex-col gap-10 lg:flex-row lg:gap-0">
+            <template v-for="(col, i) in CONNECTIONS" :key="col.title">
+              <!-- The arrow is decoration between columns, so it is hidden where they stack. -->
+              <div v-if="i > 0" aria-hidden="true" class="hidden w-[72px] shrink-0 justify-center pt-6 lg:flex">
+                <span class="text-[26px] font-extrabold text-gold">→</span>
+              </div>
+              <div class="flex flex-1 flex-col gap-3.5 border-t-2 border-white/24 pt-6">
+                <h3 class="text-[24px] font-extrabold leading-[1.2] tracking-[-0.031em] text-white">
+                  {{ col.title }}
+                </h3>
+                <p class="text-[14px] leading-[1.75] text-white/70">
+                  {{ col.items.join(' • ') }}
+                </p>
+              </div>
+            </template>
+          </div>
+
+          <div class="flex flex-col gap-3 border-t border-white/16 pt-8">
+            <h2 class="text-[clamp(28px,4.2vw,50px)] font-extrabold leading-[1.06] tracking-[-0.042em] text-white">
+              TRUST BECOMES ECONOMIC INFRASTRUCTURE
+            </h2>
+            <p class="text-[13px] font-extrabold tracking-[0.1em] text-gold-soft">
+              PUBLIC TRUST × BUSINESS CONFIDENCE × INSTITUTIONAL REPUTATION
+            </p>
+          </div>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- This is why APCR exists -->
+    <section id="platform" class="border-b border-ink/16 bg-white py-20 lg:py-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
+          <img
+            src="/landing/networking.webp"
+            alt="Business and public communication professionals networking"
+            width="480"
+            height="520"
+            loading="lazy"
+            class="h-[320px] w-full rounded-[2px] object-cover lg:h-[560px] lg:w-[480px] lg:shrink-0"
+          >
+
+          <div class="flex flex-1 flex-col gap-[22px]">
+            <SiteEyebrow>THIS IS WHY APCR EXISTS</SiteEyebrow>
+            <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
+              NOT ANOTHER PR CONFERENCE.
+            </h2>
+            <p class="text-[17px] leading-[1.78] text-prose">
+              APCR is a regional platform at the intersection of:
+            </p>
+            <p class="text-[14px] font-extrabold tracking-[0.079em] text-navy">
+              BUSINESS × GOVERNMENT × COMMUNICATION × KNOWLEDGE
+            </p>
+            <p class="text-[17px] leading-[1.78] text-prose">
+              We bring together people who normally sit in different rooms:
+            </p>
+
+            <ul>
+              <li v-for="s in STAKEHOLDERS" :key="s.who" class="border-t border-ink/16 py-[14px] text-[15px] leading-[1.7] text-prose">
+                <strong class="font-extrabold text-ink">{{ s.who }},</strong> {{ s.role }}
+              </li>
+            </ul>
+
+            <p class="text-[17px] font-bold leading-[1.7] text-ink">
+              Because the trust challenges facing ASEAN cannot be solved by communication professionals alone. They require an ecosystem.
+            </p>
+          </div>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- Three real-world questions -->
+    <section id="questions" class="bg-paper py-20 lg:pb-[88px] lg:pt-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-[34px]">
+          <div class="flex flex-col gap-5">
+            <SiteEyebrow>THREE REAL-WORLD QUESTIONS</SiteEyebrow>
+            <h2 class="text-[clamp(28px,4vw,48px)] font-extrabold leading-[1.05] tracking-[-0.044em] text-ink">
+              WHAT HAPPENS WHEN TRUST IS CHALLENGED?
+            </h2>
+          </div>
+
+          <ul class="grid gap-6 lg:grid-cols-3">
+            <li v-for="s in SCENARIOS" :key="s.title" class="flex flex-col overflow-hidden rounded-[2px] border border-ink/16 bg-white">
+              <img :src="s.image" :alt="s.alt" width="360" height="200" loading="lazy" class="h-[200px] w-full object-cover">
+              <div class="flex flex-1 flex-col gap-3 px-6 pb-7 pt-[22px]">
+                <h3 class="text-[21px] font-extrabold leading-[1.2] tracking-[-0.029em] text-ink">
+                  {{ s.title }}
+                </h3>
+                <p v-for="p in s.copy" :key="p" class="text-[14px] leading-[1.7] text-prose">
+                  {{ p }}
+                </p>
+              </div>
+            </li>
+          </ul>
+
+          <div class="flex flex-col gap-1 border-l-2 border-gold pl-6">
+            <p class="text-[17px] leading-[1.7] text-prose">
+              These are no longer hypothetical communication problems.
+            </p>
+            <p class="text-[19px] font-extrabold leading-[1.5] text-ink">
+              They are leadership, economic and reputation challenges.
+            </p>
+          </div>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- The APCR trust framework -->
+    <section id="framework" class="bg-navy-deep py-20 lg:pb-[88px] lg:pt-[84px]">
       <SiteContainer>
         <div class="flex flex-col gap-[34px]">
           <div class="flex flex-col gap-[22px]">
             <SiteEyebrow dark>
-              WHERE THE REGION MEETS
+              THE APCR TRUST FRAMEWORK
             </SiteEyebrow>
             <h2 class="text-[clamp(28px,4.2vw,50px)] font-extrabold leading-[1.06] tracking-[-0.042em] text-white">
-              POLICY × BUSINESS × COMMUNICATION
+              BUILD TRUST.<br>CREATE VALUE.<br>PROTECT TRUST.
             </h2>
-            <p class="max-w-[860px] text-[18px] leading-[1.7] text-white/80">
-              Trust is never built by one sector alone. APCR is deliberately designed as the room where the three that shape it sit at the same table.
-            </p>
           </div>
 
-          <div class="flex flex-col gap-10 pt-3.5 lg:flex-row lg:gap-0">
-            <template v-for="(col, i) in CONSTITUENCIES" :key="col.title">
-              <!-- The × is decoration between columns, so it is hidden where they stack. -->
-              <div v-if="i > 0" aria-hidden="true" class="hidden w-[72px] shrink-0 justify-center pt-7 lg:flex">
-                <span class="text-[30px] font-extrabold text-gold">×</span>
-              </div>
-              <div class="flex flex-1 flex-col gap-3.5 border-t-2 border-white/24 pt-6">
-                <h3 class="text-[26px] font-extrabold leading-[1.2] tracking-[-0.031em] text-white">
-                  {{ col.title }}
-                </h3>
-                <p class="text-[15px] leading-[1.7] text-white/70">
-                  {{ col.copy }}
-                </p>
-                <ul class="flex flex-col gap-2.5 pt-1.5">
-                  <li v-for="who in col.who" :key="who" class="flex gap-2.5">
-                    <span class="mt-2.5 size-[5px] shrink-0 rounded-full bg-gold" />
-                    <span class="text-[13px] leading-[1.65] text-white/60">{{ who }}</span>
-                  </li>
-                </ul>
-              </div>
-            </template>
+          <ul class="grid gap-10 lg:grid-cols-3 lg:gap-10">
+            <li v-for="pillar in FRAMEWORK" :key="pillar.title" class="flex flex-col gap-4 border-t-2 border-white/24 pt-6">
+              <h3 class="text-[20px] font-extrabold leading-[1.2] tracking-[-0.025em] text-gold-soft">
+                {{ pillar.title }}
+              </h3>
+              <ul class="flex flex-col gap-2.5">
+                <li v-for="item in pillar.items" :key="item" class="flex gap-2.5">
+                  <span class="mt-2.5 size-[5px] shrink-0 rounded-full bg-gold" />
+                  <span class="text-[15px] leading-[1.65] text-white/80">{{ item }}</span>
+                </li>
+              </ul>
+            </li>
+          </ul>
+
+          <p class="border-t border-white/16 pt-6 text-[13px] font-extrabold tracking-[0.12em] text-white/70">
+            BUILD → CREATE VALUE → PROTECT → REBUILD
+          </p>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- APCR 2026: the three-day journey -->
+    <section id="apcr2026" class="py-20 lg:pb-[88px] lg:pt-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-[34px]">
+          <div class="flex flex-col gap-5">
+            <SiteEyebrow>THE THREE-DAY APCR JOURNEY</SiteEyebrow>
+            <h2 class="max-w-[900px] text-[clamp(28px,4vw,48px)] font-extrabold leading-[1.05] tracking-[-0.044em] text-ink">
+              THREE DAYS. THREE QUESTIONS. ONE TRUST ECOSYSTEM.
+            </h2>
           </div>
+
+          <SiteProgrammeRundown />
         </div>
       </SiteContainer>
     </section>
@@ -158,8 +330,8 @@ useSeoMeta({
       <SiteContainer>
         <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
           <img
-            src="/landing/medan-gateway.jpg"
-            alt="A busy arterial road in Medan, North Sumatra"
+            src="/landing/medan.webp"
+            alt="Professionals walking through Medan heritage district"
             width="480"
             height="520"
             loading="lazy"
@@ -169,121 +341,60 @@ useSeoMeta({
           <div class="flex flex-1 flex-col gap-[22px]">
             <SiteEyebrow>FROM SUMATRA TO ASEAN</SiteEyebrow>
             <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
-              WHY IT STARTS IN MEDAN.
+              WHY MEDAN? WHY SUMATRA?
             </h2>
             <p class="text-[17px] leading-[1.78] text-prose">
-              North Sumatra is a working example of the region's story: a trading gateway with deep diaspora links, fast-moving investment and a public that holds institutions to account. Starting here keeps the agenda grounded in the places where trust is actually tested.
+              APCR begins in Medan with a simple belief:
             </p>
-
-            <ol class="pt-2.5">
-              <li v-for="step in PROGRESSION" :key="step.place" class="flex flex-col gap-2 border-t border-ink/16 py-[18px] sm:flex-row sm:gap-5">
-                <div class="flex items-baseline gap-2 sm:w-[118px] sm:shrink-0 sm:flex-col sm:gap-[3px]">
-                  <span class="text-[14px] font-extrabold tracking-[0.079em] text-navy">{{ step.place }}</span>
-                  <span class="text-[12px] text-prose-dim">{{ step.year }}</span>
-                </div>
-                <p class="text-[15px] leading-[1.7] text-prose">
-                  {{ step.copy }}
-                </p>
-              </li>
-            </ol>
-          </div>
-        </div>
-      </SiteContainer>
-    </section>
-
-    <!-- APCR 2026 -->
-    <section id="apcr2026" class="bg-paper py-20 lg:pb-[88px] lg:pt-[84px]">
-      <SiteContainer>
-        <div class="flex flex-col gap-[34px]">
-          <div class="flex flex-col gap-8 lg:flex-row lg:items-end lg:gap-[72px]">
-            <div class="flex flex-col gap-5 lg:w-[640px] lg:shrink-0">
-              <SiteEyebrow>APCR 2026</SiteEyebrow>
-              <h2 class="text-[clamp(28px,4vw,48px)] font-extrabold leading-[1.05] tracking-[-0.044em] text-ink">
-                THREE DAYS IN MEDAN.
-              </h2>
-            </div>
-            <p class="text-[16px] leading-[1.75] text-prose">
-              The 2026 edition runs as one argument across three days: understand the stakes, build the practice, commit to action.
+            <p class="text-[19px] font-bold leading-[1.6] text-ink">
+              Strong ASEAN collaboration can grow from strong regions.
             </p>
-          </div>
-
-          <div class="flex flex-col gap-10 lg:flex-row lg:gap-10">
-            <ol class="flex-1 border-t border-ink/16">
-              <li v-for="day in DAYS" :key="day.day" class="flex flex-col gap-3 border-b border-ink/16 py-6 sm:flex-row sm:gap-7">
-                <div class="flex items-baseline gap-2 sm:w-[120px] sm:shrink-0 sm:flex-col sm:gap-1">
-                  <span class="text-[12px] font-extrabold tracking-[0.1em] text-gold">{{ day.day }}</span>
-                  <span class="text-[13px] text-prose">{{ day.date }}</span>
-                </div>
-                <div class="flex flex-col gap-2">
-                  <h3 class="text-[24px] font-extrabold leading-[1.2] tracking-[-0.029em] text-ink">
-                    {{ day.title }}
-                  </h3>
-                  <p class="text-[15px] leading-[1.7] text-prose">
-                    {{ day.copy }}
-                  </p>
-                </div>
-              </li>
-            </ol>
-
-            <aside class="flex flex-col gap-5 rounded-[2px] bg-navy-deep px-7 pb-[30px] pt-7 lg:w-[340px] lg:shrink-0">
-              <p class="text-[11px] font-extrabold tracking-[0.118em] text-gold-soft">
-                THE 2026 EDITION
+            <p class="text-[17px] leading-[1.78] text-prose">
+              Sumatra sits strategically close to some of ASEAN's major economic centres and possesses significant assets in energy, agriculture, plantations, tourism, finance, logistics, culture and human capital.
+            </p>
+            <div class="flex flex-col gap-2 border-y border-ink/16 py-5">
+              <p class="text-[13px] text-prose">
+                APCR wants to create a bridge:
               </p>
-              <ul>
-                <li
-                  v-for="(fact, i) in EDITION_FACTS"
-                  :key="fact.label"
-                  class="flex items-start gap-3"
-                  :class="i > 0 && 'mt-4 border-t border-white/16 pt-4'"
-                >
-                  <UIcon :name="fact.icon" class="mt-0.5 size-4 shrink-0 text-gold-soft" />
-                  <span class="text-[14px] font-bold leading-[1.6] text-white">{{ fact.label }}</span>
-                </li>
-              </ul>
-              <NuxtLink
-                to="/apcr-2026#registration"
-                class="flex items-center justify-center gap-2 rounded-[2px] bg-gold-soft px-4 py-3.5 text-[12px] font-bold text-navy-deep transition-colors hover:bg-white"
-              >
-                Register for APCR 2026
-                <UIcon name="i-lucide-arrow-right" class="size-3.5" />
-              </NuxtLink>
-            </aside>
+              <p class="text-[16px] font-extrabold tracking-[0.079em] text-navy">
+                SUMATRA → INDONESIA → ASEAN
+              </p>
+            </div>
+            <p class="text-[17px] leading-[1.78] text-prose">
+              Not merely to promote Sumatra, but to connect its leaders, institutions, businesses, ideas and opportunities with the wider ASEAN ecosystem.
+            </p>
+            <p class="text-[14px] font-extrabold tracking-[0.1em] text-gold">
+              FROM SUMATRA TO ASEAN.
+            </p>
           </div>
         </div>
       </SiteContainer>
     </section>
 
-    <!-- Issues we focus on -->
-    <section class="py-20 lg:py-[84px]">
+    <!-- What APCR should produce -->
+    <section id="knowledge" class="py-20 lg:py-[84px]">
       <SiteContainer>
         <div class="flex flex-col gap-8">
           <div class="flex flex-col gap-8 lg:flex-row lg:items-end lg:gap-[72px]">
             <div class="flex flex-col gap-5 lg:w-[640px] lg:shrink-0">
-              <SiteEyebrow>ISSUES WE FOCUS ON</SiteEyebrow>
-              <h2 class="text-[clamp(28px,3.9vw,46px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
-                SIX PRESSURES ON REGIONAL TRUST.
+              <SiteEyebrow>WHAT APCR SHOULD PRODUCE</SiteEyebrow>
+              <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
+                FROM CONVERSATION TO KNOWLEDGE.<br>FROM CONNECTION TO COLLABORATION.
               </h2>
             </div>
             <p class="text-[16px] leading-[1.75] text-prose">
-              Every session, lab and research output at APCR traces back to one of these six. They are chosen because they cross borders — no single institution can answer them alone.
+              APCR is designed to move beyond conference conversations. The ecosystem will progressively develop:
             </p>
           </div>
 
-          <ul class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <li
-              v-for="(issue, i) in PRESSURES"
-              :key="issue.title"
-              class="flex flex-col gap-3.5 rounded-[2px] border border-ink/16 bg-white px-[26px] pb-7 pt-[26px]"
-            >
-              <div class="flex items-center justify-between">
-                <span class="text-[12px] font-extrabold tracking-[0.1em] text-gold">{{ String(i + 1).padStart(2, '0') }}</span>
-                <UIcon :name="issue.icon" class="size-5 text-navy" />
-              </div>
-              <h3 class="text-[21px] font-extrabold leading-[1.2] tracking-[-0.029em] text-ink">
-                {{ issue.title }}
+          <ul class="grid gap-7 sm:grid-cols-2 lg:grid-cols-3">
+            <li v-for="(o, i) in OUTPUTS" :key="o.title" class="flex flex-col gap-3 border-t-2 border-ink/16 pt-[22px]">
+              <span class="text-[13px] font-extrabold tracking-[0.09em] text-gold">{{ String(i + 1).padStart(2, '0') }}</span>
+              <h3 class="text-[20px] font-extrabold leading-[1.22] tracking-[-0.025em] text-ink">
+                {{ o.title }}
               </h3>
               <p class="text-[14px] leading-[1.7] text-prose">
-                {{ issue.copy }}
+                {{ o.copy }}
               </p>
             </li>
           </ul>
@@ -291,55 +402,99 @@ useSeoMeta({
       </SiteContainer>
     </section>
 
-    <!-- Knowledge & insights -->
-    <section id="knowledge" class="border-t border-ink/16 bg-white py-20 lg:py-[84px]">
+    <!-- APCR 365 -->
+    <section id="apcr365" class="bg-navy-deep py-20 lg:pb-[88px] lg:pt-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-[26px]">
+          <SiteEyebrow dark>
+            APCR 365
+          </SiteEyebrow>
+          <h2 class="max-w-[980px] text-[clamp(28px,4.2vw,50px)] font-extrabold leading-[1.06] tracking-[-0.042em] text-white">
+            THREE DAYS BRING THE COMMUNITY TOGETHER.<br>APCR 365 KEEPS THE CONVERSATION GOING.
+          </h2>
+          <p class="max-w-[860px] text-[18px] leading-[1.7] text-white/80">
+            APCR is not intended to end when the conference closes. The annual forum is the meeting point of a wider ecosystem involving:
+          </p>
+          <ul class="flex flex-wrap gap-2.5">
+            <li v-for="item in ECOSYSTEM" :key="item" class="rounded-[2px] border border-white/24 px-3.5 py-2 text-[12px] font-extrabold tracking-[0.1em] text-gold-soft">
+              {{ item }}
+            </li>
+          </ul>
+          <p class="max-w-[860px] border-t border-white/16 pt-6 text-[17px] leading-[1.7] text-white/80">
+            Throughout the year, APCR aims to connect leaders, ideas and institutions around one common agenda:
+            <strong class="font-extrabold text-white">BUILDING A MORE TRUSTED ASEAN.</strong>
+          </p>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- Who should be in the room -->
+    <section id="audience" class="bg-paper py-20 lg:py-[84px]">
       <SiteContainer>
         <div class="flex flex-col gap-8">
-          <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
-            <div class="flex flex-col gap-5 lg:w-[640px]">
-              <SiteEyebrow>KNOWLEDGE &amp; INSIGHTS</SiteEyebrow>
-              <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
-                THE WORK CONTINUES BETWEEN EDITIONS.
+          <SiteEyebrow>WHO SHOULD BE IN THE ROOM?</SiteEyebrow>
+
+          <ul class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <li
+              v-for="group in AUDIENCE"
+              :key="group.title"
+              class="flex flex-col gap-3 rounded-[2px] border border-ink/16 bg-white px-[26px] pb-7 pt-[26px]"
+            >
+              <h2 class="text-[21px] font-extrabold leading-[1.2] tracking-[-0.029em] text-ink">
+                {{ group.title }}
               </h2>
-            </div>
-            <!-- The knowledge hub itself is not built yet. -->
-            <p class="flex items-center gap-2 text-[13px] font-bold text-ink/35">
-              Explore the knowledge hub
-              <UIcon name="i-lucide-arrow-right" class="size-3.5" />
-            </p>
+              <p class="text-[14px] leading-[1.75] text-prose">
+                {{ group.items.join(' • ') }}
+              </p>
+            </li>
+          </ul>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- About the initiator -->
+    <section id="initiator" class="py-20 lg:py-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-16">
+          <div class="flex h-[200px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-10 lg:w-[360px] lg:shrink-0">
+            <img src="/landing/pr-indonesia.png" alt="PR INDONESIA" width="150" height="122" loading="lazy" class="max-h-[120px] object-contain">
           </div>
 
-          <div class="flex flex-col gap-10 lg:flex-row lg:gap-12">
-            <article class="flex flex-col gap-[18px] lg:w-[560px] lg:shrink-0">
-              <img
-                :src="FEATURED_INSIGHT.image"
-                :alt="FEATURED_INSIGHT.alt"
-                width="560"
-                height="300"
-                loading="lazy"
-                class="h-[220px] w-full rounded-[2px] object-cover lg:h-[300px]"
-              >
-              <p class="text-[11px] font-extrabold tracking-[0.109em] text-navy">
-                {{ FEATURED_INSIGHT.kicker }}
-              </p>
-              <h3 class="text-[27px] font-extrabold leading-[1.18] tracking-[-0.033em] text-ink">
-                {{ FEATURED_INSIGHT.title }}
-              </h3>
-              <p class="text-[15px] leading-[1.72] text-prose">
-                {{ FEATURED_INSIGHT.copy }}
-              </p>
-            </article>
+          <div class="flex flex-1 flex-col gap-[22px]">
+            <SiteEyebrow>ABOUT THE INITIATOR</SiteEyebrow>
+            <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
+              INITIATED BY PR INDONESIA
+            </h2>
+            <p class="text-[17px] leading-[1.78] text-prose">
+              Established in 2015, PR INDONESIA is a communication and reputation ecosystem connecting corporations, government institutions, state-owned enterprises, universities, professional associations and communication leaders across Indonesia.
+            </p>
+            <p class="text-[17px] leading-[1.78] text-prose">
+              Through APCR, PR INDONESIA is expanding that ecosystem:
+            </p>
+            <p class="text-[14px] font-extrabold leading-[1.8] tracking-[0.079em] text-navy">
+              FROM NATIONAL COMMUNICATION ECOSYSTEM<br>TO ASEAN COMMUNICATION ECOSYSTEM.
+            </p>
+          </div>
+        </div>
+      </SiteContainer>
+    </section>
 
-            <ul class="flex-1 border-t border-ink/16">
-              <li v-for="item in INSIGHTS" :key="item.title" class="flex items-start gap-5 border-b border-ink/16 py-5">
-                <div class="flex flex-1 flex-col gap-2">
-                  <span class="text-[11px] font-extrabold tracking-[0.109em] text-gold">{{ item.kind }}</span>
-                  <h3 class="text-[17px] font-extrabold leading-[1.3] tracking-[-0.024em] text-ink">
-                    {{ item.title }}
-                  </h3>
-                  <span class="text-[12px] text-prose-dim">{{ item.date }}</span>
-                </div>
-                <UIcon name="i-lucide-arrow-up-right" class="mt-1 size-4 shrink-0 text-navy" />
+    <!-- Partners: the default event's partners from the CMS, one row per category -->
+    <section v-if="partnerGroups.length" id="partners" class="border-t border-ink/16 bg-white py-20 lg:pb-20 lg:pt-[76px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-12">
+          <div v-for="group in partnerGroups" :key="group.label" class="flex flex-col gap-6">
+            <SiteEyebrow>
+              {{ group.label }}
+            </SiteEyebrow>
+            <ul class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+              <li
+                v-for="partner in group.items"
+                :key="partner.id"
+                class="flex h-[104px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
+              >
+                <img v-if="partner.logoUrl" :src="partner.logoUrl" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
+                <span v-else class="text-center text-[11px] font-extrabold uppercase tracking-[0.073em] text-[#7c8695]">{{ partner.name }}</span>
               </li>
             </ul>
           </div>
@@ -347,122 +502,41 @@ useSeoMeta({
       </SiteContainer>
     </section>
 
-    <!-- Community -->
-    <section id="community" class="bg-paper py-20 lg:pb-[88px] lg:pt-[84px]">
+    <!-- Join the conversation -->
+    <section id="registration" class="bg-navy-deep py-20 lg:py-[96px]">
       <SiteContainer>
-        <div class="flex flex-col gap-[34px]">
-          <div class="flex flex-col gap-8 lg:flex-row lg:items-end lg:gap-[72px]">
-            <div class="flex flex-col gap-5 lg:w-[660px] lg:shrink-0">
-              <SiteEyebrow>COMMUNITY</SiteEyebrow>
-              <h2 class="text-[clamp(28px,3.9vw,46px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
-                APCR 365: THE YEAR BETWEEN EDITIONS.
-              </h2>
-            </div>
-            <p class="text-[16px] leading-[1.75] text-prose">
-              Four standing programmes keep the network working after Medan — closed-door rooms, clinics, curriculum and a pipeline of younger practitioners.
-            </p>
-          </div>
+        <div class="flex flex-col items-start gap-[26px]">
+          <h2 class="max-w-[980px] text-[clamp(28px,4.2vw,50px)] font-extrabold leading-[1.06] tracking-[-0.042em] text-white">
+            ASEAN IS BECOMING MORE CONNECTED.
+          </h2>
+          <p class="max-w-[860px] text-[19px] leading-[1.65] text-white/85">
+            The next challenge is making sure it also becomes more trusted.
+          </p>
 
-          <ul class="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
-            <li v-for="p in PROGRAMMES" :key="p.title" class="flex flex-col gap-3 border-t-2 border-ink/16 pt-[22px]">
-              <UIcon :name="p.icon" class="size-[21px] text-navy" />
-              <h3 class="text-[20px] font-extrabold leading-[1.22] tracking-[-0.025em] text-ink">
-                {{ p.title }}
-              </h3>
-              <p class="text-[14px] leading-[1.7] text-prose">
-                {{ p.copy }}
+          <div class="flex w-full flex-col gap-3 border-t border-white/16 pt-8">
+            <h3 class="text-[22px] font-extrabold tracking-[-0.025em] text-gold-soft">
+              JOIN THE CONVERSATION.
+            </h3>
+            <p class="text-[13px] font-extrabold tracking-[0.1em] text-white">
+              ASEAN PUBLIC COMMUNICATION &amp; REPUTATION FORUM (APCR) 2026
+            </p>
+            <div class="flex flex-wrap items-center gap-3.5 text-white">
+              <p class="text-[17px] font-extrabold">
+                {{ HERO.date }}
               </p>
-              <p class="text-[12px] font-bold leading-[1.6] text-navy">
-                {{ p.stat }}
+              <span class="hidden h-4 w-px bg-white/35 sm:block" />
+              <p class="text-[16px] text-white/85">
+                {{ HERO.location }}
               </p>
-            </li>
-          </ul>
-        </div>
-      </SiteContainer>
-    </section>
-
-    <!-- Partners -->
-    <section id="partners" class="border-t border-ink/16 bg-white py-20 lg:pb-20 lg:pt-[76px]">
-      <SiteContainer>
-        <div class="flex flex-col gap-[30px]">
-          <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
-            <div class="flex flex-col gap-5 lg:w-[640px]">
-              <SiteEyebrow>PARTNERS</SiteEyebrow>
-              <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
-                BUILT WITH THE INSTITUTIONS IT SERVES.
-              </h2>
             </div>
-            <a
-              :href="WHATSAPP_URL"
-              target="_blank"
-              rel="noopener"
-              class="inline-flex shrink-0 items-center gap-2 self-start lg:self-auto rounded-[2px] bg-navy px-5 py-3.5 text-[12px] font-bold text-white transition-colors hover:bg-navy-deep"
-            >
-              Become a partner
-              <UIcon name="i-lucide-arrow-right" class="size-3.5" />
-            </a>
-          </div>
-
-          <ul class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-            <li
-              v-for="partner in PARTNERS"
-              :key="partner.name"
-              class="flex h-[104px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
-            >
-              <img v-if="partner.logo" :src="partner.logo" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
-              <span v-else class="text-center text-[11px] font-extrabold uppercase tracking-[0.073em] text-[#7c8695]">{{ partner.name }}</span>
-            </li>
-          </ul>
-
-          <div class="flex flex-wrap items-center justify-between gap-8 border-t border-ink/16 pt-5">
-            <p class="text-[14px] text-prose">
-              42 partner organisations across 10 ASEAN markets
-            </p>
-            <!-- A dedicated partners page is still to come. -->
-            <p class="flex items-center gap-2 text-[13px] font-bold text-ink/35">
-              See all partners
-              <UIcon name="i-lucide-arrow-right" class="size-3.5" />
+            <p class="text-[15px] text-white/70">
+              Building Trust. Shaping Reputation. Connecting ASEAN.
             </p>
           </div>
-        </div>
-      </SiteContainer>
-    </section>
 
-    <!-- Latest stories -->
-    <section class="py-20 lg:pb-[92px] lg:pt-20">
-      <SiteContainer>
-        <div class="flex flex-col gap-[30px]">
-          <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-12">
-            <div class="flex flex-col gap-5 lg:w-[640px]">
-              <SiteEyebrow>LATEST STORIES</SiteEyebrow>
-              <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
-                WHAT'S MOVING RIGHT NOW.
-              </h2>
-            </div>
-            <NuxtLink to="/news" class="inline-flex shrink-0 items-center gap-2 self-start lg:self-auto text-[13px] font-bold text-navy hover:underline">
-              All news &amp; media
-              <UIcon name="i-lucide-arrow-right" class="size-3.5" />
-            </NuxtLink>
-          </div>
-
-          <ul class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <li v-for="story in STORIES" :key="story.title" class="flex flex-col overflow-hidden rounded-[2px] border border-ink/16 bg-white">
-              <img :src="story.image" :alt="story.alt" width="360" height="188" loading="lazy" class="h-[188px] w-full object-cover">
-              <div class="flex flex-1 flex-col gap-[11px] px-6 pb-6 pt-[22px]">
-                <div class="flex items-center gap-2.5">
-                  <span class="text-[12px] text-prose">{{ story.date }}</span>
-                  <span class="size-[3px] rounded-full bg-ink/25" />
-                  <span class="text-[11px] font-extrabold tracking-[0.1em] text-navy">{{ story.kind }}</span>
-                </div>
-                <h3 class="text-[19px] font-extrabold leading-[1.24] tracking-[-0.021em] text-ink">
-                  {{ story.title }}
-                </h3>
-                <p class="text-[14px] leading-[1.62] text-prose">
-                  {{ story.copy }}
-                </p>
-              </div>
-            </li>
-          </ul>
+          <SiteButton :to="registerHref" size="lg" icon="i-lucide-arrow-right">
+            REGISTER FOR APCR 2026
+          </SiteButton>
         </div>
       </SiteContainer>
     </section>

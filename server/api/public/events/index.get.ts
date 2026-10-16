@@ -7,7 +7,7 @@ export default defineEventHandler(async () => {
   const rows = await db.select({
     slug: events.slug, name: events.name, tagline: events.tagline, startDate: events.startDate, endDate: events.endDate,
     venueName: events.venueName, city: events.city, bannerKey: events.bannerKey, registrationOpen: events.registrationOpen,
-    registrationDeadline: events.registrationDeadline
+    registrationDeadline: events.registrationDeadline, isDefault: events.isDefault
   }).from(events).where(eq(events.status, 'published')).orderBy(asc(events.startDate))
   return rows.map(({ bannerKey, ...r }) => ({ ...r, bannerUrl: publicUrl(bannerKey), isOpen: r.registrationOpen && r.registrationDeadline > new Date() }))
 })

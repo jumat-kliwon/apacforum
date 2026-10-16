@@ -24,11 +24,27 @@ export const speakerSchema = z.object({
   status: z.enum(['draft', 'published']).default('draft')
 })
 
-export const partnerSchema = z.object({
-  id: z.uuid().optional(),
+/** One partner — the form on the Partners page. The event cannot change after it is created. */
+export const partnerFormSchema = z.object({
+  eventId: z.uuid('Choose an event'),
   name: z.string().trim().min(1, 'Required').max(200),
   category: z.enum(Object.keys(PARTNER_CATEGORY) as [keyof typeof PARTNER_CATEGORY]),
-  logoKey: objectKey
+  logoKey: objectKey,
+  showHome: z.boolean().default(false)
+})
+
+export type PartnerFormInput = z.input<typeof partnerFormSchema>
+export type PartnerForm = z.output<typeof partnerFormSchema>
+
+export const partnerListQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().refine(n => [10, 25, 50, 100].includes(n)).default(10),
+  dir: z.enum(['asc', 'desc']).default('asc'),
+  q: z.string().trim().max(100).optional(),
+  eventId: z.uuid().optional(),
+  category: z.enum(Object.keys(PARTNER_CATEGORY) as [keyof typeof PARTNER_CATEGORY]).optional(),
+  home: z.enum(['shown', 'hidden']).optional(),
+  sort: z.enum(['order', 'name', 'category', 'home']).default('order')
 })
 
 export const ticketTypeSchema = z.object({
@@ -57,10 +73,11 @@ export const eventFormSchema = z.object({
   capacity: z.coerce.number<number>().int().min(0, 'Cannot be negative'),
   bannerKey: objectKey,
   registrationOpen: z.boolean().default(true),
+  /** Saving with this on takes the default from whichever event had it. */
+  isDefault: z.boolean().default(false),
   status: z.enum(['draft', 'published']),
   agendaDays: z.array(agendaDaySchema).max(14).default([]),
-  speakers: z.array(speakerSchema).max(200).default([]),
-  partners: z.array(partnerSchema).max(200).default([])
+  speakers: z.array(speakerSchema).max(200).default([])
 }).superRefine((v, ctx) => {
   if (v.endDate < v.startDate) {
     ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'Cannot be before the start date' })

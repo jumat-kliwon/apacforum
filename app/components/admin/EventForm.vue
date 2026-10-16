@@ -1,27 +1,26 @@
 <script setup lang="ts">
 import type { EditorToolbarItem, FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
-import { agendaDaySchema, eventFormSchema, partnerSchema, speakerSchema, type EventForm, type EventFormInput } from '~~/shared/schemas/event'
+import { agendaDaySchema, eventFormSchema, speakerSchema, type EventForm, type EventFormInput } from '~~/shared/schemas/event'
 
 /**
- * Event form in four steps: details, agenda, speakers, partners. Ticket types live on the
- * event's Tickets page. "Add event" opens each step in order; "Edit event" starts with every step reachable.
+ * Event form in three steps: details, agenda, speakers. Ticket types and partners live on the
+ * event's Tickets and Partners pages. "Add event" opens each step in order; "Edit event" starts with every step reachable.
  */
-type Previews = { banner?: string | null, speakers: (string | null)[], partners: (string | null)[] }
+type Previews = { banner?: string | null, speakers: (string | null)[] }
 const props = defineProps<{ initial?: EventFormInput, previews?: Previews, saving?: boolean, eventId?: string }>()
 const emit = defineEmits<{ submit: [EventForm] }>()
 
 const blankDay = () => ({ label: '', date: '', theme: '', body: '' })
 const blankSpeaker = () => ({ name: '', title: '', category: 'government' as const, agendaDayIndex: null, status: 'published' as const, photoKey: null })
-const blankPartner = () => ({ name: '', category: 'strategic' as const, logoKey: null })
 
 const state = reactive<EventFormInput>(props.initial
   ? { ...structuredClone(toRaw(props.initial)), description: descriptionToHtml(props.initial.description) }
   : {
       name: '', code: '', slug: '', tagline: '', description: '', startDate: '', endDate: '', registrationDeadline: '',
-      venueName: '', venueAddress: '', city: '', capacity: 0, bannerKey: null, registrationOpen: true, status: 'draft',
-      agendaDays: [blankDay()], speakers: [blankSpeaker()], partners: [blankPartner()]
+      venueName: '', venueAddress: '', city: '', capacity: 0, bannerKey: null, registrationOpen: true, isDefault: false, status: 'draft',
+      agendaDays: [blankDay()], speakers: [blankSpeaker()]
     })
-const previews = reactive<Previews>(props.previews ? structuredClone(toRaw(props.previews)) : { banner: null, speakers: [null], partners: [null] })
+const previews = reactive<Previews>(props.previews ? structuredClone(toRaw(props.previews)) : { banner: null, speakers: [null] })
 
 // Suggest the slug and code from the name until they are edited by hand.
 const slugTouched = ref(!!props.initial)
@@ -33,7 +32,6 @@ watch(() => state.name, (name) => {
 
 const days = computed(() => state.agendaDays!)
 const speakers = computed(() => state.speakers!)
-const partners = computed(() => state.partners!)
 
 function addSpeaker() {
   speakers.value.push(blankSpeaker())
@@ -42,14 +40,6 @@ function addSpeaker() {
 function removeSpeaker(i: number) {
   speakers.value.splice(i, 1)
   previews.speakers.splice(i, 1)
-}
-function addPartner() {
-  partners.value.push(blankPartner())
-  previews.partners.push(null)
-}
-function removePartner(i: number) {
-  partners.value.splice(i, 1)
-  previews.partners.splice(i, 1)
 }
 function removeDay(i: number) {
   days.value.splice(i, 1)
@@ -74,11 +64,10 @@ const dayModel = (s: { agendaDayIndex?: number | null }) => computed({
 const STEPS = [
   {
     title: 'General details',
-    fields: ['name', 'code', 'slug', 'tagline', 'description', 'startDate', 'endDate', 'registrationDeadline', 'venueName', 'venueAddress', 'city', 'capacity', 'bannerKey', 'registrationOpen']
+    fields: ['name', 'code', 'slug', 'tagline', 'description', 'startDate', 'endDate', 'registrationDeadline', 'venueName', 'venueAddress', 'city', 'capacity', 'bannerKey', 'registrationOpen', 'isDefault']
   },
   { title: 'Agenda', list: 'agendaDays', itemFields: Object.keys(agendaDaySchema.shape) },
-  { title: 'Speakers', list: 'speakers', itemFields: Object.keys(speakerSchema.shape) },
-  { title: 'Partners', list: 'partners', itemFields: Object.keys(partnerSchema.shape) }
+  { title: 'Speakers', list: 'speakers', itemFields: Object.keys(speakerSchema.shape) }
 ] as const
 
 const step = ref(0)
@@ -166,7 +155,6 @@ const DESCRIPTION_TOOLBAR: EditorToolbarItem[][] = [
 ]
 
 const SPEAKER_ITEMS = toItems(SPEAKER_CATEGORY)
-const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
 </script>
 
 <template>
@@ -256,6 +244,17 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
             </div>
             <USwitch v-model="state.registrationOpen" aria-label="Open registration" />
           </div>
+          <div class="flex items-start justify-between gap-4 rounded-sm border border-default p-4">
+            <div>
+              <p class="text-sm font-medium text-highlighted">
+                Default event
+              </p>
+              <p class="text-[13px]/[18px] text-muted">
+                Only one event can be the default. Turning this on removes it from the current default.
+              </p>
+            </div>
+            <USwitch v-model="state.isDefault" aria-label="Default event" />
+          </div>
         </div>
       </div>
     </AdminPanel>
@@ -317,25 +316,6 @@ const PARTNER_ITEMS = toItems(PARTNER_CATEGORY)
           <USwitch :model-value="s.status === 'published'" label="Published" @update:model-value="v => s.status = v ? 'published' : 'draft'" />
           <UButton color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Remove speaker ${s.name || i + 1}`" @click="removeSpeaker(i)" />
         </div>
-      </div>
-    </AdminPanel>
-
-    <!-- 4. Partners -->
-    <AdminPanel v-show="step === 3" :title="STEPS[3].title" description="Partner logos appear by category on the website.">
-      <template #actions>
-        <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add partner" @click="addPartner" />
-      </template>
-      <div v-for="(p, i) in partners" :key="i" class="flex flex-wrap items-end gap-4 rounded-sm border border-default p-4">
-        <AdminImageUpload v-model="p.logoKey" folder="partners" :preview-url="previews.partners[i]" :label="`Partner ${i + 1} logo`" variant="square" />
-        <div class="grid min-w-0 grow gap-5 sm:grid-cols-2">
-          <UFormField label="Partner name" :name="`partners.${i}.name`">
-            <UInput v-model="p.name" placeholder="Organization name" class="w-full" />
-          </UFormField>
-          <UFormField label="Category" :name="`partners.${i}.category`">
-            <USelect v-model="p.category" :items="PARTNER_ITEMS" class="w-full" />
-          </UFormField>
-        </div>
-        <UButton color="error" variant="ghost" icon="i-lucide-trash-2" class="mb-1" :aria-label="`Remove partner ${p.name || i + 1}`" @click="removePartner(i)" />
       </div>
     </AdminPanel>
 

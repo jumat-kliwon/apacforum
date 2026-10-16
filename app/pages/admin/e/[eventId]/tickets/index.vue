@@ -33,16 +33,6 @@ const columns: TableColumn<Row>[] = [
   { id: 'actions', header: () => h('span', { class: 'sr-only' }, 'Actions') }
 ]
 
-const stats = computed(() => {
-  const s = data.value?.summary
-  return [
-    { label: 'Ticket types', value: formatNumber(data.value?.total ?? 0), icon: 'i-lucide-ticket' },
-    { label: 'Total quota', value: formatNumber(s?.quota ?? 0), icon: 'i-lucide-users' },
-    { label: 'Tickets sold', value: formatNumber(s?.sold ?? 0), icon: 'i-lucide-badge-check' },
-    { label: 'Ticket revenue', value: formatRupiah(s?.revenue ?? 0), icon: 'i-lucide-wallet', note: 'Paid tickets × price' }
-  ]
-})
-
 const total = computed(() => data.value?.total ?? 0)
 const rangeText = computed(() => {
   if (!total.value) return 'No ticket types'
@@ -97,10 +87,6 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       <UButton :to="newHref" icon="i-lucide-plus" label="Add ticket type" />
     </template>
   </AdminPageHeader>
-
-  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    <AdminStatCard v-for="s in stats" :key="s.label" v-bind="s" />
-  </div>
 
   <AdminPanel>
     <div class="flex flex-wrap items-center gap-4 p-2">

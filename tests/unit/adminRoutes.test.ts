@@ -24,6 +24,11 @@ describe('switchEventPath', () => {
   it('keeps the section and drops list filters', () => {
     expect(switchEventPath(`/admin/e/${A}/registrations`, { status: 'paid', page: '3' }, B)).toBe(`/admin/e/${B}/registrations`)
   })
+  it('keeps the partners section and drops a partner id', () => {
+    expect(switchEventPath(`/admin/e/${A}/partners`, { q: 'x' }, B)).toBe(`/admin/e/${B}/partners`)
+    expect(switchEventPath(`/admin/e/${A}/partners/p1`, {}, B)).toBe(`/admin/e/${B}/partners`)
+  })
+
   it('keeps the tickets section and drops a ticket id', () => {
     expect(switchEventPath(`/admin/e/${A}/tickets`, { q: 'x' }, B)).toBe(`/admin/e/${B}/tickets`)
     expect(switchEventPath(`/admin/e/${A}/tickets/new`, {}, B)).toBe(`/admin/e/${B}/tickets`)
@@ -70,6 +75,9 @@ describe('pageSkeleton', () => {
     expect(pageSkeleton(`/admin/e/${A}/tickets`)).toBe('list')
     expect(pageSkeleton(`/admin/e/${A}/tickets/new`)).toBe('form')
     expect(pageSkeleton(`/admin/e/${A}/tickets/t1`)).toBe('form')
+    expect(pageSkeleton(`/admin/e/${A}/partners`)).toBe('list')
+    expect(pageSkeleton(`/admin/e/${A}/partners/new`)).toBe('form')
+    expect(pageSkeleton(`/admin/e/${A}/partners/p1`)).toBe('form')
     expect(pageSkeleton(`/admin/e/${A}/settings`)).toBe('detail')
     expect(pageSkeleton(`/admin/e/${A}/settings/edit`)).toBe('form')
   })

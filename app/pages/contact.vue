@@ -1,35 +1,35 @@
 <script setup lang="ts">
-import { COUNTRIES, DESKS, QUICK_ANSWERS, SECRETARIAT, SOCIALS } from '~/data/contact'
+import { AT_A_GLANCE, COUNTRIES, TOPICS, WHATSAPP_DISPLAY } from '~/data/contact'
+import { WHATSAPP_URL } from '~/data/site'
 
 definePageMeta({ layout: 'site' })
 
 useSeoMeta({
   title: 'Contact',
-  description: 'Six desks at the APCR Secretariat, each owned by someone who can answer. Write to a desk directly or use the contact form.',
+  description: 'Contact APCR 2026 — the ASEAN Public Communication & Reputation Forum, 2–4 December 2026 in Medan, North Sumatra, Indonesia — via WhatsApp.',
   themeColor: '#031735'
 })
 
-const pad = (i: number) => String(i + 1).padStart(2, '0')
+const registerHref = await useRegisterHref('/apcr-2026#registration')
 
 /**
- * There is no submission endpoint for this form yet, so it does not pretend to
- * send: it hands the message to the general enquiries desk over mail instead.
+ * There is no submission endpoint for this form, so it does not pretend to send:
+ * it composes the enquiry as a WhatsApp message to APCR's published number.
  */
-const form = reactive({ name: '', institution: '', position: '', country: '', email: '', whatsapp: '', desk: '', message: '' })
+const form = reactive({ name: '', institution: '', position: '', country: '', email: '', topic: '', message: '' })
 
-const mailtoHref = computed(() => {
+const whatsappHref = computed(() => {
   const body = [
+    `Topic: ${form.topic || 'General enquiry'}`,
     `Name: ${form.name}`,
     `Institution: ${form.institution}`,
     `Position: ${form.position}`,
     `Country: ${form.country}`,
     `Email: ${form.email}`,
-    `WhatsApp: ${form.whatsapp}`,
     '',
     form.message
   ].join('\n')
-  const to = DESKS.find(d => d.title === form.desk)?.email ?? 'hello@apcrforum.org'
-  return `mailto:${to}?subject=${encodeURIComponent(form.desk || 'APCR enquiry')}&body=${encodeURIComponent(body)}`
+  return `${WHATSAPP_URL}?text=${encodeURIComponent(body)}`
 })
 
 const fieldClass = 'h-[46px] w-full rounded-[2px] border border-ink/16 bg-paper-soft px-3.5 text-[14px] text-ink placeholder:text-prose-dim'
@@ -41,50 +41,53 @@ const labelClass = 'text-[12px] font-bold text-ink'
     <SiteHero
       eyebrow="CONTACT"
       title="LET'S CONNECT."
-      blurb="Reaching APCR should never mean writing to a single inbox and waiting. Six desks, each owned by someone who can actually answer."
+      blurb="APCR is reached via WhatsApp. Message us directly, or fill in the form below and it will be composed as a WhatsApp message for you."
       title-class="text-[clamp(38px,6vw,72px)] leading-none tracking-[-0.047em]"
-    />
+    >
+      <template #actions>
+        <SiteButton :to="WHATSAPP_URL" icon="i-lucide-arrow-up-right">
+          Contact via WhatsApp
+        </SiteButton>
+      </template>
+    </SiteHero>
 
-    <!-- Desks -->
-    <section class="py-20 lg:pb-[76px] lg:pt-20">
+    <!-- WhatsApp -->
+    <section id="whatsapp" class="py-20 lg:pb-[76px] lg:pt-20">
       <SiteContainer>
         <div class="flex flex-col gap-[30px]">
-          <SiteSectionHead eyebrow="WHO TO CONTACT" title="SIX DESKS, ONE SECRETARIAT.">
+          <SiteSectionHead eyebrow="WHO TO CONTACT" title="ONE CHANNEL: WHATSAPP.">
             <template #intro>
-              Write to the desk directly, or use the form below and it will be routed for you.
+              Registration, partnership, media or anything else about APCR 2026 — send it to the same number.
             </template>
           </SiteSectionHead>
 
-          <ul class="grid gap-7 md:grid-cols-2 lg:grid-cols-3">
-            <li v-for="(d, i) in DESKS" :key="d.title" class="flex flex-col gap-3 border-t border-ink/16 pt-[22px]">
-              <div class="flex items-center justify-between">
-                <UIcon :name="d.icon" class="size-[21px] text-navy" />
-                <span class="text-[11px] font-extrabold tracking-[0.1em] text-gold">{{ pad(i) }}</span>
+          <div class="flex flex-col gap-6 border-t border-ink/16 pt-[26px] md:flex-row md:items-center md:justify-between">
+            <div class="flex items-center gap-4">
+              <span class="flex size-12 shrink-0 items-center justify-center rounded-[2px] bg-navy-deep">
+                <UIcon name="i-lucide-message-circle" class="size-[22px] text-gold-soft" />
+              </span>
+              <div class="flex flex-col gap-1">
+                <p class="text-[11px] font-extrabold tracking-[0.118em] text-navy">
+                  WHATSAPP
+                </p>
+                <a :href="WHATSAPP_URL" target="_blank" rel="noopener" class="text-[clamp(24px,2.7vw,32px)] font-extrabold leading-[1.12] tracking-[-0.038em] text-ink hover:underline">
+                  {{ WHATSAPP_DISPLAY }}
+                </a>
               </div>
-              <h3 class="text-[20px] font-extrabold leading-[1.22] tracking-[-0.025em] text-ink">
-                {{ d.title }}
-              </h3>
-              <p class="text-[15px] leading-[1.7] text-prose">
-                {{ d.copy }}
-              </p>
-              <a :href="`mailto:${d.email}`" class="flex items-center gap-2 pt-0.5 text-[13px] font-bold text-navy hover:underline">
-                {{ d.email }}
-                <UIcon name="i-lucide-arrow-up-right" class="size-3.5" />
-              </a>
-              <p class="text-[12px] text-prose-dim">
-                {{ d.sla }}
-              </p>
-            </li>
-          </ul>
+            </div>
+            <SiteButton :to="WHATSAPP_URL" variant="navy" icon="i-lucide-arrow-up-right" class="self-start md:self-auto">
+              Contact via WhatsApp
+            </SiteButton>
+          </div>
         </div>
       </SiteContainer>
     </section>
 
-    <!-- Contact form -->
-    <section class="bg-paper py-20 lg:pb-[86px] lg:pt-20">
+    <!-- Message form -->
+    <section id="message" class="bg-paper py-20 lg:pb-[86px] lg:pt-20">
       <SiteContainer>
         <div class="flex flex-col gap-10 lg:flex-row lg:gap-14">
-          <form class="flex flex-1 flex-col gap-[22px] rounded-[2px] border border-ink/16 bg-white px-6 pb-[42px] pt-10 sm:px-10">
+          <form class="flex flex-1 flex-col gap-[22px] rounded-[2px] border border-ink/16 bg-white px-6 pb-[42px] pt-10 sm:px-10" @submit.prevent>
             <SiteEyebrow>SEND A MESSAGE</SiteEyebrow>
             <h2 class="text-[clamp(24px,2.7vw,32px)] font-extrabold leading-[1.12] tracking-[-0.038em] text-ink">
               TELL US WHAT YOU NEED.
@@ -93,7 +96,7 @@ const labelClass = 'text-[12px] font-bold text-ink'
             <div class="grid gap-[18px] sm:grid-cols-2">
               <div class="flex flex-col gap-2">
                 <label :class="labelClass" for="c-name">Name</label>
-                <input id="c-name" v-model="form.name" :class="fieldClass" placeholder="Dr. Maya Santoso">
+                <input id="c-name" v-model="form.name" :class="fieldClass" placeholder="Your full name">
               </div>
               <div class="flex flex-col gap-2">
                 <label :class="labelClass" for="c-inst">Institution</label>
@@ -101,7 +104,7 @@ const labelClass = 'text-[12px] font-bold text-ink'
               </div>
               <div class="flex flex-col gap-2">
                 <label :class="labelClass" for="c-pos">Position</label>
-                <input id="c-pos" v-model="form.position" :class="fieldClass" placeholder="Director of Communication">
+                <input id="c-pos" v-model="form.position" :class="fieldClass" placeholder="Your role">
               </div>
               <div class="flex flex-col gap-2">
                 <label :class="labelClass" for="c-country">Country</label>
@@ -119,21 +122,16 @@ const labelClass = 'text-[12px] font-bold text-ink'
                 <input id="c-email" v-model="form.email" type="email" :class="fieldClass" placeholder="name@organisation.org">
               </div>
               <div class="flex flex-col gap-2">
-                <label :class="labelClass" for="c-wa">WhatsApp</label>
-                <input id="c-wa" v-model="form.whatsapp" type="tel" :class="fieldClass" placeholder="+62 812 0000 0000">
+                <label :class="labelClass" for="c-topic">Topic</label>
+                <select id="c-topic" v-model="form.topic" :class="[fieldClass, !form.topic && 'text-prose-dim']">
+                  <option value="" disabled>
+                    Select a topic
+                  </option>
+                  <option v-for="t in TOPICS" :key="t" :value="t">
+                    {{ t }}
+                  </option>
+                </select>
               </div>
-            </div>
-
-            <div class="flex flex-col gap-2">
-              <label :class="labelClass" for="c-desk">Area of Interest</label>
-              <select id="c-desk" v-model="form.desk" :class="[fieldClass, !form.desk && 'text-prose-dim']">
-                <option value="" disabled>
-                  Select the desk closest to your question
-                </option>
-                <option v-for="d in DESKS" :key="d.title" :value="d.title">
-                  {{ d.title }}
-                </option>
-              </select>
             </div>
 
             <div class="flex flex-col gap-2">
@@ -143,89 +141,45 @@ const labelClass = 'text-[12px] font-bold text-ink'
                 v-model="form.message"
                 rows="5"
                 class="w-full rounded-[2px] border border-ink/16 bg-paper-soft px-3.5 py-3 text-[14px] text-ink placeholder:text-prose-dim"
-                placeholder="Tell us briefly what you need and any deadline you are working to."
+                placeholder="Tell us briefly what you need."
               />
             </div>
 
-            <label class="flex items-start gap-3 pt-0.5">
-              <input type="checkbox" class="mt-0.5 size-4 rounded-[2px] border border-ink/40">
-              <span class="text-[13px] leading-[1.6] text-prose">Keep me on the APCR briefing list. We send one email a month and never share delegate data.</span>
-            </label>
-
             <div class="flex flex-wrap items-center justify-between gap-5 pt-1.5">
-              <SiteButton :to="mailtoHref" variant="navy" icon="i-lucide-arrow-right">
-                Send message
+              <SiteButton :to="whatsappHref" variant="navy" icon="i-lucide-arrow-up-right">
+                Send via WhatsApp
               </SiteButton>
               <p class="text-[12px] text-prose-dim">
-                Routed to the right desk · reply in 1–3 working days
+                Opens WhatsApp with your message ready to send to {{ WHATSAPP_DISPLAY }}
               </p>
             </div>
           </form>
 
           <aside class="flex flex-col gap-5 lg:w-[350px] lg:shrink-0">
-            <img src="/landing/contact-map.jpg" alt="Map of central Medan" width="350" height="200" loading="lazy" class="h-[200px] w-full rounded-[2px] border border-ink/16 object-cover">
-
-            <div class="flex flex-col gap-4 rounded-[2px] border border-ink/16 bg-white px-6 pb-[26px] pt-6">
-              <p class="text-[11px] font-extrabold tracking-[0.118em] text-navy">
-                SECRETARIAT
-              </p>
-              <div
-                v-for="(row, i) in SECRETARIAT"
-                :key="row.icon"
-                class="flex gap-3"
-                :class="i > 0 && 'border-t border-ink/16 pt-4'"
-              >
-                <UIcon :name="row.icon" class="mt-1 size-4 shrink-0 text-prose-dim" />
-                <p class="text-[14px] leading-[1.65] text-ink" :class="row.strong && 'font-bold'">
-                  <template v-for="(line, j) in row.lines" :key="j">
-                    {{ line }}<br v-if="j < row.lines.length - 1">
-                  </template>
-                </p>
-              </div>
-              <div class="flex gap-2 border-t border-ink/16 pt-[18px]">
-                <!-- Social accounts are not published yet. -->
-                <span
-                  v-for="s in SOCIALS"
-                  :key="s.label"
-                  class="flex size-9 items-center justify-center rounded-[2px] border border-ink/16 text-ink/35"
-                  :title="s.label"
-                >
-                  <UIcon :name="s.icon" class="size-[15px]" />
-                </span>
-              </div>
-            </div>
-
-            <div class="flex flex-col gap-3 rounded-[2px] bg-navy-deep px-6 pb-[26px] pt-6">
+            <div class="flex flex-col gap-4 rounded-[2px] bg-navy-deep px-6 pb-[26px] pt-6">
               <p class="text-[11px] font-extrabold tracking-[0.118em] text-gold-soft">
-                DURING THE FORUM
+                APCR 2026 AT A GLANCE
               </p>
-              <p class="text-[17px] font-extrabold leading-[1.35] tracking-[-0.024em] text-white">
-                On-site desk at Santika Premiere Dyandra, Medan
-              </p>
-              <p class="text-[13px] leading-[1.7] text-white/70">
-                2–4 December 2026, 07:30–18:00. Registration, media desk and partner lounge on Level 2.
-              </p>
+              <dl class="flex flex-col">
+                <div
+                  v-for="(row, i) in AT_A_GLANCE"
+                  :key="row.label"
+                  class="flex flex-col gap-1 py-3"
+                  :class="i > 0 && 'border-t border-white/16'"
+                >
+                  <dt class="text-[12px] text-white/60">
+                    {{ row.label }}
+                  </dt>
+                  <dd class="text-[15px] font-bold leading-[1.5] text-white">
+                    {{ row.value }}
+                  </dd>
+                </div>
+              </dl>
+              <SiteButton :to="registerHref" icon="i-lucide-arrow-right" class="self-start">
+                Register for APCR 2026
+              </SiteButton>
             </div>
           </aside>
-        </div>
-      </SiteContainer>
-    </section>
-
-    <!-- Quick answers -->
-    <section class="border-t border-ink/16 bg-white py-16 lg:pb-[72px] lg:pt-16">
-      <SiteContainer>
-        <div class="flex flex-col gap-6">
-          <SiteEyebrow>BEFORE YOU WRITE</SiteEyebrow>
-          <dl class="grid gap-8 md:grid-cols-3">
-            <div v-for="qa in QUICK_ANSWERS" :key="qa.q" class="flex flex-col gap-2.5 border-t border-ink/16 pt-5">
-              <dt class="text-[17px] font-extrabold leading-[1.3] tracking-[-0.018em] text-ink">
-                {{ qa.q }}
-              </dt>
-              <dd class="text-[15px] leading-[1.7] text-prose">
-                {{ qa.a }}
-              </dd>
-            </div>
-          </dl>
         </div>
       </SiteContainer>
     </section>

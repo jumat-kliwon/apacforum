@@ -1,9 +1,6 @@
 /**
- * The session-level rundown for APCR 2026.
- *
- * Not yet surfaced anywhere: the `apcr-2026-page` design publishes confirmed
- * tracks only, and says the hour-by-hour agenda follows "progressively from
- * October 2026". Kept here so that detail is not lost when it is needed.
+ * The session-level rundown for APCR 2026, as published on apcrforum.com.
+ * The home page shows it as the three-day journey.
  */
 
 export interface RundownRow {
@@ -40,10 +37,11 @@ export const PROGRAMME: ProgrammeDay[] = [
       { time: '14.00–14.20', title: 'Opening Address' },
       { time: '14.20–15.00', title: 'APCR SPECIAL POLICY DIALOGUE', details: ['Trust Across Borders'] },
       { time: '15.00–16.00', title: 'SUMATRA – ASEAN Leadership Dialogue: LEADING WITH TRUST', details: ['How Regional Leaders Manage Cities with Public Trust & Reputation'] },
-      { time: '16.00–17.00', title: 'SUMATRA – ASEAN Regional Institution & BUMD Transformation Dialogue', details: ['From Public Institution to Trusted Institution'] },
-      { time: '17.00–18.00', title: 'SUMATRA – ASEAN Investment, Public Communication, and Destination Dialogue', details: ['What Can Sumatra Bring to ASEAN?'] },
-      { time: '18.00–18.10', title: 'Closing Forum + Photo Session' },
-      { time: '18.10–18.25', title: 'Afternoon Tea & Networking' }
+      { time: '16.00–16.20', title: 'APCR Special Institutional Address:', details: ['THE RULE OF LAW AND THE FUTURE OF PUBLIC TRUST', 'Building Credible Institutions in an Era of Disruption'] },
+      { time: '16.20–17.20', title: 'SUMATRA – ASEAN Regional Institution & BUMD Transformation Dialogue', details: ['From Public Institution to Trusted Institution'] },
+      { time: '17.20–18.20', title: 'SUMATRA – ASEAN Investment, Public Communication, and Destination Dialogue', details: ['What Can Sumatra Bring to ASEAN?'] },
+      { time: '18.20–18.25', title: 'Closing Forum + Photo Session' },
+      { time: '18.25–18.40', title: 'Afternoon Tea & Networking' }
     ]
   },
   {
@@ -59,8 +57,9 @@ export const PROGRAMME: ProgrammeDay[] = [
       { time: '09.05–09.20', title: 'Opening Address' },
       { time: '09.20–09.50', title: 'Welcome Remarks and Keynote Speech' },
       { time: '09.50–10.30', title: 'ASEAN Keynote Dialogue:', details: ['The Future of Trust, Business and Public Communication in ASEAN'] },
-      { time: '10.30–11.40', title: 'ASEAN Strategic Dialogue #1:', details: ['POWERING ASEAN', 'Energy Security, Transition & Sustainable Growth'] },
-      { time: '11.40–12.50', title: 'ASEAN Strategic Dialogue #2:', details: ['FINANCING ASEAN GROWTH', 'Financial Connectivity, Inclusion & Cross-Border Investment'] },
+      { time: '10.30–10.50', title: 'APCR SPECIAL GLOBAL PERSPECTIVE: ASEAN BEYOND ASEAN', details: ['Building Trust, Business and Partnerships Across the Indian Ocean'] },
+      { time: '10.50–11.50', title: 'ASEAN Strategic Dialogue #1:', details: ['POWERING ASEAN', 'Energy Security, Transition & Sustainable Growth'] },
+      { time: '11.50–12.50', title: 'ASEAN Strategic Dialogue #2:', details: ['FINANCING ASEAN GROWTH', 'Financial Connectivity, Inclusion & Cross-Border Investment'] },
       { time: '12.50–13.30', title: 'ASEAN Business Networking Lunch' },
       { time: '13.30–15.00', title: 'ASEAN STRATEGIC DIALOGUE #3', details: ['CONNECTING ASEAN', 'Infrastructure, Public Transportation, Aviation & Destination Economy'] },
       { time: '15.00–16.15', title: 'ASEAN STRATEGIC DIALOGUE #4', details: ['THE FUTURE ASEAN ECONOMY', 'Food Security, Digital Connectivity & AI'] },
@@ -98,10 +97,10 @@ export const PROGRAMME: ProgrammeDay[] = [
       { time: '11.45–13.30', title: 'Academic–Industry Networking Lunch' },
       {
         time: '13.30–14.40',
-        title: 'APCR Knowledge Forum',
+        title: 'APCR KNOWLEDGE FORUM',
         details: [
-          'CAN TRUST BE MEASURED?',
-          'Measuring Public Trust, Institutional Reputation & Stakeholder Confidence in ASEAN',
+          'FROM TRUST DATA TO STRATEGIC DECISIONS.',
+          'Turning Trust & Reputation Intelligence into Institutional and Business Value',
           'Introduction of APCR RESEARCH & OUTLOOK 2027 as an embryo of APCR intellectual property.'
         ]
       },

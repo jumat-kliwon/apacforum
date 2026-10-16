@@ -1,40 +1,31 @@
-/** Static copy for /community, from the `community-page` frame in docs/design/apcr-design.pen. */
+/**
+ * Static copy for /community (APCR 365). The copy follows the live landing page at
+ * apcrforum.com, which is the single source of truth for public information: it comes from
+ * `home.ts` and `programme-rundown.ts`, so this file only selects from them.
+ */
+import { AUDIENCE, OUTPUTS } from '~/data/home'
+import { PROGRAMME } from '~/data/programme-rundown'
 
-export const TRUST_ROOM_WHO = [
-  { icon: 'i-lucide-briefcase', title: 'Chief Executives', copy: 'Leaders who carry the consequence of the decision in the room.' },
-  { icon: 'i-lucide-landmark', title: 'Government Leaders', copy: 'Ministers and senior officials with a public mandate at stake.' },
-  { icon: 'i-lucide-scale', title: 'Policymakers', copy: 'Those drafting the rules the rest of the region will operate under.' },
-  { icon: 'i-lucide-megaphone', title: 'Communication Leaders', copy: 'The practitioners who have to make the outcome legible afterwards.' }
+/** Finds a known entry in the landing data, failing loudly if that copy is ever renamed. */
+function pick<T>(list: T[], match: (item: T) => boolean, what: string): T {
+  const found = list.find(match)
+  if (!found) throw new Error(`Landing copy not found: ${what}`)
+  return found
+}
+
+const output = (title: string) => pick(OUTPUTS, o => o.title === title, title)
+
+/** The year-round parts of the ecosystem the landing names, with their anchor ids. */
+export const YEAR_ROUND = [
+  { id: 'trust-room', ...output('ASEAN Trust Room') },
+  { id: 'academy', ...output('Executive Education') },
+  { id: 'collaboration', ...output('Academic–Industry Collaboration') },
+  { id: 'network', ...output('ASEAN Professional Network') }
 ]
 
-export const TRUST_ROOM_FORMAT = [
-  { label: 'ACCESS', value: 'By invitation only' },
-  { label: 'RULE', value: 'Chatham House' },
-  { label: 'RHYTHM', value: 'Four sessions a year' },
-  { label: 'SIZE', value: '25 seats per session' }
-]
+export const NEXT_GENERATION = pick(AUDIENCE, a => a.title === 'NEXT GENERATION', 'Next Generation audience')
 
-export const LAB_SUBJECTS = [
-  { icon: 'i-lucide-handshake', title: 'Trust', copy: 'How confidence is built, measured and lost inside institutions.' },
-  { icon: 'i-lucide-award', title: 'Reputation', copy: 'Managing the asset that outlives any single campaign or leader.' },
-  { icon: 'i-lucide-siren', title: 'Crisis', copy: 'Decision-making in the hours when information is incomplete.' },
-  { icon: 'i-lucide-compass', title: 'Leadership', copy: 'Speaking with authority when the facts are still contested.' },
-  { icon: 'i-lucide-cpu', title: 'AI', copy: 'What automated systems change about disclosure, voice and accountability.' },
-  { icon: 'i-lucide-users', title: 'Stakeholder Engagement', copy: 'Working with the people whose judgement decides the outcome.' }
-]
+const day3 = pick(PROGRAMME, d => d.id === 'day3', 'Day 3')
+const leaders = pick(day3.rows, r => r.title === 'FUTURE ASEAN LEADERS DIALOGUE', 'Future ASEAN Leaders Dialogue')
 
-export const ACADEMY_TRACKS = [
-  { title: 'Executive education', copy: 'Short, structured programmes for leaders already carrying the responsibility.' },
-  { title: 'Capability development', copy: 'Institution-level work that leaves a team better equipped, not just better informed.' },
-  { title: 'Academic & knowledge partners', copy: 'Curriculum co-designed with universities and research institutes in the region.' }
-]
-
-export const FELLOWS_FACTS = [
-  { value: '25', label: 'fellows per cohort' },
-  { value: '12', label: 'months of mentoring' },
-  { value: '10', label: 'markets represented' },
-  { value: '1', label: 'published study' }
-]
-
-/** Membership rules are not in the source document yet; the cards render as skeletons. */
-export const COMMUNITY_PLACEHOLDERS = ['Who can join', 'What members get', 'How to join']
+export const LEADERS_DIALOGUE = { ...leaders, when: `${day3.date} · ${leaders.time}` }

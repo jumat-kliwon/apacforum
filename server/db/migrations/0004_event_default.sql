@@ -1,0 +1,2 @@
+ALTER TABLE "events" ADD COLUMN "is_default" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "events_single_default" ON "events" USING btree ("is_default") WHERE "events"."is_default";

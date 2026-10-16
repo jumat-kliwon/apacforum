@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { bigint, boolean, check, date, index, integer, pgTable, smallint, text, timestamp, unique, uuid, varchar } from 'drizzle-orm/pg-core'
+import { bigint, boolean, check, date, index, integer, pgTable, smallint, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { id, timestamps } from '../columns'
 import { users } from './auth'
 import { eventStatus, partnerCategory, publishStatus, speakerCategory } from './enums'
@@ -23,6 +23,8 @@ export const events = pgTable('events', {
   bannerKey: text(),
   status: eventStatus().notNull().default('draft'),
   registrationOpen: boolean().notNull().default(true),
+  /** The event the website features; at most one row is true (see `events_single_default`). */
+  isDefault: boolean().notNull().default(false),
   timezone: varchar({ length: 64 }).notNull().default('Asia/Jakarta'),
   registrationSeq: integer().notNull().default(0),
   invoiceSeq: integer().notNull().default(0),
@@ -32,7 +34,8 @@ export const events = pgTable('events', {
 }, t => [
   check('events_date_range', sql`${t.endDate} >= ${t.startDate}`),
   check('events_capacity_nonnegative', sql`${t.capacity} >= 0`),
-  index().on(t.status, t.startDate)
+  index().on(t.status, t.startDate),
+  uniqueIndex('events_single_default').on(t.isDefault).where(sql`${t.isDefault}`)
 ])
 
 export const agendaDays = pgTable('agenda_days', {
@@ -71,6 +74,8 @@ export const partners = pgTable('partners', {
   name: varchar({ length: 200 }).notNull(),
   logoKey: text(),
   category: partnerCategory().notNull(),
+  /** Shown in the partners section of the home page. */
+  showHome: boolean().notNull().default(false),
   sortOrder: smallint().notNull().default(0),
   ...timestamps
 }, t => [

@@ -1,7 +1,7 @@
 /** Sections of the event-scoped CMS under /admin/e/[eventId]. '' is the dashboard. */
-export type EventSection = '' | 'registrations' | 'transactions' | 'tickets' | 'settings'
+export type EventSection = '' | 'registrations' | 'transactions' | 'tickets' | 'partners' | 'settings'
 
-const SECTIONS: EventSection[] = ['registrations', 'transactions', 'tickets', 'settings']
+const SECTIONS: EventSection[] = ['registrations', 'transactions', 'tickets', 'partners', 'settings']
 
 /** URL of a page inside an event, e.g. eventPath(id, 'transactions', trxId). */
 export function eventPath(eventId: string, section: EventSection = '', ...rest: string[]) {
@@ -30,7 +30,7 @@ export function pageSkeleton(path: string): PageSkeleton {
     const [, section, record] = ev
     if (!section) return 'dashboard'
     if (section === 'settings') return record === 'edit' ? 'form' : 'detail'
-    if (section === 'tickets') return record ? 'form' : 'list'
+    if (section === 'tickets' || section === 'partners') return record ? 'form' : 'list'
     return record ? 'detail' : 'list'
   }
   if (/^\/admin\/(events|news)\/(new|[^/]+\/edit|[0-9a-f-]{36})$/.test(p)) return 'form'
