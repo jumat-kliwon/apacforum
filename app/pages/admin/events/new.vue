@@ -24,7 +24,7 @@ async function create(form: EventForm) {
 <template>
   <AdminPageHeader
     title="Add event"
-    description="Four short steps. Ticket types are added on the next page."
+    description="Two short steps. Ticket types are added on the next page; speakers and partners on their own pages."
   />
   <AdminEventForm :saving="saving" @submit="create" />
 </template>

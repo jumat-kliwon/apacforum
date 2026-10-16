@@ -108,13 +108,3 @@ export const AUDIENCE = [
   { title: 'KNOWLEDGE', items: ['Universities', 'Researchers', 'Academics', 'Think Tanks'] },
   { title: 'NEXT GENERATION', items: ['Future Communication Leaders', 'Young Professionals', 'Students'] }
 ]
-
-export const STRATEGIC_PARTNERS = [
-  { name: 'UMSU — Universitas Muhammadiyah Sumatera Utara', logo: '/landing/umsu.webp' }
-]
-
-export const MEDIA_PARTNERS = [
-  { name: 'Sumut Pos', logo: '/landing/sumut-pos.jpg' },
-  { name: 'MATA net', logo: '/landing/matanet.jpg' },
-  { name: 'Sumut24.co', logo: '/landing/sumut24.jpg' }
-]

@@ -26,13 +26,15 @@ const eventItems = computed<NavigationMenuItem[]>(() => {
     section('Registrations', 'i-lucide-users', eventPath(id, 'registrations')),
     section('Transactions', 'i-lucide-credit-card', eventPath(id, 'transactions')),
     section('Tickets', 'i-lucide-ticket', eventPath(id, 'tickets')),
+    section('Speakers', 'i-lucide-mic', eventPath(id, 'speakers')),
     section('Partners', 'i-lucide-handshake', eventPath(id, 'partners')),
+    section('Guestbook', 'i-lucide-book-open-text', eventPath(id, 'guestbook')),
     section('Event settings', 'i-lucide-settings', eventPath(id, 'settings'))
   ]
 })
 // breadcrumb after the event switcher, e.g. "Tickets" on /admin/e/:id/tickets/new
 const SECTION_LABELS: Record<string, string> = {
-  '': 'Dashboard', registrations: 'Registrations', transactions: 'Transactions', tickets: 'Tickets', partners: 'Partners', settings: 'Event settings'
+  '': 'Dashboard', registrations: 'Registrations', transactions: 'Transactions', tickets: 'Tickets', speakers: 'Speakers', partners: 'Partners', guestbook: 'Guestbook', settings: 'Event settings'
 }
 const sectionLabel = computed(() => {
   const m = /^\/admin\/e\/[^/]+\/?([^/]*)/.exec(nextPath.value)

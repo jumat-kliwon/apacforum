@@ -18,7 +18,7 @@ const MONEY_STATUSES: ('pending' | 'paid' | 'refunded')[] = ['pending', 'paid', 
 /** Syncs child rows: delete removed ones, update existing ones, insert new ones. */
 async function syncChildren<T extends { id?: string }>(
   tx: Tx,
-  table: typeof agendaDays | typeof speakers | typeof ticketTypes,
+  table: typeof agendaDays | typeof ticketTypes,
   eventId: string,
   items: T[],
   toRow: (item: T, index: number) => Record<string, unknown>
@@ -62,10 +62,9 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
     status: form.status
   }
 
-  // only files uploaded since the last save need checking
-  const savedKeys = eventId ? await imageKeys(eventId) : new Set<string | null>()
-  await assertUploads([form.bannerKey, ...form.speakers.map(s => s.photoKey)]
-    .filter(k => !savedKeys.has(k ?? null)))
+  // only a newly uploaded banner needs checking
+  const savedBanner = eventId ? await bannerKey(eventId) : null
+  if (form.bannerKey && form.bannerKey !== savedBanner) await assertUploads([form.bannerKey])
 
   const staleKeys: (string | null)[] = []
   try {
@@ -98,20 +97,11 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
 
       // (event_id, sort_order) is unique: negate first so renumbering cannot collide
       await tx.update(agendaDays).set({ sortOrder: sql`-${agendaDays.sortOrder}` }).where(eq(agendaDays.eventId, id))
-      const days = await syncChildren(tx, agendaDays, id, form.agendaDays, (d, i) => ({
+      // speakers of a removed day keep their place with no session (agenda_day_id is ON DELETE SET NULL)
+      await syncChildren(tx, agendaDays, id, form.agendaDays, (d, i) => ({
         sortOrder: i + 1, label: d.label, date: d.date, theme: d.theme, body: d.body
       }))
-      const oldSpeakers = await tx.select({ id: speakers.id, photoKey: speakers.photoKey }).from(speakers).where(eq(speakers.eventId, id))
-      await syncChildren(tx, speakers, id, form.speakers, (s, i) => ({
-        name: s.name, title: s.title, category: s.category, status: s.status, sortOrder: i + 1,
-        photoKey: s.photoKey ?? null,
-        agendaDayId: s.agendaDayIndex != null ? days.ids[s.agendaDayIndex] ?? null : null
-      }))
       if (form.status === 'published') await requireTicketTypes(tx, id)
-
-      // old files that were replaced or removed
-      const newPhotos = new Set(form.speakers.map(s => s.photoKey))
-      staleKeys.push(...oldSpeakers.map(s => s.photoKey).filter(k => k && !newPhotos.has(k)))
       return id
     })
     await deleteObjects(staleKeys)
@@ -256,13 +246,10 @@ export async function setDefaultEvent(eventId: string, isDefault: boolean) {
   }
 }
 
-/** Image keys the event form manages: the banner and speaker photos. */
-async function imageKeys(eventId: string) {
-  const [ev, sp] = await Promise.all([
-    db.select({ k: events.bannerKey }).from(events).where(eq(events.id, eventId)),
-    db.select({ k: speakers.photoKey }).from(speakers).where(eq(speakers.eventId, eventId))
-  ])
-  return new Set([...ev, ...sp].map(r => r.k))
+/** The banner the event has saved. */
+async function bannerKey(eventId: string) {
+  const [ev] = await db.select({ k: events.bannerKey }).from(events).where(eq(events.id, eventId))
+  return ev?.k ?? null
 }
 
 /** Readable messages for constraint violations. */

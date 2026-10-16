@@ -13,15 +13,30 @@ export const agendaDaySchema = z.object({
   body: z.string().trim().max(5000).default('')
 })
 
-export const speakerSchema = z.object({
-  id: z.uuid().optional(),
+/** One speaker — the form on the Speakers page. The event cannot change after it is created. */
+export const speakerFormSchema = z.object({
+  eventId: z.uuid('Choose an event'),
   name: z.string().trim().min(1, 'Required').max(200),
   title: z.string().trim().min(1, 'Required').max(255),
   category: z.enum(Object.keys(SPEAKER_CATEGORY) as [keyof typeof SPEAKER_CATEGORY]),
-  /** Index into `agendaDays` (new days have no id yet while editing). */
-  agendaDayIndex: z.number().int().min(0).nullable().default(null),
+  /** The agenda day of the speaker's session; null when not tied to a day. */
+  agendaDayId: z.uuid().nullable().default(null),
   photoKey: objectKey,
   status: z.enum(['draft', 'published']).default('draft')
+})
+
+export type SpeakerFormInput = z.input<typeof speakerFormSchema>
+export type SpeakerForm = z.output<typeof speakerFormSchema>
+
+export const speakerListQuery = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().refine(n => [10, 25, 50, 100].includes(n)).default(10),
+  dir: z.enum(['asc', 'desc']).default('asc'),
+  q: z.string().trim().max(100).optional(),
+  eventId: z.uuid().optional(),
+  category: z.enum(Object.keys(SPEAKER_CATEGORY) as [keyof typeof SPEAKER_CATEGORY]).optional(),
+  status: z.enum(['draft', 'published']).optional(),
+  sort: z.enum(['order', 'name', 'category', 'session', 'status']).default('order')
 })
 
 /** One partner — the form on the Partners page. The event cannot change after it is created. */
@@ -76,8 +91,7 @@ export const eventFormSchema = z.object({
   /** Saving with this on takes the default from whichever event had it. */
   isDefault: z.boolean().default(false),
   status: z.enum(['draft', 'published']),
-  agendaDays: z.array(agendaDaySchema).max(14).default([]),
-  speakers: z.array(speakerSchema).max(200).default([])
+  agendaDays: z.array(agendaDaySchema).max(14).default([])
 }).superRefine((v, ctx) => {
   if (v.endDate < v.startDate) {
     ctx.addIssue({ code: 'custom', path: ['endDate'], message: 'Cannot be before the start date' })
@@ -85,11 +99,6 @@ export const eventFormSchema = z.object({
   if (v.registrationDeadline > v.endDate) {
     ctx.addIssue({ code: 'custom', path: ['registrationDeadline'], message: 'Cannot be after the event ends' })
   }
-  v.speakers.forEach((s, i) => {
-    if (s.agendaDayIndex !== null && s.agendaDayIndex >= v.agendaDays.length) {
-      ctx.addIssue({ code: 'custom', path: ['speakers', i, 'agendaDayIndex'], message: 'Day does not exist' })
-    }
-  })
 })
 
 export type EventFormInput = z.input<typeof eventFormSchema>

@@ -59,7 +59,6 @@ const tabs = computed(() => {
   return [
     { label: 'Overview', value: 'overview', icon: 'i-lucide-info', slot: 'overview' as const },
     { label: 'Agenda', value: 'agenda', icon: 'i-lucide-calendar-days', badge: count(d?.agendaDays.length), slot: 'agenda' as const },
-    { label: 'Speakers', value: 'speakers', icon: 'i-lucide-mic', badge: count(d?.speakers.length), slot: 'speakers' as const },
     { label: 'Tickets', value: 'tickets', icon: 'i-lucide-ticket', badge: count(d?.ticketTypes.length), slot: 'tickets' as const }
   ]
 })
@@ -274,38 +273,6 @@ async function archive() {
         </AdminPanel>
 
       </template>
-
-      <template #speakers>
-        <AdminPanel title="Speakers">
-          <UTable
-            :data="data.speakers"
-            :columns="[{ id: 'name', header: 'Speaker' }, { id: 'category', header: 'Category' }, { id: 'session', header: 'Session' }, { id: 'status', header: 'Status' }]"
-            empty="No speakers yet."
-            class="-mx-4 sm:-mx-5"
-          >
-            <template #name-cell="{ row }">
-              <div class="flex items-center gap-3">
-                <UAvatar :src="row.original.photoUrl ?? undefined" :text="initials(row.original.name)" :alt="row.original.name" class="bg-brand-50 text-brand-900" />
-                <div class="min-w-0">
-                  <div class="font-semibold text-highlighted">{{ row.original.name }}</div>
-                  <div class="text-xs text-muted">{{ row.original.title }}</div>
-                </div>
-              </div>
-            </template>
-            <template #category-cell="{ row }">
-              {{ SPEAKER_CATEGORY[row.original.category] }}
-            </template>
-            <template #session-cell="{ row }">
-              <span class="text-muted">{{ row.original.agendaDayIndex != null && row.original.agendaDayIndex >= 0 ? `Day ${row.original.agendaDayIndex + 1} · ${data.agendaDays[row.original.agendaDayIndex]?.label}` : '—' }}</span>
-            </template>
-            <template #status-cell="{ row }">
-              <UBadge v-bind="PUBLISH_STATUS[row.original.status]" />
-            </template>
-          </UTable>
-        </AdminPanel>
-
-      </template>
-
 
       <template #tickets>
         <AdminPanel title="Tickets">

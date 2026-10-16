@@ -24,9 +24,16 @@ describe('switchEventPath', () => {
   it('keeps the section and drops list filters', () => {
     expect(switchEventPath(`/admin/e/${A}/registrations`, { status: 'paid', page: '3' }, B)).toBe(`/admin/e/${B}/registrations`)
   })
+  it('keeps the speakers section and drops a speaker id', () => {
+    expect(switchEventPath(`/admin/e/${A}/speakers`, { q: 'x' }, B)).toBe(`/admin/e/${B}/speakers`)
+    expect(switchEventPath(`/admin/e/${A}/speakers/s1`, {}, B)).toBe(`/admin/e/${B}/speakers`)
+  })
   it('keeps the partners section and drops a partner id', () => {
     expect(switchEventPath(`/admin/e/${A}/partners`, { q: 'x' }, B)).toBe(`/admin/e/${B}/partners`)
     expect(switchEventPath(`/admin/e/${A}/partners/p1`, {}, B)).toBe(`/admin/e/${B}/partners`)
+  })
+  it('keeps the guestbook section and drops its filters', () => {
+    expect(switchEventPath(`/admin/e/${A}/guestbook`, { q: 'x', topic: 'Media' }, B)).toBe(`/admin/e/${B}/guestbook`)
   })
 
   it('keeps the tickets section and drops a ticket id', () => {
@@ -73,8 +80,12 @@ describe('pageSkeleton', () => {
     expect(pageSkeleton(`/admin/e/${A}/registrations/u1`)).toBe('detail')
     expect(pageSkeleton(`/admin/e/${A}/transactions/t1`)).toBe('detail')
     expect(pageSkeleton(`/admin/e/${A}/tickets`)).toBe('list')
+    expect(pageSkeleton(`/admin/e/${A}/guestbook`)).toBe('list')
     expect(pageSkeleton(`/admin/e/${A}/tickets/new`)).toBe('form')
     expect(pageSkeleton(`/admin/e/${A}/tickets/t1`)).toBe('form')
+    expect(pageSkeleton(`/admin/e/${A}/speakers`)).toBe('list')
+    expect(pageSkeleton(`/admin/e/${A}/speakers/new`)).toBe('form')
+    expect(pageSkeleton(`/admin/e/${A}/speakers/s1`)).toBe('form')
     expect(pageSkeleton(`/admin/e/${A}/partners`)).toBe('list')
     expect(pageSkeleton(`/admin/e/${A}/partners/new`)).toBe('form')
     expect(pageSkeleton(`/admin/e/${A}/partners/p1`)).toBe('form')

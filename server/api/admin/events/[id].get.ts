@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
       scannerPath: scannerPath(ev.id)
     },
     agendaDays: days,
-    speakers: sp.map(s => ({ ...s, photoUrl: publicUrl(s.photoKey), agendaDayIndex: s.agendaDayId ? days.findIndex(d => d.id === s.agendaDayId) : null })),
+    speakers: sp.map(s => ({ ...s, photoUrl: publicUrl(s.photoKey) })),
     partners: pa.map(p => ({ ...p, logoUrl: publicUrl(p.logoKey) })),
     ticketTypes: tickets.map(t => ({ ...t, sold: sold.find(s => s.ticketTypeId === t.id)?.n ?? 0 })),
     stats: { participants: stats?.n ?? 0, revenue: Number(revenue?.sum ?? 0) },

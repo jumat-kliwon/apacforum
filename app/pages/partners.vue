@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { AUDIENCE, ECOSYSTEM, HERO, MEDIA_PARTNERS, STRATEGIC_PARTNERS } from '~/data/home'
-import { PARTNERS } from '~/data/partners'
-import { WHATSAPP_URL } from '~/data/site'
+import { AUDIENCE, HERO } from '~/data/home'
 
 definePageMeta({ layout: 'site' })
 
@@ -12,6 +10,12 @@ useSeoMeta({
 })
 
 const registerHref = await useRegisterHref('/apcr-2026#registration')
+
+// the default event's partners from the CMS, one row per category
+const { data: partners } = await useFetch('/api/public/partners', { query: { scope: 'event' }, default: () => [] })
+const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof typeof PARTNER_CATEGORY)[])
+  .map(key => ({ key, label: PARTNER_CATEGORY[key].toUpperCase(), items: partners.value.filter(p => p.category === key) }))
+  .filter(g => g.items.length))
 </script>
 
 <template>
@@ -30,9 +34,6 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
       <template #actions>
         <SiteButton to="#become" icon="i-lucide-arrow-right">
           Become a partner
-        </SiteButton>
-        <SiteButton :to="WHATSAPP_URL" variant="light">
-          Contact via WhatsApp
         </SiteButton>
       </template>
     </SiteHero>
@@ -64,45 +65,22 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
       </SiteContainer>
     </section>
 
-    <!-- Partners -->
-    <section id="partners" class="border-t border-ink/16 bg-white py-20 lg:pb-20 lg:pt-[76px]">
+    <!-- Partners: the default event's partners from the CMS, one row per category -->
+    <section v-if="partnerGroups.length" id="partners" class="border-t border-ink/16 bg-white py-20 lg:pb-20 lg:pt-[76px]">
       <SiteContainer>
         <div class="flex flex-col gap-12">
-          <div id="strategic-partners" class="flex flex-col gap-6">
-            <SiteEyebrow>STRATEGIC PARTNERS</SiteEyebrow>
+          <div v-for="group in partnerGroups" :id="`partners-${group.key}`" :key="group.key" class="flex flex-col gap-6">
+            <SiteEyebrow>
+              {{ group.label }}
+            </SiteEyebrow>
             <ul class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
               <li
-                v-for="partner in STRATEGIC_PARTNERS"
-                :key="partner.name"
-                class="flex h-[120px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
-              >
-                <img :src="partner.logo" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
-              </li>
-            </ul>
-          </div>
-
-          <div id="media-partners" class="flex flex-col gap-6">
-            <SiteEyebrow>MEDIA PARTNER</SiteEyebrow>
-            <ul class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-              <li
-                v-for="partner in MEDIA_PARTNERS"
-                :key="partner.name"
+                v-for="partner in group.items"
+                :key="partner.id"
                 class="flex h-[104px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
               >
-                <img :src="partner.logo" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
-              </li>
-            </ul>
-          </div>
-
-          <div id="partner" class="flex flex-col gap-6">
-            <SiteEyebrow>PARTNER</SiteEyebrow>
-            <ul class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-              <li
-                v-for="partner in PARTNERS"
-                :key="partner.name"
-                class="flex h-[104px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
-              >
-                <img :src="partner.logo" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
+                <img v-if="partner.logoUrl" :src="partner.logoUrl" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
+                <span v-else class="text-center text-[11px] font-extrabold uppercase tracking-[0.073em] text-[#7c8695]">{{ partner.name }}</span>
               </li>
             </ul>
           </div>
@@ -120,37 +98,15 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
             </template>
           </SiteSectionHead>
 
-          <div class="grid gap-8 lg:grid-cols-2 lg:gap-14">
-            <div class="flex flex-col gap-4 border-t border-ink/16 pt-[22px]">
-              <h3 class="text-[20px] font-extrabold leading-[1.2] tracking-[-0.025em] text-ink">
-                Who should be in the room
-              </h3>
-              <ul class="flex flex-wrap gap-2.5">
-                <li v-for="group in AUDIENCE" :key="group.title" class="rounded-[2px] bg-white px-[13px] py-2 text-[12px] font-extrabold tracking-[0.08em] text-navy">
-                  {{ group.title }}
-                </li>
-              </ul>
-            </div>
-
-            <div class="flex flex-col gap-4 border-t border-ink/16 pt-[22px]">
-              <h3 class="text-[20px] font-extrabold leading-[1.2] tracking-[-0.025em] text-ink">
-                APCR 365
-              </h3>
-              <p class="text-[15px] leading-[1.7] text-prose">
-                APCR is not intended to end when the conference closes. The annual forum is the meeting point of a wider ecosystem involving:
-              </p>
-              <ul class="flex flex-wrap gap-2.5">
-                <li v-for="item in ECOSYSTEM" :key="item" class="rounded-[2px] bg-white px-[13px] py-2 text-[12px] font-extrabold tracking-[0.08em] text-navy">
-                  {{ item }}
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div>
-            <SiteButton :to="WHATSAPP_URL" variant="navy" icon="i-lucide-arrow-right">
-              Contact via WhatsApp
-            </SiteButton>
+          <div class="flex flex-col gap-4 border-t border-ink/16 pt-[22px]">
+            <h3 class="text-[20px] font-extrabold leading-[1.2] tracking-[-0.025em] text-ink">
+              Who should be in the room
+            </h3>
+            <ul class="flex flex-wrap gap-2.5">
+              <li v-for="group in AUDIENCE" :key="group.title" class="rounded-[2px] bg-white px-[13px] py-2 text-[12px] font-extrabold tracking-[0.08em] text-navy">
+                {{ group.title }}
+              </li>
+            </ul>
           </div>
         </div>
       </SiteContainer>
@@ -171,9 +127,6 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
           <div class="flex flex-wrap items-center gap-3">
             <SiteButton :to="registerHref" icon="i-lucide-arrow-right">
               Register for APCR 2026
-            </SiteButton>
-            <SiteButton :to="WHATSAPP_URL" variant="light">
-              Contact via WhatsApp
             </SiteButton>
           </div>
         </div>

@@ -1,26 +1,25 @@
 <script setup lang="ts">
 import type { EditorToolbarItem, FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
-import { agendaDaySchema, eventFormSchema, speakerSchema, type EventForm, type EventFormInput } from '~~/shared/schemas/event'
+import { agendaDaySchema, eventFormSchema, type EventForm, type EventFormInput } from '~~/shared/schemas/event'
 
 /**
- * Event form in three steps: details, agenda, speakers. Ticket types and partners live on the
- * event's Tickets and Partners pages. "Add event" opens each step in order; "Edit event" starts with every step reachable.
+ * Event form in two steps: details and agenda. Ticket types, speakers and partners live on the
+ * event's Tickets, Speakers and Partners pages. "Add event" opens each step in order; "Edit event" starts with every step reachable.
  */
-type Previews = { banner?: string | null, speakers: (string | null)[] }
+type Previews = { banner?: string | null }
 const props = defineProps<{ initial?: EventFormInput, previews?: Previews, saving?: boolean, eventId?: string }>()
 const emit = defineEmits<{ submit: [EventForm] }>()
 
 const blankDay = () => ({ label: '', date: '', theme: '', body: '' })
-const blankSpeaker = () => ({ name: '', title: '', category: 'government' as const, agendaDayIndex: null, status: 'published' as const, photoKey: null })
 
 const state = reactive<EventFormInput>(props.initial
   ? { ...structuredClone(toRaw(props.initial)), description: descriptionToHtml(props.initial.description) }
   : {
       name: '', code: '', slug: '', tagline: '', description: '', startDate: '', endDate: '', registrationDeadline: '',
       venueName: '', venueAddress: '', city: '', capacity: 0, bannerKey: null, registrationOpen: true, isDefault: false, status: 'draft',
-      agendaDays: [blankDay()], speakers: [blankSpeaker()]
+      agendaDays: [blankDay()]
     })
-const previews = reactive<Previews>(props.previews ? structuredClone(toRaw(props.previews)) : { banner: null, speakers: [null] })
+const previews = reactive<Previews>(props.previews ? structuredClone(toRaw(props.previews)) : { banner: null })
 
 // Suggest the slug and code from the name until they are edited by hand.
 const slugTouched = ref(!!props.initial)
@@ -31,34 +30,10 @@ watch(() => state.name, (name) => {
 })
 
 const days = computed(() => state.agendaDays!)
-const speakers = computed(() => state.speakers!)
-
-function addSpeaker() {
-  speakers.value.push(blankSpeaker())
-  previews.speakers.push(null)
-}
-function removeSpeaker(i: number) {
-  speakers.value.splice(i, 1)
-  previews.speakers.splice(i, 1)
-}
+// a removed day leaves its speakers without a session
 function removeDay(i: number) {
   days.value.splice(i, 1)
-  // keep speaker sessions pointing at the same day
-  for (const s of speakers.value) {
-    if (s.agendaDayIndex == null) continue
-    if (s.agendaDayIndex === i) s.agendaDayIndex = null
-    else if (s.agendaDayIndex > i) s.agendaDayIndex -= 1
-  }
 }
-
-const dayItems = computed(() => [
-  { label: 'No session', value: -1 },
-  ...days.value.map((d, i) => ({ label: `Day ${i + 1}${d.label ? ` · ${d.label}` : ''}`, value: i }))
-])
-const dayModel = (s: { agendaDayIndex?: number | null }) => computed({
-  get: () => s.agendaDayIndex ?? -1,
-  set: (v: number) => { s.agendaDayIndex = v < 0 ? null : v }
-})
 
 // Steps follow the sections. A list step owns every `<list>.<i>.<field>` name.
 const STEPS = [
@@ -66,8 +41,7 @@ const STEPS = [
     title: 'General details',
     fields: ['name', 'code', 'slug', 'tagline', 'description', 'startDate', 'endDate', 'registrationDeadline', 'venueName', 'venueAddress', 'city', 'capacity', 'bannerKey', 'registrationOpen', 'isDefault']
   },
-  { title: 'Agenda', list: 'agendaDays', itemFields: Object.keys(agendaDaySchema.shape) },
-  { title: 'Speakers', list: 'speakers', itemFields: Object.keys(speakerSchema.shape) }
+  { title: 'Agenda', list: 'agendaDays', itemFields: Object.keys(agendaDaySchema.shape) }
 ] as const
 
 const step = ref(0)
@@ -96,7 +70,7 @@ const stepTop = useTemplateRef('stepTop')
 // moving forward checks the step being left; going back never blocks
 async function goTo(i: number) {
   if (i > step.value) {
-    // validate() also matches nested paths such as `speakers.0.name`; its type only lists top-level keys
+    // validate() also matches nested paths such as `agendaDays.0.label`; its type only lists top-level keys
     const name = stepFieldNames(step.value) as (keyof EventFormInput)[]
     const ok = await form.value?.validate({ name, silent: true })
     if (ok === false) return focusFirstError()
@@ -154,7 +128,6 @@ const DESCRIPTION_TOOLBAR: EditorToolbarItem[][] = [
   ]
 ]
 
-const SPEAKER_ITEMS = toItems(SPEAKER_CATEGORY)
 </script>
 
 <template>
@@ -289,34 +262,6 @@ const SPEAKER_ITEMS = toItems(SPEAKER_CATEGORY)
       <p v-if="!days.length" class="text-sm text-muted">
         No agenda yet.
       </p>
-    </AdminPanel>
-
-    <!-- 3. Speakers -->
-    <AdminPanel v-show="step === 2" :title="STEPS[2].title" description="Only published speakers appear on the website.">
-      <template #actions>
-        <UButton color="neutral" variant="outline" icon="i-lucide-plus" label="Add speaker" @click="addSpeaker" />
-      </template>
-      <div v-for="(s, i) in speakers" :key="i" class="flex flex-wrap items-end gap-4 rounded-sm border border-default p-4">
-        <AdminImageUpload v-model="s.photoKey" folder="speakers" :preview-url="previews.speakers[i]" :label="`Speaker ${i + 1} photo`" variant="square" />
-        <div class="grid min-w-0 grow gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <UFormField label="Name" :name="`speakers.${i}.name`">
-            <UInput v-model="s.name" placeholder="Full name and title" class="w-full" />
-          </UFormField>
-          <UFormField label="Position & institution" :name="`speakers.${i}.title`">
-            <UInput v-model="s.title" placeholder="For example: CCO, Straits Capital Group" class="w-full" />
-          </UFormField>
-          <UFormField label="Category" :name="`speakers.${i}.category`">
-            <USelect v-model="s.category" :items="SPEAKER_ITEMS" class="w-full" />
-          </UFormField>
-          <UFormField label="Session" :name="`speakers.${i}.agendaDayIndex`">
-            <USelect v-model="dayModel(s).value" :items="dayItems" class="w-full" />
-          </UFormField>
-        </div>
-        <div class="flex h-11 items-center gap-3">
-          <USwitch :model-value="s.status === 'published'" label="Published" @update:model-value="v => s.status = v ? 'published' : 'draft'" />
-          <UButton color="error" variant="ghost" icon="i-lucide-trash-2" :aria-label="`Remove speaker ${s.name || i + 1}`" @click="removeSpeaker(i)" />
-        </div>
-      </div>
     </AdminPanel>
 
     <div class="sticky bottom-0 z-10 -mx-4 -mb-10 mt-auto flex flex-wrap items-center gap-3 border-t border-default bg-default px-4 py-4 sm:-mx-8 sm:px-8">
