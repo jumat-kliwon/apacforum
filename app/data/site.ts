@@ -7,6 +7,12 @@
 export const WHATSAPP_URL = 'https://wa.me/6285229909931'
 
 /**
+ * Temporary: while false, every Register button on the public site points at `#`.
+ * Set it back to true to send them to the default event's registration again.
+ */
+export const REGISTER_LINKS_ENABLED = false
+
+/**
  * A link whose page has not been built yet omits `to`; the header and footer
  * render those as inert text rather than as links that go nowhere.
  */

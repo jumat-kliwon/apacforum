@@ -1,8 +1,12 @@
+import { REGISTER_LINKS_ENABLED } from '~/data/site'
+
 /**
  * Where the public site's Register buttons go: the CMS's default event — its form while
  * registration is open, its page otherwise — or `fallback` when no event is the default.
+ * `#` while REGISTER_LINKS_ENABLED is off.
  */
 export async function useRegisterHref(fallback = '#registration') {
+  if (!REGISTER_LINKS_ENABLED) return computed(() => '#')
   const { data: events } = await useFetch('/api/public/events', { key: 'public-events' })
   return computed(() => {
     const ev = events.value?.find(e => e.isDefault)
