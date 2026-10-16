@@ -16,6 +16,15 @@ const registerHref = await useRegisterHref()
 /** The Day 2 cultural programme, which is all the landing says about the city itself. */
 const CULTURAL_DAY = PROGRAMME.find(d => d.id === 'day2')!
 const CULTURAL = CULTURAL_DAY.rows.find(r => r.title === 'APCR Medan Cultural Experience')!
+
+// the default event's published speakers from the CMS; the sector filter shows once there are two sectors
+const { data: speakers } = await useFetch('/api/public/speakers', { default: () => [] })
+const speakerFilters = computed(() => (Object.keys(SPEAKER_CATEGORY) as (keyof typeof SPEAKER_CATEGORY)[])
+  .filter(key => speakers.value.some(s => s.category === key)))
+const speakerFilter = ref<keyof typeof SPEAKER_CATEGORY | null>(null)
+const visibleSpeakers = computed(() => speakerFilter.value
+  ? speakers.value.filter(s => s.category === speakerFilter.value)
+  : speakers.value)
 </script>
 
 <template>
@@ -118,7 +127,49 @@ const CULTURAL = CULTURAL_DAY.rows.find(r => r.title === 'APCR Medan Cultural Ex
         <div class="flex flex-col gap-[30px]">
           <SiteSectionHead eyebrow="SPEAKERS" title="SPEAKERS AND INSTITUTIONAL PARTICIPATION." size="md" col-class="lg:w-[700px]" />
 
-          <div class="flex flex-col gap-3 border-l-2 border-gold pl-6">
+          <template v-if="speakers.length">
+            <div v-if="speakerFilters.length > 1" class="flex flex-col gap-4 border-b border-ink/16 pb-5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div class="flex flex-wrap gap-2" role="group" aria-label="Filter speakers by sector">
+                <button
+                  v-for="f in [null, ...speakerFilters]"
+                  :key="f ?? 'all'"
+                  type="button"
+                  class="rounded-[2px] px-3.5 py-2.5 text-[12px] font-bold transition-colors"
+                  :class="speakerFilter === f ? 'bg-navy text-white' : 'border border-ink/16 text-prose hover:border-ink/35'"
+                  :aria-pressed="speakerFilter === f"
+                  @click="speakerFilter = f"
+                >
+                  {{ f ? SPEAKER_CATEGORY[f] : 'All' }}
+                </button>
+              </div>
+              <p class="text-[13px] text-prose-dim">
+                {{ visibleSpeakers.length }} of {{ speakers.length }} speakers
+              </p>
+            </div>
+
+            <ul class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              <li v-for="s in visibleSpeakers" :key="s.id" class="flex flex-col overflow-hidden rounded-[2px] border border-ink/16 bg-white">
+                <img v-if="s.photoUrl" :src="s.photoUrl" :alt="s.name" width="257" height="244" loading="lazy" class="h-[244px] w-full object-cover">
+                <div v-else class="flex h-[244px] items-center justify-center bg-paper text-[40px] font-extrabold tracking-[-0.03em] text-ink/25" aria-hidden="true">
+                  {{ s.name.split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() }}
+                </div>
+                <div class="flex flex-1 flex-col gap-2 px-5 pb-[22px] pt-5">
+                  <span class="text-[10px] font-extrabold tracking-[0.11em] text-gold">{{ SPEAKER_CATEGORY[s.category].toUpperCase() }}</span>
+                  <h3 class="text-[17px] font-extrabold leading-[1.25] tracking-[-0.018em] text-ink">
+                    {{ s.name }}
+                  </h3>
+                  <p class="text-[13px] text-prose">
+                    {{ s.title }}
+                  </p>
+                  <p v-if="s.dayLabel" class="mt-auto text-[12px] text-prose-dim">
+                    {{ s.dayLabel }}
+                  </p>
+                </div>
+              </li>
+            </ul>
+          </template>
+
+          <div v-else class="flex flex-col gap-3 border-l-2 border-gold pl-6">
             <p class="text-[clamp(20px,2.4vw,26px)] font-extrabold leading-[1.3] tracking-[-0.025em] text-ink">
               Speakers and institutional participation: TBC.
             </p>
