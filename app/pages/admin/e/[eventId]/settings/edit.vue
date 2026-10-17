@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventForm, EventFormInput } from '~~/shared/schemas/event'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', access: 'staff' })
 
 const notify = useNotify()
 const id = useEventId()

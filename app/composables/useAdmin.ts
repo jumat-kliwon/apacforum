@@ -22,3 +22,8 @@ export function useAdminSession() {
 export function useAdminSessionCheckedAt() {
   return useState('admin-session-checked-at', () => 0)
 }
+
+/** Role of the signed-in CMS user, set by the admin middleware. */
+export function useAdminRole() {
+  return useState<StaffRole | undefined>('admin-role', () => undefined)
+}

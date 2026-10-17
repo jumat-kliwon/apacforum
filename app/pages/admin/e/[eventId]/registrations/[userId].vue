@@ -4,11 +4,13 @@ import * as z from 'zod'
 import { profileSchema, rejectSchema } from '~~/shared/schemas/participant'
 import type { Outcome } from '~/utils/registrationProgress'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', access: 'staff' })
 
 const route = useRoute()
 const notify = useNotify()
 const eventId = useEventId()
+// transaction pages are for superadmins only
+const isSuperadmin = computed(() => useAdminRole().value === 'superadmin')
 const id = computed(() => String(route.params.userId))
 const { data, error, refresh } = await useFetch(() => `/api/admin/users/${id.value}`)
 
@@ -219,7 +221,7 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
                 <UButton icon="i-lucide-check" label="Verify" :loading="working === `verify:${reg.id}`" @click="act(reg.id, 'verify', 'Registration verified and invoice sent')" />
               </template>
               <template v-else-if="progress.outcome === 'awaiting-payment'">
-                <UButton v-if="invoice" :to="eventPath(eventId, 'transactions', invoice.id)" color="neutral" variant="outline" label="View invoice" />
+                <UButton v-if="invoice && isSuperadmin" :to="eventPath(eventId, 'transactions', invoice.id)" color="neutral" variant="outline" label="View invoice" />
                 <UButton icon="i-lucide-send" label="Resend invoice" :loading="working === `resend:${reg.id}`" @click="act(reg.id, 'resend', 'Invoice sent again')" />
               </template>
               <UButton v-else-if="progress.outcome === 'ticket-issued'" icon="i-lucide-send" label="Resend e-ticket" :loading="working === `resend:${reg.id}`" @click="act(reg.id, 'resend', 'E-ticket sent again')" />
@@ -258,7 +260,7 @@ const methodText = (method: keyof typeof PAYMENT_METHOD | null, channel: string 
           <ul v-if="data.transactions.length" class="-mx-4 divide-y divide-default border-t border-default sm:-mx-5">
             <li v-for="t in data.transactions" :key="t.id" class="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 sm:px-5">
               <div class="flex min-w-0 grow basis-48 flex-col">
-                <NuxtLink v-if="t.eventId" :to="eventPath(t.eventId, 'transactions', t.id)" class="font-mono text-[13px] font-medium text-primary hover:underline">
+                <NuxtLink v-if="t.eventId && isSuperadmin" :to="eventPath(t.eventId, 'transactions', t.id)" class="font-mono text-[13px] font-medium text-primary hover:underline">
                   {{ t.invoiceNo }}
                 </NuxtLink>
                 <span v-else class="font-mono text-[13px] font-medium">{{ t.invoiceNo }}</span>

@@ -2,10 +2,12 @@
 import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
 import type { Component } from 'vue'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', access: 'staff' })
 
 const notify = useNotify()
 const eventId = useEventId()
+// exports are for superadmins only
+const isSuperadmin = computed(() => useAdminRole().value === 'superadmin')
 const list = useListQuery({
   sort: 'date',
   dir: 'desc',
@@ -124,7 +126,7 @@ const rangeText = computed(() => {
     description="Everyone who registered through the registration form on the website."
     :breadcrumb="[{ label: 'Registrations' }, { label: 'Participants' }]"
   >
-    <template #actions>
+    <template v-if="isSuperadmin" #actions>
       <UButton :to="exportUrl()" external download color="neutral" variant="outline" icon="i-lucide-download" label="Export CSV" />
     </template>
   </AdminPageHeader>
@@ -169,7 +171,7 @@ const rangeText = computed(() => {
       <div class="ml-auto flex flex-wrap gap-2">
         <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-user-check" label="Verify" :loading="busy" @click="bulk('verify')" />
         <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-mail" label="Send email" :loading="busy" @click="bulk('email')" />
-        <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
+        <UButton v-if="isSuperadmin" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
         <UButton size="sm" color="error" variant="soft" icon="i-lucide-trash-2" label="Delete" @click="deleteOpen = true" />
       </div>
     </div>

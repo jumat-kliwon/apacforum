@@ -44,7 +44,7 @@ await db.transaction(async (tx) => {
       name: adminName,
       email: adminEmail,
       emailVerified: true,
-      role: 'admin'
+      role: 'superadmin'
     }).returning()
     await tx.insert(s.accounts).values({
       accountId: admin!.id,

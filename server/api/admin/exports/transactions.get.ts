@@ -4,7 +4,7 @@ import { PAYMENT_METHOD, TRANSACTION_STATUS } from '~~/shared/utils/labels'
 import { exportTransactions } from '~~/server/services/lists'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requireSuperadmin(event)
   const q = parseQuery(event, transactionListQuery.extend({ ids: z.string().optional() }))
   const ids = q.ids?.split(',').filter(id => /^[0-9a-f-]{36}$/i.test(id))
   const rows = await exportTransactions(q, ids)

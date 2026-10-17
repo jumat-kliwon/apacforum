@@ -6,7 +6,7 @@ import { resendStatusEmail, verifyParticipants } from '~~/server/services/regist
 
 /** Bulk actions in the participant table. `delete` removes registrations (transactions are kept). */
 export default defineEventHandler(async (event) => {
-  const admin = await requireAdmin(event)
+  const admin = await requireStaff(event)
   const { action, ids } = await parseBody(event, bulkParticipantSchema)
 
   if (action === 'verify') {

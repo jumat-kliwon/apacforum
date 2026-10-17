@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TicketTypeForm, TicketTypeFormInput } from '~~/shared/schemas/event'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', access: 'staff' })
 
 const route = useRoute()
 const eventId = useEventId()

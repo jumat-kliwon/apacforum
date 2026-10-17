@@ -26,12 +26,14 @@ async function onSubmit(e: FormSubmitEvent<Schema>) {
     error.value = err?.status === 401 ? 'Wrong email or password' : (err?.message ?? 'Could not sign in')
     return
   }
-  if ((data.user as { role?: string }).role !== 'admin') {
+  const role = (data.user as { role?: string }).role
+  if (!isStaff(role)) {
     await authClient.signOut()
     error.value = 'This account has no admin access'
     return
   }
-  const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin') ? route.query.redirect : '/admin'
+  const fallback = role === 'superadmin' ? '/admin' : '/admin/news'
+  const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin') ? route.query.redirect : fallback
   await navigateTo(redirect)
 }
 </script>

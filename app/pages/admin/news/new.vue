@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ArticleForm } from '~~/shared/schemas/article'
 
-definePageMeta({ layout: 'focus', middleware: 'admin', backTo: '/admin/news' })
+definePageMeta({ layout: 'focus', middleware: 'admin', access: 'staff', backTo: '/admin/news' })
 
 const notify = useNotify()
 const saving = ref(false)

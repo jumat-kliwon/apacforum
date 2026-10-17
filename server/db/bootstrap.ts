@@ -1,5 +1,5 @@
 /**
- * Creates the first admin account if it does not exist yet. Safe to run on every deploy:
+ * Creates the first superadmin account if it does not exist yet. Safe to run on every deploy:
  * an existing user with that email is left untouched (its password is never reset here).
  *
  *   ADMIN_EMAIL=… ADMIN_PASSWORD=… [ADMIN_NAME=…] bun run db:bootstrap
@@ -23,7 +23,7 @@ if (!email || !password) {
     if (password.length < 12) throw new Error('ADMIN_PASSWORD must be at least 12 characters')
     const ctx = await auth.$context
     await db.transaction(async (tx) => {
-      const [user] = await tx.insert(users).values({ name, email, emailVerified: true, role: 'admin' }).returning({ id: users.id })
+      const [user] = await tx.insert(users).values({ name, email, emailVerified: true, role: 'superadmin' }).returning({ id: users.id })
       await tx.insert(accounts).values({
         accountId: user!.id,
         providerId: 'credential',
