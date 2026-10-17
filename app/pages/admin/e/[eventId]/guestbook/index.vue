@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'guestbook.manage' })
+
+const { can } = useAdminAccess()
 
 const eventId = useEventId()
 const notify = useNotify()
@@ -81,7 +83,7 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
 <template>
   <AdminPageHeader title="Guestbook" :description="`Messages left through the website's contact form while ${event?.name ?? 'this event'} was the featured event.`">
     <template #actions>
-      <UButton :to="exportUrl" external download color="neutral" variant="outline" icon="i-lucide-download" label="Export CSV" :disabled="!total" />
+      <UButton v-if="can('exports.manage')" :to="exportUrl" external download color="neutral" variant="outline" icon="i-lucide-download" label="Export CSV" :disabled="!total" />
     </template>
   </AdminPageHeader>
 

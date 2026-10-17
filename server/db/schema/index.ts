@@ -1,4 +1,5 @@
 export * from './enums'
+export * from './access'
 export * from './auth'
 export * from './events'
 export * from './participants'

@@ -3,7 +3,7 @@ import type { NavigationMenuItem } from '@nuxt/ui'
 
 const session = useAdminSession()
 // menus only show what the role may open; the middleware and the API enforce it
-const role = useAdminRole()
+const { access, can } = useAdminAccess()
 const route = useRoute()
 const router = useRouter()
 // where the admin is going: the menu and breadcrumb follow a click at once, before the page has loaded
@@ -23,16 +23,15 @@ const section = (label: string, icon: string, to: string): NavigationMenuItem =>
 const eventItems = computed<NavigationMenuItem[]>(() => {
   const id = current.value?.id
   if (!id) return []
-  const full = role.value === 'superadmin'
   return [
-    full && { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: eventPath(id), exact: true },
-    section('Registrations', 'i-lucide-users', eventPath(id, 'registrations')),
-    full && section('Transactions', 'i-lucide-credit-card', eventPath(id, 'transactions')),
-    section('Tickets', 'i-lucide-ticket', eventPath(id, 'tickets')),
-    section('Speakers', 'i-lucide-mic', eventPath(id, 'speakers')),
-    section('Partners', 'i-lucide-handshake', eventPath(id, 'partners')),
-    section('Guestbook', 'i-lucide-book-open-text', eventPath(id, 'guestbook')),
-    section('Event settings', 'i-lucide-settings', eventPath(id, 'settings'))
+    can(SECTION_PERMISSION['']) && { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: eventPath(id), exact: true },
+    can(SECTION_PERMISSION.registrations) && section('Registrations', 'i-lucide-users', eventPath(id, 'registrations')),
+    can(SECTION_PERMISSION.transactions) && section('Transactions', 'i-lucide-credit-card', eventPath(id, 'transactions')),
+    can(SECTION_PERMISSION.tickets) && section('Tickets', 'i-lucide-ticket', eventPath(id, 'tickets')),
+    can(SECTION_PERMISSION.speakers) && section('Speakers', 'i-lucide-mic', eventPath(id, 'speakers')),
+    can(SECTION_PERMISSION.partners) && section('Partners', 'i-lucide-handshake', eventPath(id, 'partners')),
+    can(SECTION_PERMISSION.guestbook) && section('Guestbook', 'i-lucide-book-open-text', eventPath(id, 'guestbook')),
+    can(SECTION_PERMISSION.settings) && section('Event settings', 'i-lucide-settings', eventPath(id, 'settings'))
   ].filter(item => !!item)
 })
 // breadcrumb after the event switcher, e.g. "Tickets" on /admin/e/:id/tickets/new
@@ -45,9 +44,13 @@ const sectionLabel = computed(() => {
 })
 
 const workspaceItems = computed<NavigationMenuItem[]>(() => [
-  { label: 'News & Media', icon: 'i-lucide-newspaper', to: '/admin/news' },
-  ...(role.value === 'superadmin' ? [{ label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }] : [])
-])
+  can('news.manage') && { label: 'News & Media', icon: 'i-lucide-newspaper', to: '/admin/news' },
+  can('email_templates.view') && { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }
+].filter(item => !!item))
+
+const accessItems = computed<NavigationMenuItem[]>(() => can('access.manage')
+  ? [section('Users', 'i-lucide-user-cog', '/admin/access/users'), section('Roles', 'i-lucide-shield-check', '/admin/access/roles')]
+  : [])
 
 const name = computed(() => session.value.data?.user.name ?? '')
 
@@ -55,6 +58,7 @@ const sessionCheckedAt = useAdminSessionCheckedAt()
 async function signOut() {
   await authClient.signOut()
   sessionCheckedAt.value = 0
+  access.value = null
   await navigateTo('/login')
 }
 
@@ -126,24 +130,39 @@ watch(() => route.fullPath, () => { open.value = false })
           }"
         />
       </template>
-      <p class="px-3 pt-4 pb-1 text-[11px]/4 font-medium uppercase tracking-[1.1px] text-muted">
-        Workspace
-      </p>
-      <UNavigationMenu
-        :items="workspaceItems"
-        orientation="vertical"
-        :ui="{
-          list: 'flex flex-col gap-0.5',
-          link: 'min-h-10 px-3 py-2 gap-3 text-sm/5 before:inset-0 before:rounded-sm'
-        }"
-      />
+      <template v-if="workspaceItems.length">
+        <p class="px-3 pt-4 pb-1 text-[11px]/4 font-medium uppercase tracking-[1.1px] text-muted">
+          Workspace
+        </p>
+        <UNavigationMenu
+          :items="workspaceItems"
+          orientation="vertical"
+          :ui="{
+            list: 'flex flex-col gap-0.5',
+            link: 'min-h-10 px-3 py-2 gap-3 text-sm/5 before:inset-0 before:rounded-sm'
+          }"
+        />
+      </template>
+      <template v-if="accessItems.length">
+        <p class="px-3 pt-4 pb-1 text-[11px]/4 font-medium uppercase tracking-[1.1px] text-muted">
+          Access
+        </p>
+        <UNavigationMenu
+          :items="accessItems"
+          orientation="vertical"
+          :ui="{
+            list: 'flex flex-col gap-0.5',
+            link: 'min-h-10 px-3 py-2 gap-3 text-sm/5 before:inset-0 before:rounded-sm'
+          }"
+        />
+      </template>
 
       <template #footer>
         <div class="flex h-11 w-full items-center gap-2.5 px-2">
           <UAvatar :text="initials(name || 'A')" size="md" class="bg-brand-100 text-brand-900" />
           <div class="flex min-w-0 grow flex-col">
             <span class="truncate text-sm font-semibold text-highlighted">{{ name }}</span>
-            <span class="text-xs text-muted">{{ role === 'superadmin' ? 'Superadmin' : 'Admin' }}</span>
+            <span class="text-xs text-muted">{{ access?.role.name }}</span>
           </div>
           <UButton icon="i-lucide-log-out" color="neutral" variant="ghost" aria-label="Sign out" @click="signOut" />
         </div>
@@ -155,7 +174,7 @@ watch(() => route.fullPath, () => { open.value = false })
         <UDashboardNavbar :ui="{ root: 'h-16 bg-default sm:px-8', title: 'min-w-0 gap-2 font-normal' }">
           <template #title>
             <!-- no events yet: nothing to switch between -->
-            <UButton v-if="events && !events.length" to="/admin/events/new" icon="i-lucide-plus" label="Create the first event" />
+            <UButton v-if="events && !events.length && can('events.manage')" to="/admin/events/new" icon="i-lucide-plus" label="Create the first event" />
             <template v-else>
               <AdminEventSwitcher />
               <template v-if="sectionLabel">

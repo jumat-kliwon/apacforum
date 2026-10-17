@@ -5,7 +5,7 @@ import { partnerSelect, withLogoUrl } from '~~/server/services/partners'
 
 /** One partner — the edit form. */
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'events.manage')
   const id = parseId(event)
   const [row] = await db.select(partnerSelect).from(partners)
     .innerJoin(events, eq(events.id, partners.eventId))

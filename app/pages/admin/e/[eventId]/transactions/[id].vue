@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import type { TimelineItem } from '@nuxt/ui'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'transactions.manage' })
 
 const route = useRoute()
 const notify = useNotify()
+const { can } = useAdminAccess()
 const id = computed(() => String(route.params.id))
 const { data, error, refresh } = await useFetch(() => `/api/admin/transactions/${id.value}`)
 const eventId = useEventId()
@@ -139,7 +140,7 @@ async function doRefund() {
           <div class="flex items-center gap-3">
             <UAvatar :text="initials(trx.participantName)" class="bg-brand-50 text-brand-900" />
             <div class="min-w-0">
-              <NuxtLink v-if="data.user" :to="eventPath(eventId, 'registrations', data.user.id)" class="font-semibold text-highlighted hover:underline">{{ trx.participantName }}</NuxtLink>
+              <NuxtLink v-if="data.user && can('registrations.manage')" :to="eventPath(eventId, 'registrations', data.user.id)" class="font-semibold text-highlighted hover:underline">{{ trx.participantName }}</NuxtLink>
               <span v-else class="font-semibold text-highlighted">{{ trx.participantName }}</span>
               <div class="truncate text-xs text-muted">{{ trx.participantEmail }}</div>
             </div>
@@ -151,13 +152,13 @@ async function doRefund() {
             <dd class="font-medium">{{ data.user?.phone ?? '—' }}</dd>
             <dt class="text-muted">Event</dt>
             <dd class="font-medium">
-              <NuxtLink v-if="data.event?.id" :to="eventPath(data.event.id, 'settings')" class="text-primary hover:underline">{{ trx.eventName }}</NuxtLink>
+              <NuxtLink v-if="data.event?.id && can('events.manage')" :to="eventPath(data.event.id, 'settings')" class="text-primary hover:underline">{{ trx.eventName }}</NuxtLink>
               <template v-else>{{ trx.eventName }}</template>
             </dd>
             <dt class="text-muted">Registration</dt>
             <dd class="font-mono text-[13px]">{{ data.regNo ?? 'Deleted' }}</dd>
           </dl>
-          <UButton v-if="data.user" :to="eventPath(eventId, 'registrations', data.user.id)" color="neutral" variant="outline" block label="View participant profile" />
+          <UButton v-if="data.user && can('registrations.manage')" :to="eventPath(eventId, 'registrations', data.user.id)" color="neutral" variant="outline" block label="View participant profile" />
         </AdminPanel>
 
         <AdminPanel title="Status history">

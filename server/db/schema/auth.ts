@@ -1,11 +1,12 @@
 import { sql } from 'drizzle-orm'
 import { boolean, char, index, pgTable, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { citext, id, timestamps } from '../columns'
+import { roles } from './access'
 import { tshirtSize } from './enums'
 
 /**
  * Better Auth tables (plural names via the adapter's `usePlural: true`) plus admin plugin columns.
- * `users` holds both admins and participants, told apart by `role`.
+ * `users` holds both CMS staff and participants, told apart by `role` (a `roles.key`).
  */
 export const users = pgTable('users', {
   id: id(),
@@ -14,7 +15,7 @@ export const users = pgTable('users', {
   emailVerified: boolean().notNull().default(false),
   image: text(),
   // admin plugin
-  role: varchar({ length: 20 }).notNull().default('participant'),
+  role: varchar({ length: 40 }).notNull().default('participant').references(() => roles.key, { onUpdate: 'cascade' }),
   banned: boolean().default(false),
   banReason: text(),
   banExpires: timestamp({ withTimezone: true }),

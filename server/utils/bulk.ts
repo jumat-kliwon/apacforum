@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3'
+import type { Permission } from '~~/shared/utils/access'
 import { bulkIdsSchema } from '~~/shared/schemas/bulk'
 
 export interface BulkDeleteResult {
@@ -11,8 +12,8 @@ export interface BulkDeleteResult {
  * Bulk delete for an admin table: runs the resource's own single-row delete for every ticked id,
  * so each row keeps the same rules and file cleanup. One refused row does not stop the others.
  */
-export async function bulkDelete(event: H3Event, remove: (id: string) => Promise<unknown>): Promise<BulkDeleteResult> {
-  await requireAdmin(event)
+export async function bulkDelete(event: H3Event, permission: Permission, remove: (id: string) => Promise<unknown>): Promise<BulkDeleteResult> {
+  await requirePermission(event, permission)
   const { ids } = await parseBody(event, bulkIdsSchema)
   const result: BulkDeleteResult = { affected: 0, failed: [] }
   for (const id of ids) {

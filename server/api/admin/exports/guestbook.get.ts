@@ -2,7 +2,7 @@ import { guestbookListQuery } from '~~/shared/schemas/guestbook'
 import { exportGuestbook } from '~~/server/services/guestbook'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'exports.manage')
   const rows = await exportGuestbook(parseQuery(event, guestbookListQuery))
   const lines = [
     csvRow(['Name', 'Email', 'Institution', 'Position', 'Country', 'Topic', 'Message', 'Submitted at']),

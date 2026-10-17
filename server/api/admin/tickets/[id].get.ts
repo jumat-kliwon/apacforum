@@ -5,7 +5,7 @@ import { ticketTypeSelect } from '~~/server/services/events'
 
 /** One ticket type with its sales — the edit form. */
 export default defineEventHandler(async (event) => {
-  await requireStaff(event)
+  await requirePermission(event, 'events.manage')
   const id = parseId(event)
   const [row] = await db.select(ticketTypeSelect).from(ticketTypes)
     .innerJoin(events, eq(events.id, ticketTypes.eventId))

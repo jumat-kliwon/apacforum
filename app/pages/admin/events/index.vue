@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 
-definePageMeta({ layout: 'admin', middleware: 'admin', access: 'staff' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'events.manage' })
 
 const notify = useNotify()
 const { load } = useAdminEvents()

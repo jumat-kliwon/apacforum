@@ -1,3 +1,5 @@
+import type { Permission } from '../../shared/utils/access'
+
 /** Sections of the event-scoped CMS under /admin/e/[eventId]. '' is the dashboard. */
 export type EventSection = '' | 'registrations' | 'transactions' | 'tickets' | 'speakers' | 'partners' | 'guestbook' | 'settings'
 
@@ -20,13 +22,39 @@ export function switchEventPath(path: string, query: Record<string, unknown>, ev
   return tab ? `${target}?tab=${encodeURIComponent(tab)}` : target
 }
 
+/** Permission each event section needs. */
+export const SECTION_PERMISSION: Record<EventSection, Permission> = {
+  '': 'dashboard.view',
+  'registrations': 'registrations.manage',
+  'transactions': 'transactions.manage',
+  'tickets': 'events.manage',
+  'speakers': 'events.manage',
+  'partners': 'events.manage',
+  'guestbook': 'guestbook.manage',
+  'settings': 'events.manage'
+}
+
+/** CMS pages outside an event, in menu order, with the permission each needs. */
+export const WORKSPACE_PAGES: [path: string, permission: Permission][] = [
+  ['/admin/events', 'events.manage'],
+  ['/admin/news', 'news.manage'],
+  ['/admin/email-templates', 'email_templates.view'],
+  ['/admin/access/users', 'access.manage']
+]
+
+/** The first event section the permissions open, in menu order. */
+export function firstEventSection(permissions: readonly string[]) {
+  return (['', ...SECTIONS] as EventSection[]).find(s => permissions.includes(SECTION_PERMISSION[s]))
+}
+
 /**
- * Where an `admin` goes when it opens a superadmin page: the event's registrations
- * (instead of its dashboard or transactions), else News & Media.
+ * Where a user lands after signing in or when it opens a page it may not see: the first allowed section of
+ * the event it is in (or `/admin`, which picks an event), else the first allowed workspace page.
  */
-export function deniedPath(path: string) {
-  const eventId = /^\/admin\/e\/([^/]+)/.exec(path)?.[1]
-  return eventId ? eventPath(eventId, 'registrations') : '/admin/news'
+export function landingPath(permissions: readonly string[], eventId?: string) {
+  const section = firstEventSection(permissions)
+  if (section !== undefined) return eventId ? eventPath(eventId, section) : '/admin'
+  return WORKSPACE_PAGES.find(([, p]) => permissions.includes(p))?.[0] ?? '/login'
 }
 
 export type PageSkeleton = 'list' | 'detail' | 'form' | 'dashboard'
@@ -42,7 +70,7 @@ export function pageSkeleton(path: string): PageSkeleton {
     if (section === 'tickets' || section === 'speakers' || section === 'partners') return record ? 'form' : 'list'
     return record ? 'detail' : 'list'
   }
-  if (/^\/admin\/(events|news)\/(new|[^/]+\/edit|[0-9a-f-]{36})$/.test(p)) return 'form'
+  if (/^\/admin\/(events|news|access\/roles)\/(new|[^/]+\/edit|[0-9a-f-]{36})$/.test(p)) return 'form'
   if (p === '/admin/email-templates') return 'detail'
   return 'list'
 }

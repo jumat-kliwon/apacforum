@@ -5,7 +5,7 @@ import { speakerSelect, withPhotoUrl } from '~~/server/services/speakers'
 
 /** One speaker — the edit form. */
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'events.manage')
   const id = parseId(event)
   const [row] = await db.select(speakerSelect).from(speakers)
     .innerJoin(events, eq(events.id, speakers.eventId))

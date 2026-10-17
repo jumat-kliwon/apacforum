@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { eventPath, pageSkeleton, switchEventPath } from '../../app/utils/adminRoutes'
+import { SECTION_PERMISSION, eventPath, landingPath, pageSkeleton, switchEventPath } from '../../app/utils/adminRoutes'
 
 const A = '0190a0b0-0000-7000-8000-00000000000a'
 const B = '0190a0b0-0000-7000-8000-00000000000b'
@@ -98,5 +98,16 @@ describe('pageSkeleton', () => {
     expect(pageSkeleton('/admin/news')).toBe('list')
     expect(pageSkeleton(`/admin/news/${A}`)).toBe('form')
     expect(pageSkeleton('/admin/email-templates')).toBe('detail')
+  })
+})
+
+describe('SECTION_PERMISSION', () => {
+  it('puts speakers and partners with events, and the guestbook on its own permission', () => {
+    expect(SECTION_PERMISSION.speakers).toBe('events.manage')
+    expect(SECTION_PERMISSION.partners).toBe('events.manage')
+    expect(SECTION_PERMISSION.guestbook).toBe('guestbook.manage')
+  })
+  it('lands a guestbook-only role on the guestbook', () => {
+    expect(landingPath(['guestbook.manage'], A)).toBe(`/admin/e/${A}/guestbook`)
   })
 })

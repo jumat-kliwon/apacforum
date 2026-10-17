@@ -34,10 +34,10 @@ image uploads are disabled — every other flow still works.
 
 | Path | What |
 |---|---|
-| `app/pages/admin/**` | CMS: dashboard, participants, transactions, events, email templates |
+| `app/pages/admin/**` | CMS: dashboard, participants, transactions, events, news, email templates, users & roles |
 | `app/pages/events/**`, `app/pages/index.vue` | Public event pages and registration form |
 | `app/assets/css/main.css`, `app/app.config.ts` | Core Design System tokens mapped onto Nuxt UI |
-| `server/api/admin/**` | Admin API (every route calls `requireSuperadmin`, or `requireStaff` for news and event management; roles in `shared/utils/access.ts`) |
+| `server/api/admin/**` | Admin API (every route calls `requirePermission`; permissions in `shared/utils/access.ts`, roles edited in the CMS under Access → Roles) |
 | `server/api/public/**` | Public event data and registration |
 | `server/api/payments/doku/notify.post.ts` | DOKU payment notifications |
 | `server/services/` | Registration, payment, events, DOKU, R2 and email logic |
