@@ -2,13 +2,13 @@ import { sql } from 'drizzle-orm'
 import { customType, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 /**
- * jsonb for the Bun.SQL driver. Drizzle's built-in `jsonb()` sends `JSON.stringify(value)` and Bun.SQL
- * encodes that string again, so it is stored as a JSON *string* instead of an object. Bun.SQL already
- * encodes objects and arrays itself, so values are passed through as they are.
+ * jsonb for the Bun.SQL driver. The client runs without prepared statements (see db/index.ts), so Bun.SQL
+ * does not know a parameter is jsonb and would send an object as "[object Object]": send the JSON text and
+ * let Postgres parse it. Read back, values may arrive parsed or as text.
  */
-export const jsonb = <T>() => customType<{ data: T, driverData: T }>({
+export const jsonb = <T>() => customType<{ data: T, driverData: string }>({
   dataType: () => 'jsonb',
-  toDriver: value => value,
+  toDriver: value => JSON.stringify(value),
   fromDriver: value => (typeof value === 'string' ? JSON.parse(value) : value) as T
 })()
 

@@ -7,12 +7,14 @@ if (!process.env.DATABASE_URL) {
 }
 
 /**
- * On Vercel each function instance gets its own small pool; Neon's pooled `DATABASE_URL`
- * (PgBouncer) multiplexes them, so keep the per-instance pool small.
+ * On Vercel each function instance gets its own small pool, so keep it small: many instances share the database.
  */
 export const client = new SQL(process.env.DATABASE_URL, {
   max: process.env.VERCEL ? 3 : 10,
-  idleTimeout: 30
+  idleTimeout: 30,
+  // No named prepared statements: a long-lived or pooled connection keeps them across requests, and after a
+  // migration changes a column type Postgres rejects them ("cached plan must not change result type").
+  prepare: false
 })
 
 export const db = drizzle({ client, schema, casing: 'snake_case' })

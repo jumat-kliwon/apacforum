@@ -3,13 +3,11 @@
  * `db:migrate` rebuilds the database from scratch (like Laravel's `migrate:fresh`).
  *
  *   bun run db:fresh                   # local database
- *   FORCE_FRESH=1 bun run db:fresh     # any other host (e.g. Neon) — wipes ALL data
- *
- * Uses the direct (unpooled) connection when available: DDL should not go through PgBouncer.
+ *   FORCE_FRESH=1 bun run db:fresh     # any other host — wipes ALL data
  */
 import { SQL } from 'bun'
 
-const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL
+const url = process.env.DATABASE_URL
 if (!url) throw new Error('DATABASE_URL is not set')
 
 const host = new URL(url).hostname
@@ -26,7 +24,7 @@ await client.begin(async (tx) => {
   await tx`CREATE SCHEMA public`
   await tx`GRANT ALL ON SCHEMA public TO public`
 })
-// Other sessions (PgBouncer's pooled ones, the running app) keep prepared statements bound to the
+// Other sessions (a connection pooler's, the running app) keep prepared statements bound to the
 // old type OIDs (citext, enums) and fail with "cache lookup failed for type …" — close them.
 const [{ count }] = await client`
   SELECT count(pg_terminate_backend(pid))::int AS count FROM pg_stat_activity
