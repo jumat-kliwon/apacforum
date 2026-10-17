@@ -100,10 +100,19 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
           {{ g.label }}
         </h3>
         <div class="flex flex-wrap gap-3">
-          <div v-for="p in g.items" :key="p.id" class="flex h-16 min-w-40 items-center justify-center gap-3 rounded-sm border border-default bg-default px-4">
+          <component
+            :is="p.websiteUrl ? 'a' : 'div'"
+            v-for="p in g.items"
+            :key="p.id"
+            :href="p.websiteUrl ?? undefined"
+            :target="p.websiteUrl ? '_blank' : undefined"
+            :rel="p.websiteUrl ? 'noopener noreferrer' : undefined"
+            class="flex h-16 min-w-40 items-center justify-center gap-3 rounded-sm border border-default bg-default px-4"
+            :class="{ 'transition-colors hover:border-accented': p.websiteUrl }"
+          >
             <img v-if="p.logoUrl" :src="p.logoUrl" :alt="p.name" class="max-h-10 max-w-32 object-contain">
             <span v-else class="text-sm font-semibold text-highlighted">{{ p.name }}</span>
-          </div>
+          </component>
         </div>
       </div>
     </section>

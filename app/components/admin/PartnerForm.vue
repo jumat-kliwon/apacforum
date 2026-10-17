@@ -15,7 +15,7 @@ const emit = defineEmits<{ submit: [PartnerForm] }>()
 
 const state = reactive<PartnerFormInput>(props.initial
   ? structuredClone(toRaw(props.initial))
-  : { eventId: props.eventId, name: '', category: 'strategic', logoKey: null, showHome: false })
+  : { eventId: props.eventId, name: '', category: 'strategic', logoKey: null, websiteUrl: '', showHome: false })
 
 const CATEGORY_ITEMS = toItems(PARTNER_CATEGORY)
 
@@ -39,6 +39,9 @@ function onError(e: FormErrorEvent) {
           </UFormField>
           <UFormField label="Category" name="category" required help="Partners are grouped by category on the website.">
             <USelect v-model="state.category" :items="CATEGORY_ITEMS" class="w-full" />
+          </UFormField>
+          <UFormField label="Website" name="websiteUrl" hint="Optional" help="Clicking the logo on the website opens this link." class="sm:col-span-2">
+            <UInput v-model="state.websiteUrl!" type="url" placeholder="https://example.com" class="w-full" />
           </UFormField>
         </div>
       </div>

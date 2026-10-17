@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
     },
     agendaDays: days.map(d => ({ id: d.id, label: d.label, date: d.date, theme: d.theme, body: d.body })),
     speakers: sp.map(s => ({ id: s.id, name: s.name, title: s.title, category: s.category, photoUrl: publicUrl(s.photoKey), dayLabel: days.find(d => d.id === s.agendaDayId)?.label ?? null })),
-    partners: pa.map(p => ({ id: p.id, name: p.name, category: p.category, logoUrl: publicUrl(p.logoKey) })),
+    partners: pa.map(p => ({ id: p.id, name: p.name, category: p.category, websiteUrl: p.websiteUrl, logoUrl: publicUrl(p.logoKey) })),
     ticketTypes: tickets.map((t, i) => ({ id: t.id, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, remaining: remaining[i]! }))
   }
 })

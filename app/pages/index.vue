@@ -488,13 +488,18 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
               {{ group.label }}
             </SiteEyebrow>
             <ul class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-              <li
-                v-for="partner in group.items"
-                :key="partner.id"
-                class="flex h-[104px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
-              >
-                <img v-if="partner.logoUrl" :src="partner.logoUrl" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
-                <span v-else class="text-center text-[11px] font-extrabold uppercase tracking-[0.073em] text-[#7c8695]">{{ partner.name }}</span>
+              <li v-for="partner in group.items" :key="partner.id">
+                <component
+                  :is="partner.websiteUrl ? 'a' : 'div'"
+                  :href="partner.websiteUrl ?? undefined"
+                  :target="partner.websiteUrl ? '_blank' : undefined"
+                  :rel="partner.websiteUrl ? 'noopener noreferrer' : undefined"
+                  class="flex h-[104px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
+                  :class="{ 'transition-colors hover:border-ink/40': partner.websiteUrl }"
+                >
+                  <img v-if="partner.logoUrl" :src="partner.logoUrl" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
+                  <span v-else class="text-center text-[11px] font-extrabold uppercase tracking-[0.073em] text-[#7c8695]">{{ partner.name }}</span>
+                </component>
               </li>
             </ul>
           </div>

@@ -73,6 +73,8 @@ export const partners = pgTable('partners', {
   eventId: uuid().notNull().references(() => events.id, { onDelete: 'cascade' }),
   name: varchar({ length: 200 }).notNull(),
   logoKey: text(),
+  /** The logo links here on the website. */
+  websiteUrl: varchar({ length: 500 }),
   category: partnerCategory().notNull(),
   /** Shown in the partners section of the home page. */
   showHome: boolean().notNull().default(false),

@@ -14,7 +14,7 @@ const missing = computed(() => !!error.value || (data.value && data.value.eventI
 const initial = computed<PartnerFormInput | undefined>(() => {
   const p = data.value
   if (!p) return undefined
-  return { eventId: p.eventId, name: p.name, category: p.category, logoKey: p.logoKey, showHome: p.showHome }
+  return { eventId: p.eventId, name: p.name, category: p.category, logoKey: p.logoKey, websiteUrl: p.websiteUrl ?? '', showHome: p.showHome }
 })
 
 const saving = ref(false)

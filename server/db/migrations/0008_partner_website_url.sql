@@ -1,0 +1,1 @@
+ALTER TABLE "partners" ADD COLUMN "website_url" varchar(500);
