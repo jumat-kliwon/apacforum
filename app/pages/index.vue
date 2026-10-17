@@ -26,10 +26,10 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
     <!-- Hero -->
     <section id="home" class="relative overflow-hidden bg-navy-deep">
       <img
-        src="/landing/networking.webp"
-        alt="ASEAN professionals networking at a regional forum"
-        width="1100"
-        height="825"
+        src="/landing/conference-hall.webp"
+        alt="Delegates listening to a presentation at a PR INDONESIA conference"
+        width="1600"
+        height="1066"
         fetchpriority="high"
         class="absolute inset-0 size-full object-cover"
       >
@@ -201,8 +201,8 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
       <SiteContainer>
         <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
           <img
-            src="/landing/networking.webp"
-            alt="Business and public communication professionals networking"
+            src="/landing/conference-audience.webp"
+            alt="Communication leaders applauding in the audience at a forum session"
             width="480"
             height="520"
             loading="lazy"
@@ -330,8 +330,8 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
       <SiteContainer>
         <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
           <img
-            src="/landing/medan.webp"
-            alt="Professionals walking through Medan heritage district"
+            src="/landing/lake-toba.webp"
+            alt="Lake Toba and the green highlands of North Sumatra"
             width="480"
             height="520"
             loading="lazy"

@@ -31,7 +31,7 @@ const visibleSpeakers = computed(() => speakerFilter.value
   <div>
     <!-- Hero -->
     <section class="relative overflow-hidden bg-navy-deep">
-      <img src="/landing/city.webp" alt="" width="1100" height="825" fetchpriority="high" class="absolute inset-0 size-full object-cover">
+      <img src="/landing/conference-speaker.webp" alt="" width="1600" height="1066" fetchpriority="high" class="absolute inset-0 size-full object-cover">
       <div class="absolute inset-0" style="background: linear-gradient(to right, #031735f7 0%, #031735eb 50%, #03173599 100%)" />
 
       <SiteContainer>
@@ -210,8 +210,8 @@ const visibleSpeakers = computed(() => speakerFilter.value
 
           <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
             <img
-              src="/landing/medan.webp"
-              alt="Professionals walking through Medan heritage district"
+              src="/landing/lake-toba.webp"
+              alt="Lake Toba and the green highlands of North Sumatra"
               width="480"
               height="520"
               loading="lazy"
