@@ -45,6 +45,8 @@ export const partnerFormSchema = z.object({
   name: z.string().trim().min(1, 'Required').max(200),
   category: z.enum(Object.keys(PARTNER_CATEGORY) as [keyof typeof PARTNER_CATEGORY]),
   logoKey: objectKey,
+  /** Where the logo links to on the website. Optional. */
+  websiteUrl: z.url({ protocol: /^https?$/, error: 'Enter a full URL starting with https://' }).max(500).nullish().or(z.literal('')).transform(v => v || null),
   showHome: z.boolean().default(false)
 })
 

@@ -9,7 +9,7 @@ import { likePattern } from '../utils/validate'
 // ── partners (the Partners page) ──
 
 const partnerValues = (f: PartnerForm) => ({
-  name: f.name, category: f.category, logoKey: f.logoKey ?? null, showHome: f.showHome
+  name: f.name, category: f.category, logoKey: f.logoKey ?? null, websiteUrl: f.websiteUrl, showHome: f.showHome
 })
 
 export async function createPartner(form: PartnerForm) {
@@ -47,6 +47,7 @@ export const partnerSelect = {
   name: partners.name,
   category: partners.category,
   logoKey: partners.logoKey,
+  websiteUrl: partners.websiteUrl,
   showHome: partners.showHome,
   sortOrder: partners.sortOrder,
   updatedAt: partners.updatedAt

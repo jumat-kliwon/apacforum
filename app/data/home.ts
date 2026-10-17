@@ -54,8 +54,8 @@ export const STAKEHOLDERS = [
 export const SCENARIOS = [
   {
     title: 'A CITY',
-    image: '/landing/city.webp',
-    alt: 'City setting',
+    image: '/landing/medan-post-office.webp',
+    alt: 'The historic Medan post office',
     copy: [
       'Imagine an AI-generated video appearing to show a mayor announcing a policy that was never made.',
       'Within hours it spreads through social media and messaging platforms.',
@@ -74,8 +74,8 @@ export const SCENARIOS = [
   },
   {
     title: 'A DESTINATION',
-    image: '/landing/city.webp',
-    alt: 'Destination heritage',
+    image: '/landing/lake-toba.webp',
+    alt: 'Lake Toba, North Sumatra',
     copy: [
       'Imagine misleading information about safety at a tourism destination spreading across several ASEAN markets immediately before a major holiday period.',
       'The impact could move rapidly from social media to: Tourist Confidence → Bookings → Local Economy → Destination Reputation.'

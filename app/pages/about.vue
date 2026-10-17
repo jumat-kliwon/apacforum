@@ -169,8 +169,8 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
       <SiteContainer>
         <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
           <img
-            src="/landing/networking.webp"
-            alt="Business and public communication professionals networking"
+            src="/landing/conference-audience.webp"
+            alt="Communication leaders applauding in the audience at a forum session"
             width="480"
             height="520"
             loading="lazy"
@@ -245,8 +245,8 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
       <SiteContainer>
         <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
           <img
-            src="/landing/medan.webp"
-            alt="Professionals walking through Medan heritage district"
+            src="/landing/lake-toba.webp"
+            alt="Lake Toba and the green highlands of North Sumatra"
             width="480"
             height="520"
             loading="lazy"

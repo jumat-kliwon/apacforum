@@ -26,10 +26,10 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
     <!-- Hero -->
     <section id="home" class="relative overflow-hidden bg-navy-deep">
       <img
-        src="/landing/networking.webp"
-        alt="ASEAN professionals networking at a regional forum"
-        width="1100"
-        height="825"
+        src="/landing/conference-hall.webp"
+        alt="Delegates listening to a presentation at a PR INDONESIA conference"
+        width="1600"
+        height="1066"
         fetchpriority="high"
         class="absolute inset-0 size-full object-cover"
       >
@@ -201,8 +201,8 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
       <SiteContainer>
         <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
           <img
-            src="/landing/networking.webp"
-            alt="Business and public communication professionals networking"
+            src="/landing/conference-audience.webp"
+            alt="Communication leaders applauding in the audience at a forum session"
             width="480"
             height="520"
             loading="lazy"
@@ -330,8 +330,8 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
       <SiteContainer>
         <div class="flex flex-col gap-10 lg:flex-row lg:gap-16">
           <img
-            src="/landing/medan.webp"
-            alt="Professionals walking through Medan heritage district"
+            src="/landing/lake-toba.webp"
+            alt="Lake Toba and the green highlands of North Sumatra"
             width="480"
             height="520"
             loading="lazy"
@@ -488,13 +488,18 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
               {{ group.label }}
             </SiteEyebrow>
             <ul class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-              <li
-                v-for="partner in group.items"
-                :key="partner.id"
-                class="flex h-[104px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
-              >
-                <img v-if="partner.logoUrl" :src="partner.logoUrl" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
-                <span v-else class="text-center text-[11px] font-extrabold uppercase tracking-[0.073em] text-[#7c8695]">{{ partner.name }}</span>
+              <li v-for="partner in group.items" :key="partner.id">
+                <component
+                  :is="partner.websiteUrl ? 'a' : 'div'"
+                  :href="partner.websiteUrl ?? undefined"
+                  :target="partner.websiteUrl ? '_blank' : undefined"
+                  :rel="partner.websiteUrl ? 'noopener noreferrer' : undefined"
+                  class="flex h-[104px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-4 py-3.5"
+                  :class="{ 'transition-colors hover:border-ink/40': partner.websiteUrl }"
+                >
+                  <img v-if="partner.logoUrl" :src="partner.logoUrl" :alt="partner.name" loading="lazy" class="max-h-full max-w-full object-contain">
+                  <span v-else class="text-center text-[11px] font-extrabold uppercase tracking-[0.073em] text-[#7c8695]">{{ partner.name }}</span>
+                </component>
               </li>
             </ul>
           </div>

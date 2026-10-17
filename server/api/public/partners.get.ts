@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
   const where = scope === 'home'
     ? eq(partners.showHome, true)
     : and(eq(events.isDefault, true), eq(events.status, 'published'))
-  const rows = await db.select({ id: partners.id, name: partners.name, category: partners.category, logoKey: partners.logoKey })
+  const rows = await db.select({ id: partners.id, name: partners.name, category: partners.category, logoKey: partners.logoKey, websiteUrl: partners.websiteUrl })
     .from(partners)
     .innerJoin(events, eq(events.id, partners.eventId))
     .where(where)
