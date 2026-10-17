@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin', middleware: 'admin', access: 'staff' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'events.manage' })
 
 const route = useRoute()
 const notify = useNotify()

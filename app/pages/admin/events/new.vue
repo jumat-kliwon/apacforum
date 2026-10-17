@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { EventForm } from '~~/shared/schemas/event'
 
-definePageMeta({ layout: 'focus', middleware: 'admin', access: 'staff', backTo: '/admin/events' })
+definePageMeta({ layout: 'focus', middleware: 'admin', permission: 'events.manage', backTo: '/admin/events' })
 
 const notify = useNotify()
 const saving = ref(false)

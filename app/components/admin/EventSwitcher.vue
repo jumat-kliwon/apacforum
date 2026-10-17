@@ -8,6 +8,7 @@ import type { AdminEventOption } from '~/composables/useAdminEvents'
  */
 const route = useRoute()
 const { events } = useAdminEvents()
+const { can } = useAdminAccess()
 const { event: current } = useCurrentEvent()
 
 const open = ref(false)
@@ -51,10 +52,12 @@ const groups = computed<CommandPaletteGroup[]>(() => {
     {
       id: 'actions',
       label: 'Events',
-      items: [
-        { label: 'Add event', icon: 'i-lucide-plus', onSelect: go('/admin/events/new') },
-        { label: 'Manage events', icon: 'i-lucide-settings-2', onSelect: go('/admin/events') }
-      ]
+      items: can('events.manage')
+        ? [
+            { label: 'Add event', icon: 'i-lucide-plus', onSelect: go('/admin/events/new') },
+            { label: 'Manage events', icon: 'i-lucide-settings-2', onSelect: go('/admin/events') }
+          ]
+        : []
     }
   ].filter(g => g.items.length)
 })

@@ -36,6 +36,13 @@
       "when": 1792245266595,
       "tag": "0004_superadmin_role",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792245889096,
+      "tag": "0005_access_control",
+      "breakpoints": true
     }
   ]
 }

@@ -2,9 +2,10 @@
 import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
 import type { Component } from 'vue'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'transactions.manage' })
 
 const eventId = useEventId()
+const { can } = useAdminAccess()
 const list = useListQuery({
   sort: 'date',
   dir: 'desc',
@@ -102,7 +103,7 @@ const rangeText = computed(() => {
 
 <template>
   <AdminPageHeader title="Transactions" description="Ticket payments from registered participants.">
-    <template #actions>
+    <template v-if="can('exports.manage')" #actions>
       <UButton :to="exportUrl()" external download color="neutral" variant="outline" icon="i-lucide-download" label="Export CSV" />
     </template>
   </AdminPageHeader>
@@ -143,7 +144,7 @@ const rangeText = computed(() => {
 
     <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center justify-between gap-4 rounded-md bg-brand-50 px-5 py-3 dark:bg-[#2e2a18]">
       <span aria-live="polite" class="text-sm font-semibold text-highlighted">{{ selected.size }} selected</span>
-      <UButton class="ml-auto" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
+      <UButton v-if="can('exports.manage')" class="ml-auto" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
     </div>
 
     <UTable v-model:column-visibility="columnVisibility" :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No transactions match these filters." class="-mx-4 sm:-mx-5">
@@ -159,7 +160,7 @@ const rangeText = computed(() => {
         </NuxtLink>
       </template>
       <template #name-cell="{ row }">
-        <NuxtLink v-if="row.original.userId" :to="eventPath(eventId, 'registrations', row.original.userId)" class="font-semibold text-highlighted hover:underline">
+        <NuxtLink v-if="row.original.userId && can('registrations.manage')" :to="eventPath(eventId, 'registrations', row.original.userId)" class="font-semibold text-highlighted hover:underline">
           {{ row.original.participantName }}
         </NuxtLink>
         <span v-else class="font-semibold text-highlighted">{{ row.original.participantName }}</span>

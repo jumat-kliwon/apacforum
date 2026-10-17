@@ -29,7 +29,7 @@ function sample(): MailData {
 }
 
 export default defineEventHandler(async (event) => {
-  await requireSuperadmin(event)
+  await requirePermission(event, 'email_templates.view')
   const key = getRouterParam(event, 'key') as TemplateKey
   if (!TEMPLATE_KEYS.includes(key)) throw createError({ statusCode: 404, statusMessage: 'Template not found' })
   const { content, html } = await previewTemplate(key, sample())

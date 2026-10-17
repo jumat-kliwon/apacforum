@@ -23,7 +23,16 @@ export function useAdminSessionCheckedAt() {
   return useState('admin-session-checked-at', () => 0)
 }
 
-/** Role of the signed-in CMS user, set by the admin middleware. */
-export function useAdminRole() {
-  return useState<StaffRole | undefined>('admin-role', () => undefined)
+export type AdminAccess = {
+  user: { id: string, name: string, email: string }
+  role: { key: string, name: string }
+  permissions: Permission[]
+}
+
+/** The signed-in CMS user, its role and permissions (from /api/admin/me, loaded by the admin middleware). */
+export function useAdminAccess() {
+  const access = useState<AdminAccess | null>('admin-access', () => null)
+  /** Whether the user holds at least one of `needed`. Only hides UI: the API checks every request. */
+  const allowed = (needed: Permission | Permission[]) => can(access.value?.permissions, needed)
+  return { access, can: allowed }
 }

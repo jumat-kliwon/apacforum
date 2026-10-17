@@ -1,5 +1,5 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'email_templates.view' })
 useHead({ title: 'Email templates' })
 
 const { data: list } = await useFetch('/api/admin/email-templates')

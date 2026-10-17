@@ -1,7 +1,8 @@
 <script setup lang="ts">
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'dashboard.view' })
 
 const eventId = useEventId()
+const { can } = useAdminAccess()
 const { event } = useCurrentEvent()
 const { data } = await useFetch('/api/admin/dashboard', { query: { eventId } })
 
@@ -102,7 +103,7 @@ const now = new Date()
 
     <AdminPanel title="Latest registrations">
       <template #actions>
-        <UButton :to="eventPath(eventId, 'registrations')" color="neutral" variant="ghost" size="sm" trailing-icon="i-lucide-chevron-right" label="See all participants" />
+        <UButton v-if="can('registrations.manage')" :to="eventPath(eventId, 'registrations')" color="neutral" variant="ghost" size="sm" trailing-icon="i-lucide-chevron-right" label="See all participants" />
       </template>
       <AdminParticipantMiniTable :rows="data?.recent ?? []" />
     </AdminPanel>

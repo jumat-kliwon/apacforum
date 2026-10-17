@@ -1,11 +1,14 @@
-import type { Access } from '#shared/utils/access'
+import type { Permission } from '#shared/utils/access'
 
 declare module '#app' {
   interface PageMeta {
     /** Where the close button of the `focus` layout leads. */
     backTo?: string
-    /** Who may open this CMS page (checked by the admin middleware). Leave it out for superadmin only. */
-    access?: Access
+    /**
+     * Permission(s) needed to open this CMS page, any one of them; checked by the admin middleware.
+     * `any` = every CMS user. Left out = superadmin only, so a page nobody marked stays closed.
+     */
+    permission?: Permission | Permission[] | 'any'
   }
 }
 

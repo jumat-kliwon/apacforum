@@ -26,14 +26,16 @@ async function onSubmit(e: FormSubmitEvent<Schema>) {
     error.value = err?.status === 401 ? 'Wrong email or password' : (err?.message ?? 'Could not sign in')
     return
   }
-  const role = (data.user as { role?: string }).role
-  if (!isStaff(role)) {
+  // the role decides what the CMS shows; a role without permissions (e.g. participants) has no access
+  const me = await $fetch<AdminAccess>('/api/admin/me').catch(() => null)
+  if (!me) {
     await authClient.signOut()
     error.value = 'This account has no admin access'
     return
   }
-  const fallback = role === 'superadmin' ? '/admin' : '/admin/news'
-  const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin') ? route.query.redirect : fallback
+  useAdminAccess().access.value = me
+  useAdminSessionCheckedAt().value = Date.now()
+  const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin') ? route.query.redirect : landingPath(me.permissions)
   await navigateTo(redirect)
 }
 </script>
