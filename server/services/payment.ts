@@ -244,3 +244,12 @@ export async function refund(transactionId: string, actor: { id: string, name: s
 export async function logInvoiceSent(transactionId: string) {
   await db.update(transactions).set({ history: appendHistory(entry('invoice_sent')) }).where(eq(transactions.id, transactionId))
 }
+
+/**
+ * Deletes a transaction outright, whatever its status. The registration it paid for is left as is.
+ * A deleted pending invoice can still be paid through its DOKU link; that notification then finds no invoice.
+ */
+export async function deleteTransaction(id: string) {
+  const [row] = await db.delete(transactions).where(eq(transactions.id, id)).returning({ id: transactions.id })
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'Transaction not found' })
+}

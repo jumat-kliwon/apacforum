@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
-import type { Component } from 'vue'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -13,7 +12,7 @@ const list = useListQuery({
 const { q, page, pageSize, filters, query, sortHeader } = list
 const apiQuery = computed(() => ({ ...query.value, eventId }))
 
-const { data, status } = await useFetch('/api/admin/transactions', { query: apiQuery })
+const { data, status, refresh } = await useFetch('/api/admin/transactions', { query: apiQuery })
 const tableSkeleton = useQuerySkeleton(status, apiQuery)
 
 // ── filters ──
@@ -39,23 +38,10 @@ function resetFilters() {
 // ── selection ──
 const rows = computed(() => data.value?.rows ?? [])
 type Row = (typeof rows.value)[number]
-const selected = ref<Set<string>>(new Set())
-watch(rows, () => { selected.value = new Set([...selected.value].filter(id => rows.value.some(r => r.id === id))) })
-const allState = computed(() => {
-  const n = rows.value.filter(r => selected.value.has(r.id)).length
-  return n === 0 ? false : n === rows.value.length ? true : 'indeterminate' as const
-})
-const toggleAll = (v: boolean | 'indeterminate') => { selected.value = v === true ? new Set(rows.value.map(r => r.id)) : new Set() }
-function toggleRow(id: string, v: boolean | 'indeterminate') {
-  const s = new Set(selected.value)
-  if (v === true) s.add(id)
-  else s.delete(id)
-  selected.value = s
-}
+const { ids: selectedIds, column: selectColumn } = useRowSelection(rows, { all: 'Select all transactions on this page', row: r => `Select ${r.invoiceNo}` })
 
-const UCheckbox = resolveComponent('UCheckbox') as Component
 const columns = computed<TableColumn<Row>[]>(() => [
-  { id: 'select', header: () => h(UCheckbox, { 'modelValue': allState.value, 'onUpdate:modelValue': toggleAll, 'aria-label': 'Select all transactions on this page' }), enableHiding: false },
+  selectColumn,
   { id: 'id', header: sortHeader('id', 'Transaction ID'), enableHiding: false },
   { id: 'name', header: sortHeader('name', 'Participant'), meta: { label: 'Participant' } },
   { id: 'type', header: sortHeader('type', 'Ticket type'), meta: { label: 'Ticket type' } },
@@ -129,17 +115,19 @@ const rangeText = computed(() => {
       </div>
     </div>
 
-    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center justify-between gap-4 rounded-md bg-brand-50 px-5 py-3 dark:bg-[#2e2a18]">
-      <span aria-live="polite" class="text-sm font-semibold text-highlighted">{{ selected.size }} selected</span>
-      <UButton class="ml-auto" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
-    </div>
+    <AdminBulkBar
+      :ids="selectedIds"
+      url="/api/admin/bulk-delete/transactions"
+      :noun="['transaction', 'transactions']"
+      description="Their invoices, payment details and status history are removed, paid ones included, so they leave the financial reports. Registrations are kept. A deleted pending invoice can still be paid through its DOKU link, and that payment will then not be recorded."
+      @deleted="refresh()"
+    >
+      <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl(selectedIds)" external download />
+    </AdminBulkBar>
 
     <UTable v-model:column-visibility="columnVisibility" :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No transactions match these filters." class="-mx-4 sm:-mx-5">
       <template #loading>
         <AdminSkeletonRows :rows="6" :columns="6" />
-      </template>
-      <template #select-cell="{ row }">
-        <UCheckbox :model-value="selected.has(row.original.id)" :aria-label="`Select ${row.original.invoiceNo}`" @update:model-value="toggleRow(row.original.id, $event)" />
       </template>
       <template #id-cell="{ row }">
         <NuxtLink :to="eventPath(eventId, 'transactions', row.original.id)" class="font-mono text-[13px] font-medium text-primary hover:underline">

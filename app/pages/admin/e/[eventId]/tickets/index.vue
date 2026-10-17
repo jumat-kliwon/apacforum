@@ -25,7 +25,10 @@ const statusFilter = pick('status')
 const statusItems = [{ label: 'All statuses', value: ALL }, { label: 'On sale', value: 'on_sale' }, { label: 'Not on sale', value: 'off_sale' }]
 
 type Row = NonNullable<typeof data.value>['rows'][number]
+const rows = computed(() => data.value?.rows ?? [])
+const { ids: selectedIds, column: selectColumn } = useRowSelection(rows, { all: 'Select all ticket types on this page', row: r => `Select ${r.name}` })
 const columns: TableColumn<Row>[] = [
+  selectColumn,
   { id: 'name', header: sortHeader('name', 'Ticket type') },
   { id: 'price', header: sortHeader('price', 'Price') },
   { id: 'sold', header: sortHeader('sold', 'Sold / quota') },
@@ -96,7 +99,15 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       </div>
     </div>
 
-    <UTable :data="tableSkeleton ? [] : data?.rows ?? []" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No ticket types yet." class="-mx-4 sm:-mx-5">
+    <AdminBulkBar
+      :ids="selectedIds"
+      url="/api/admin/bulk-delete/tickets"
+      :noun="['ticket type', 'ticket types']"
+      :description="`They are removed from the registration form of ${event?.name ?? 'the event'}. Ticket types that already have registrations are skipped.`"
+      @deleted="refresh()"
+    />
+
+    <UTable :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No ticket types yet." class="-mx-4 sm:-mx-5">
       <template #loading>
         <AdminSkeletonRows :rows="6" :columns="5" />
       </template>

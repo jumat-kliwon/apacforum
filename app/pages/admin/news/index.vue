@@ -10,7 +10,10 @@ const { data, status, refresh } = await useFetch('/api/admin/articles', { query,
 const tableSkeleton = useQuerySkeleton(status, query)
 
 type Row = NonNullable<typeof data.value>['rows'][number]
+const rows = computed(() => data.value?.rows ?? [])
+const { ids: selectedIds, column: selectColumn } = useRowSelection(rows, { all: 'Select all articles on this page', row: r => `Select ${r.title}` })
 const columns: TableColumn<Row>[] = [
+  selectColumn,
   { id: 'title', header: sortHeader('title', 'Article') },
   { id: 'status', header: sortHeader('status', 'Status') },
   { id: 'published', header: sortHeader('published', 'Published') },
@@ -68,7 +71,15 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       <USelect v-model="statusFilter" :items="[{ label: 'All statuses', value: ALL }, ...toItems(PUBLISH_STATUS)]" icon="i-lucide-list-filter" aria-label="Filter by status" class="ml-auto w-44" />
     </div>
 
-    <UTable :data="tableSkeleton ? [] : data?.rows ?? []" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No articles yet." class="-mx-4 sm:-mx-5">
+    <AdminBulkBar
+      :ids="selectedIds"
+      url="/api/admin/bulk-delete/articles"
+      :noun="['article', 'articles']"
+      description="The articles and their images are removed from the website."
+      @deleted="refresh()"
+    />
+
+    <UTable :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No articles yet." class="-mx-4 sm:-mx-5">
       <template #loading>
         <AdminSkeletonRows :rows="6" :columns="4" />
       </template>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
-import type { Component } from 'vue'
 
 definePageMeta({ layout: 'admin', middleware: 'admin' })
 
@@ -41,30 +40,13 @@ function resetFilters() {
 }
 
 // ── row selection ──
-const selected = ref<Set<string>>(new Set())
 const rows = computed(() => data.value?.rows ?? [])
-watch(rows, () => { selected.value = new Set([...selected.value].filter(id => rows.value.some(r => r.id === id))) })
-const allState = computed(() => {
-  const n = rows.value.filter(r => selected.value.has(r.id)).length
-  return n === 0 ? false : n === rows.value.length ? true : 'indeterminate' as const
-})
-const toggleAll = (v: boolean | 'indeterminate') => { selected.value = v === true ? new Set(rows.value.map(r => r.id)) : new Set() }
-function toggleRow(id: string, v: boolean | 'indeterminate') {
-  const s = new Set(selected.value)
-  if (v === true) s.add(id)
-  else s.delete(id)
-  selected.value = s
-}
+const { ids: selectedIds, clear: clearSelection, column: selectColumn } = useRowSelection(rows, { all: 'Select all participants on this page', row: r => `Select ${r.name}` })
 
 // ── columns ──
 type Row = (typeof rows.value)[number]
-const UCheckbox = resolveComponent('UCheckbox') as Component
 const columns = computed((): TableColumn<Row>[] => [
-  {
-    id: 'select',
-    header: () => h(UCheckbox, { 'modelValue': allState.value, 'onUpdate:modelValue': toggleAll, 'aria-label': 'Select all participants on this page' }),
-    enableHiding: false
-  },
+  selectColumn,
   { id: 'name', header: sortHeader('name', 'Participant'), enableHiding: false },
   { id: 'type', header: sortHeader('type', 'Participant type'), meta: { label: 'Participant type' } },
   { id: 'org', header: sortHeader('org', 'Organization'), meta: { label: 'Organization' } },
@@ -84,17 +66,14 @@ const columnMenu = computed<DropdownMenuItem[]>(() => columns.value
     onSelect: (e: Event) => e.preventDefault()
   })))
 
-// ── bulk actions ──
+// ── bulk actions (Delete lives in AdminBulkBar) ──
 const busy = ref(false)
-const deleteOpen = ref(false)
-async function bulk(action: 'verify' | 'email' | 'delete') {
+async function bulk(action: 'verify' | 'email') {
   busy.value = true
   try {
-    const res = await $fetch('/api/admin/participants/bulk', { method: 'POST', body: { action, ids: [...selected.value] } })
-    const done = { verify: 'verified', email: 'emailed', delete: 'deleted' }[action]
-    notify.success(`${res.affected} ${res.affected === 1 ? 'registration' : 'registrations'} ${done}`)
-    selected.value = new Set()
-    deleteOpen.value = false
+    const res = await $fetch('/api/admin/participants/bulk', { method: 'POST', body: { action, ids: selectedIds.value } })
+    notify.success(`${res.affected} ${res.affected === 1 ? 'registration' : 'registrations'} ${action === 'verify' ? 'verified' : 'emailed'}`)
+    clearSelection()
     await refresh()
   } catch (err) {
     notify.error(err)
@@ -164,15 +143,18 @@ const rangeText = computed(() => {
       </div>
     </div>
 
-    <div v-if="selected.size" role="region" aria-label="Bulk actions" class="flex flex-wrap items-center justify-between gap-4 rounded-md bg-brand-50 px-5 py-3 dark:bg-[#2e2a18]">
-      <span aria-live="polite" class="text-sm font-semibold text-highlighted">{{ selected.size }} selected</span>
-      <div class="ml-auto flex flex-wrap gap-2">
-        <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-user-check" label="Verify" :loading="busy" @click="bulk('verify')" />
-        <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-mail" label="Send email" :loading="busy" @click="bulk('email')" />
-        <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl([...selected])" external download />
-        <UButton size="sm" color="error" variant="soft" icon="i-lucide-trash-2" label="Delete" @click="deleteOpen = true" />
-      </div>
-    </div>
+    <AdminBulkBar
+      :ids="selectedIds"
+      url="/api/admin/participants/bulk"
+      :body="{ action: 'delete' }"
+      :noun="['registration', 'registrations']"
+      description="Their registration data and e-tickets are deleted too. Transaction history is kept for financial reporting."
+      @deleted="refresh()"
+    >
+      <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-user-check" label="Verify" :loading="busy" @click="bulk('verify')" />
+      <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-mail" label="Send email" :loading="busy" @click="bulk('email')" />
+      <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl(selectedIds)" external download />
+    </AdminBulkBar>
 
     <UTable
       v-model:column-visibility="columnVisibility"
@@ -185,9 +167,6 @@ const rangeText = computed(() => {
     >
       <template #loading>
         <AdminSkeletonRows :rows="6" :columns="6" />
-      </template>
-      <template #select-cell="{ row }">
-        <UCheckbox :model-value="selected.has(row.original.id)" :aria-label="`Select ${row.original.name}`" @update:model-value="toggleRow(row.original.id, $event)" />
       </template>
       <template #name-cell="{ row }">
         <div class="flex items-center gap-3">
@@ -224,13 +203,4 @@ const rangeText = computed(() => {
 
     <AdminListFooter v-model:page="page" v-model:page-size="pageSize" :total="total" :range-text="rangeText" />
   </AdminPanel>
-
-  <AdminConfirmDialog
-    v-model:open="deleteOpen"
-    :title="`Delete ${selected.size} ${selected.size === 1 ? 'registration' : 'registrations'}?`"
-    description="Their registration data and e-tickets are deleted too. Transaction history is kept for financial reporting. This cannot be undone."
-    :confirm-label="`Delete ${selected.size} ${selected.size === 1 ? 'registration' : 'registrations'}`"
-    :loading="busy"
-    @confirm="bulk('delete')"
-  />
 </template>

@@ -27,7 +27,10 @@ const topicItems = computed(() => [
 ])
 
 type Row = NonNullable<typeof data.value>['rows'][number]
+const rows = computed(() => data.value?.rows ?? [])
+const { ids: selectedIds, column: selectColumn } = useRowSelection(rows, { all: 'Select all entries on this page', row: r => `Select the entry from ${r.name}` })
 const columns: TableColumn<Row>[] = [
+  selectColumn,
   { id: 'name', header: sortHeader('name', 'Guest') },
   { id: 'institution', header: 'Institution' },
   { id: 'country', header: sortHeader('country', 'Country') },
@@ -90,7 +93,15 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       </div>
     </div>
 
-    <UTable :data="tableSkeleton ? [] : data?.rows ?? []" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No guestbook entries yet." class="-mx-4 sm:-mx-5">
+    <AdminBulkBar
+      :ids="selectedIds"
+      url="/api/admin/bulk-delete/guestbook"
+      :noun="['entry', 'entries']"
+      description="They are removed from the guestbook."
+      @deleted="refresh()"
+    />
+
+    <UTable :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No guestbook entries yet." class="-mx-4 sm:-mx-5">
       <template #loading>
         <AdminSkeletonRows :rows="6" :columns="6" />
       </template>

@@ -12,7 +12,10 @@ const { data, status, refresh } = await useFetch('/api/admin/events', { query })
 const tableSkeleton = useQuerySkeleton(status, query)
 
 type Row = NonNullable<typeof data.value>[number]
+const rows = computed(() => data.value ?? [])
+const { ids: selectedIds, column: selectColumn } = useRowSelection(rows, { all: 'Select all events', row: r => `Select ${r.name}` })
 const columns: TableColumn<Row>[] = [
+  selectColumn,
   { id: 'name', header: sortHeader('name', 'Event') },
   { id: 'date', header: sortHeader('date', 'Dates') },
   { id: 'place', header: sortHeader('place', 'Venue') },
@@ -70,6 +73,7 @@ async function archive(r: Row) {
     archivingId.value = null
   }
 }
+const reload = () => Promise.all([refresh(), load(true)])
 const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) target.value = null } })
 </script>
 
@@ -86,7 +90,15 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       <USelect v-model="statusFilter" :items="[{ label: 'All statuses', value: ALL }, ...toItems(EVENT_STATUS)]" icon="i-lucide-list-filter" aria-label="Filter by status" class="ml-auto w-44" />
     </div>
 
-    <UTable :data="tableSkeleton ? [] : data ?? []" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No events yet." class="-mx-4 sm:-mx-5">
+    <AdminBulkBar
+      :ids="selectedIds"
+      url="/api/admin/bulk-delete/events"
+      :noun="['event', 'events']"
+      description="Their agenda, speakers, partners, ticket types, registrations and e-tickets are deleted too. Events that still have pending, paid or refunded transactions are skipped — archive those instead."
+      @deleted="reload"
+    />
+
+    <UTable :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No events yet." class="-mx-4 sm:-mx-5">
       <template #loading>
         <AdminSkeletonRows :rows="6" :columns="5" />
       </template>
