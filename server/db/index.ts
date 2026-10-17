@@ -11,10 +11,7 @@ if (!process.env.DATABASE_URL) {
  */
 export const client = new SQL(process.env.DATABASE_URL, {
   max: process.env.VERCEL ? 3 : 10,
-  idleTimeout: 30,
-  // No named prepared statements: a long-lived or pooled connection keeps them across requests, and after a
-  // migration changes a column type Postgres rejects them ("cached plan must not change result type").
-  prepare: false
+  idleTimeout: 30
 })
 
 export const db = drizzle({ client, schema, casing: 'snake_case' })
