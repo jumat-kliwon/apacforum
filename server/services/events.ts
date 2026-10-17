@@ -122,7 +122,14 @@ async function requireTicketTypes(tx: Tx, eventId: string) {
 // ── ticket types (the Tickets page) ──
 
 const ticketValues = (f: Omit<TicketTypeForm, 'eventId'>) => ({
-  code: f.code, name: f.name, price: f.price, paxPerTicket: f.paxPerTicket, quota: f.quota, isOnSale: f.isOnSale
+  code: f.code,
+  name: f.name,
+  price: f.price,
+  earlyBirdPrice: f.earlyBird ? f.earlyBirdPrice : null,
+  earlyBirdUntil: f.earlyBird && f.earlyBirdUntil ? deadlineFromDate(f.earlyBirdUntil) : null,
+  paxPerTicket: f.paxPerTicket,
+  quota: f.quota,
+  isOnSale: f.isOnSale
 })
 
 export async function createTicketType(form: TicketTypeForm) {
@@ -184,6 +191,8 @@ export const ticketTypeSelect = {
   code: ticketTypes.code,
   name: ticketTypes.name,
   price: ticketTypes.price,
+  earlyBirdPrice: ticketTypes.earlyBirdPrice,
+  earlyBirdUntil: ticketTypes.earlyBirdUntil,
   paxPerTicket: ticketTypes.paxPerTicket,
   quota: ticketTypes.quota,
   isOnSale: ticketTypes.isOnSale,

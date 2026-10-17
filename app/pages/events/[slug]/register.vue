@@ -20,7 +20,9 @@ useHead({ title: () => `Register · ${ev.value.name}` })
 const ticketItems = computed(() => data.value!.ticketTypes.map(t => ({
   value: t.id,
   label: t.name,
-  description: t.remaining ? `${formatRupiah(t.price)}${t.paxPerTicket > 1 ? ` / ${t.paxPerTicket} people` : ''}` : 'Sold out',
+  description: t.remaining
+    ? `${formatRupiah(t.price)}${t.paxPerTicket > 1 ? ` / ${t.paxPerTicket} people` : ''}${t.earlyBirdUntil ? ` · Early bird until ${formatDate(t.earlyBirdUntil, 'short')} (regular ${formatRupiah(t.regularPrice!)})` : ''}`
+    : 'Sold out',
   disabled: !t.remaining
 })))
 

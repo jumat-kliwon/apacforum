@@ -126,8 +126,12 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
           <h3 class="font-semibold text-highlighted">
             {{ t.name }}
           </h3>
+          <UBadge v-if="t.earlyBirdUntil" color="success" variant="subtle" icon="i-lucide-timer" :label="`Early bird until ${formatDate(t.earlyBirdUntil, 'short')}`" class="self-start" />
           <p class="text-2xl font-bold tabular-nums text-highlighted">
             {{ formatRupiah(t.price) }}<span v-if="t.paxPerTicket > 1" class="text-sm font-normal text-muted"> / {{ t.paxPerTicket }} people</span>
+          </p>
+          <p v-if="t.regularPrice != null" class="text-sm text-muted tabular-nums">
+            <s>{{ formatRupiah(t.regularPrice) }}</s> regular price
           </p>
           <p class="text-sm" :class="t.remaining ? 'text-muted' : 'text-error'">
             {{ t.remaining ? `${formatNumber(t.remaining)} seats left` : 'Sold out' }}

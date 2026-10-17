@@ -15,10 +15,16 @@ const emit = defineEmits<{ submit: [TicketTypeForm] }>()
 
 const state = reactive<TicketTypeFormInput>(props.initial
   ? structuredClone(toRaw(props.initial))
-  : { eventId: props.eventId, code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true })
+  : { eventId: props.eventId, code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true, earlyBird: false, earlyBirdPrice: undefined, earlyBirdUntil: undefined })
 const pricePerPerson = computed(() => {
   const pax = Number(state.paxPerTicket) || 1
   return pax > 1 ? formatRupiah(Math.round((Number(state.price) || 0) / pax)) : null
+})
+const earlyBirdHelp = computed(() => {
+  const price = Number(state.price) || 0
+  const early = Number(state.earlyBirdPrice)
+  if (state.earlyBirdPrice == null || Number.isNaN(early) || early >= price) return 'Must be lower than the regular price.'
+  return `${formatRupiah(price - early)} off (${Math.round(((price - early) / price) * 100)}%)`
 })
 
 function onSubmit(e: FormSubmitEvent<TicketTypeForm>) {
@@ -69,6 +75,32 @@ function onError(e: FormErrorEvent) {
           </p>
         </div>
         <USwitch v-model="state.isOnSale" aria-label="On sale" />
+      </div>
+    </AdminPanel>
+
+    <AdminPanel title="Early bird">
+      <div class="flex items-start justify-between gap-4 rounded-md border border-default p-4">
+        <div>
+          <p class="text-sm font-medium text-highlighted">
+            Early-bird price
+          </p>
+          <p class="text-[13px]/[18px] text-muted">
+            Registrations made up to the end date pay the early-bird price; after that, the regular price.
+          </p>
+        </div>
+        <USwitch v-model="state.earlyBird" aria-label="Early-bird price" />
+      </div>
+      <div v-if="state.earlyBird" class="grid gap-4 sm:grid-cols-2">
+        <UFormField label="Early-bird price" name="earlyBirdPrice" required :help="earlyBirdHelp">
+          <UInput v-model.number="state.earlyBirdPrice" type="number" min="0" class="w-full" :ui="{ base: 'ps-13' }">
+            <template #leading>
+              <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">Rp</span>
+            </template>
+          </UInput>
+        </UFormField>
+        <UFormField label="Early bird ends" name="earlyBirdUntil" required help="Ends at 23:59 WIB on this day.">
+          <UInput v-model="state.earlyBirdUntil" type="date" class="w-full" />
+        </UFormField>
       </div>
     </AdminPanel>
 

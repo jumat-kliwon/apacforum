@@ -53,7 +53,7 @@ async function toggleSale(r: Row, isOnSale: boolean) {
   try {
     await $fetch(`/api/admin/tickets/${r.id}`, {
       method: 'PUT',
-      body: { eventId: r.eventId, code: r.code, name: r.name, price: r.price, paxPerTicket: r.paxPerTicket, quota: r.quota, isOnSale }
+      body: { eventId: r.eventId, code: r.code, name: r.name, price: r.price, paxPerTicket: r.paxPerTicket, quota: r.quota, isOnSale, ...earlyBirdFormValues(r) }
     })
     notify.success(`${r.name} is ${isOnSale ? 'on sale' : 'no longer on sale'}`)
     await refresh()
@@ -121,7 +121,12 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
         </div>
       </template>
       <template #price-cell="{ row }">
-        <span class="whitespace-nowrap tabular-nums">{{ formatRupiah(row.original.price) }}</span>
+        <div class="flex flex-col gap-0.5 whitespace-nowrap">
+          <span class="tabular-nums">{{ formatRupiah(row.original.price) }}</span>
+          <span v-if="row.original.earlyBirdPrice != null && row.original.earlyBirdUntil" class="text-xs tabular-nums" :class="isEarlyBird(row.original) ? 'text-success' : 'text-muted'">
+            Early bird {{ formatRupiah(row.original.earlyBirdPrice) }} · {{ isEarlyBird(row.original) ? 'until' : 'ended' }} {{ formatDate(row.original.earlyBirdUntil, 'short') }}
+          </span>
+        </div>
       </template>
       <template #sold-cell="{ row }">
         <div class="flex min-w-40 flex-col gap-1">

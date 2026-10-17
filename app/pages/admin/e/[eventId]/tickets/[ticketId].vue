@@ -14,7 +14,7 @@ const missing = computed(() => !!error.value || (data.value && data.value.eventI
 const initial = computed<TicketTypeFormInput | undefined>(() => {
   const t = data.value
   if (!t) return undefined
-  return { eventId: t.eventId, code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale }
+  return { eventId: t.eventId, code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale, ...earlyBirdFormValues(t) }
 })
 
 const saving = ref(false)
