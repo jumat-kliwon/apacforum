@@ -99,12 +99,6 @@ const visibleSpeakers = computed(() => speakerFilter.value
               CREATE VALUE <UIcon name="i-lucide-arrow-right" class="size-[22px] text-gold" />
               PROTECT TRUST
             </p>
-            <p class="flex flex-wrap items-center justify-center gap-5 text-center text-[clamp(16px,2.2vw,22px)] font-extrabold tracking-[0.027em] text-white/70">
-              BUILD <UIcon name="i-lucide-arrow-right" class="size-[18px] text-gold" />
-              CREATE VALUE <UIcon name="i-lucide-arrow-right" class="size-[18px] text-gold" />
-              PROTECT <UIcon name="i-lucide-arrow-right" class="size-[18px] text-gold" />
-              REBUILD
-            </p>
           </div>
         </div>
       </SiteContainer>
