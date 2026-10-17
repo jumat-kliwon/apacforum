@@ -64,6 +64,13 @@
       "when": 1792259227447,
       "tag": "0008_partner_website_url",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792260908143,
+      "tag": "0009_ticket_early_bird",
+      "breakpoints": true
     }
   ]
 }

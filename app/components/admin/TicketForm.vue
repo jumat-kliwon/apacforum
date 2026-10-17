@@ -15,7 +15,7 @@ const emit = defineEmits<{ submit: [TicketTypeForm] }>()
 
 const state = reactive<TicketTypeFormInput>(props.initial
   ? structuredClone(toRaw(props.initial))
-  : { eventId: props.eventId, code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true })
+  : { eventId: props.eventId, code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true, isEarlyBird: false, earlyBirdUntil: undefined })
 const pricePerPerson = computed(() => {
   const pax = Number(state.paxPerTicket) || 1
   return pax > 1 ? formatRupiah(Math.round((Number(state.price) || 0) / pax)) : null
@@ -70,6 +70,23 @@ function onError(e: FormErrorEvent) {
         </div>
         <USwitch v-model="state.isOnSale" aria-label="On sale" />
       </div>
+    </AdminPanel>
+
+    <AdminPanel title="Early bird">
+      <div class="flex items-start justify-between gap-4 rounded-md border border-default p-4">
+        <div>
+          <p class="text-sm font-medium text-highlighted">
+            Early-bird ticket
+          </p>
+          <p class="text-[13px]/[18px] text-muted">
+            Sold at its own price until the end date, then no longer offered. Pair it with a regular ticket type for later registrations.
+          </p>
+        </div>
+        <USwitch v-model="state.isEarlyBird" aria-label="Early-bird ticket" />
+      </div>
+      <UFormField v-if="state.isEarlyBird" label="Early bird ends" name="earlyBirdUntil" required help="Can be bought until 23:59 WIB on this day." class="sm:max-w-xs">
+        <UInput v-model="state.earlyBirdUntil" type="date" class="w-full" />
+      </UFormField>
     </AdminPanel>
 
     <div class="sticky bottom-0 z-10 -mx-4 -mb-10 mt-auto flex flex-wrap items-center gap-3 border-t border-default bg-default px-4 py-4 sm:-mx-8 sm:px-8">

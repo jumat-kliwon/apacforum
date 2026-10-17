@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { registrationSchema } from '../../shared/schemas/participant'
+import { earlyBirdEnded } from '../../shared/utils/earlyBird'
 import { formatRegNo } from '../../shared/utils/numbering'
 import { db } from '../db'
 import { events, participants, ticketTypes, transactions, users } from '../db/schema'
@@ -33,6 +34,7 @@ export async function registerParticipant(slug: string, input: RegistrationData)
       .where(and(eq(ticketTypes.id, input.ticketTypeId), eq(ticketTypes.eventId, event.id)))
       .for('update')
     if (!ticket || !ticket.isOnSale) throw createError({ statusCode: 422, statusMessage: 'This participant type is not available' })
+    if (earlyBirdEnded(ticket)) throw createError({ statusCode: 409, statusMessage: `The early-bird period for ${ticket.name} has ended` })
     if (await activeCount(tx, ticket.id) >= ticket.quota) {
       throw createError({ statusCode: 409, statusMessage: `${ticket.name} is sold out` })
     }

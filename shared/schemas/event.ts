@@ -71,7 +71,11 @@ export const ticketTypeSchema = z.object({
   price: z.coerce.number<number>().int().min(0, 'Cannot be negative'),
   paxPerTicket: z.coerce.number<number>().int().min(1).max(100).default(1),
   quota: z.coerce.number<number>().int().min(0, 'Cannot be negative'),
-  isOnSale: z.boolean().default(true)
+  isOnSale: z.boolean().default(true),
+  /** An early-bird ticket needs `earlyBirdUntil`; off clears it. */
+  isEarlyBird: z.boolean().default(false),
+  /** A date; the ticket can be bought until 23:59 WIB on that day. */
+  earlyBirdUntil: isoDate.optional().or(z.literal('')).transform(v => v || null)
 })
 
 export const eventFormSchema = z.object({
@@ -109,6 +113,10 @@ export type EventForm = z.output<typeof eventFormSchema>
 /** One ticket type — the form on the Tickets page. The event cannot change after it is created. */
 export const ticketTypeFormSchema = ticketTypeSchema.omit({ id: true }).extend({
   eventId: z.uuid('Choose an event')
+}).superRefine((v, ctx) => {
+  if (v.isEarlyBird && !v.earlyBirdUntil) {
+    ctx.addIssue({ code: 'custom', path: ['earlyBirdUntil'], message: 'Required for an early-bird ticket' })
+  }
 })
 
 export type TicketTypeFormInput = z.input<typeof ticketTypeFormSchema>
