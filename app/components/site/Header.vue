@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NAV, REGISTER_LINKS_ENABLED, type NavEntry } from '~/data/site'
+import { NAV, type NavEntry } from '~/data/site'
 
 const route = useRoute()
 
@@ -9,7 +9,7 @@ const openIndex = ref(-1)
 const drawerOpen = ref(false)
 const expanded = ref(-1)
 
-const registerHref = REGISTER_LINKS_ENABLED ? '/apcr-2026#registration' : '#'
+const registerHref = await useRegisterHref('/apcr-2026#registration')
 
 function isExternal(to?: string) {
   return !!to && /^https?:\/\//.test(to)

@@ -3,6 +3,8 @@ import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
 import type { z } from 'zod'
 import { registrationSchema, type RegistrationInput } from '~~/shared/schemas/participant'
 
+definePageMeta({ layout: 'site' })
+
 const route = useRoute()
 const slug = String(route.params.slug)
 const { data, error } = await useFetch(`/api/public/events/${slug}`)
@@ -18,14 +20,14 @@ useHead({ title: () => `Register · ${ev.value.name}` })
 const ticketItems = computed(() => data.value!.ticketTypes.map(t => ({
   value: t.id,
   label: t.name,
-  description: `${formatRupiah(t.price)}${t.paxPerTicket > 1 ? ` / ${t.paxPerTicket} people` : ''} · ${t.remaining ? `${formatNumber(t.remaining)} seats left` : 'Sold out'}`,
+  description: t.remaining ? `${formatRupiah(t.price)}${t.paxPerTicket > 1 ? ` / ${t.paxPerTicket} people` : ''}` : 'Sold out',
   disabled: !t.remaining
 })))
 
-type FormState = Omit<Partial<RegistrationInput>, 'country' | 'tshirtSize'> & { country?: string, tshirtSize?: string }
+type FormState = Omit<Partial<RegistrationInput>, 'country'> & { country?: string }
 const state = reactive<FormState>({
   name: '', email: '', phone: '', organization: '', jobTitle: '', country: 'ID', city: '',
-  tshirtSize: undefined, mealPreference: '', referralSource: '', ticketTypeId: undefined, agree: undefined
+  ticketTypeId: undefined, agree: undefined
 })
 /** UForm expects the schema's input type; selects work with plain strings. */
 const formState = state as unknown as Partial<RegistrationInput>
@@ -61,111 +63,109 @@ function onError(e: FormErrorEvent) {
 </script>
 
 <template>
-  <template v-if="data">
-    <UBreadcrumb :items="[{ label: ev.name, to: `/events/${slug}` }, { label: 'Register' }]" />
+  <div v-if="data">
+    <SiteHero
+      eyebrow="REGISTRATION"
+      :title="`REGISTER FOR ${ev.name.toUpperCase()}.`"
+      :blurb="ev.tagline || undefined"
+      title-class="text-[clamp(30px,4.4vw,54px)] leading-none tracking-[-0.047em]"
+    >
+      <template #under>
+        <div class="flex flex-wrap gap-x-6 gap-y-2 text-[14px] text-white/70">
+          <span class="flex items-center gap-2"><UIcon name="i-lucide-calendar-days" class="size-4" />{{ formatDateRange(ev.startDate, ev.endDate) }}</span>
+          <span class="flex items-center gap-2"><UIcon name="i-lucide-map-pin" class="size-4" />{{ ev.venueName }}, {{ ev.city }}</span>
+        </div>
+      </template>
+    </SiteHero>
 
-    <div v-if="done" class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-md border border-default bg-default p-8 text-center shadow-xs" role="status">
-      <span class="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
-        <UIcon name="i-lucide-circle-check" class="size-6" />
-      </span>
-      <h1 class="text-2xl font-bold text-highlighted">
-        Thanks for registering
-      </h1>
-      <p v-if="done.free" class="text-muted">
-        Your registration is confirmed. We emailed your e-ticket with a QR code to <strong class="text-highlighted">{{ state.email }}</strong>.
-      </p>
-      <p v-else class="text-muted">
-        We could not open the payment page right now. We emailed the invoice to <strong class="text-highlighted">{{ state.email }}</strong> — use the payment link in it within 48 hours.
-      </p>
-      <p v-if="done.regNo" class="text-sm">
-        Registration no. <span class="font-mono font-medium">{{ done.regNo }}</span>
-      </p>
-      <p v-if="done.invoiceNo && !done.free" class="text-sm">
-        Invoice <span class="font-mono font-medium">{{ done.invoiceNo }}</span>
-      </p>
-      <UButton :to="`/events/${slug}`" color="neutral" variant="outline" label="Back to event page" />
-    </div>
-
-    <div v-else-if="!ev.isOpen" class="rounded-md border border-default bg-default p-10">
-      <UEmpty icon="i-lucide-calendar-x" title="Registration is closed" description="This event is no longer accepting registrations." :actions="[{ label: 'Back to event page', to: `/events/${slug}` }]" />
-    </div>
-
-    <div v-else class="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-      <UCard :ui="{ body: 'p-6 sm:p-8' }">
-        <div class="mb-6 flex flex-col gap-1">
-          <h1 class="text-2xl font-bold text-highlighted">
-            Register for {{ ev.name }}
-          </h1>
-          <p class="text-sm text-muted">
-            All fields are required unless marked Optional. We use these details for your name badge and certificate.
+    <section class="py-20 lg:pb-[84px] lg:pt-20">
+      <SiteContainer>
+        <div v-if="done" class="mx-auto flex w-full max-w-xl flex-col items-center gap-4 rounded-[2px] border border-ink/16 bg-white p-8 text-center sm:p-11" role="status">
+          <span class="flex size-12 items-center justify-center rounded-full bg-success/10 text-success">
+            <UIcon name="i-lucide-circle-check" class="size-6" />
+          </span>
+          <h2 class="text-[clamp(24px,2.9vw,34px)] font-extrabold leading-[1.12] tracking-[-0.032em] text-ink">
+            Thanks for registering
+          </h2>
+          <p v-if="done.free" class="text-[16px] leading-[1.7] text-prose">
+            Your registration is confirmed. We emailed your e-ticket with a QR code to <strong class="text-ink">{{ state.email }}</strong>.
           </p>
+          <p v-else class="text-[16px] leading-[1.7] text-prose">
+            We could not open the payment page right now. We emailed the invoice to <strong class="text-ink">{{ state.email }}</strong> — use the payment link in it within 48 hours.
+          </p>
+          <p v-if="done.regNo" class="text-sm">
+            Registration no. <span class="font-mono font-medium">{{ done.regNo }}</span>
+          </p>
+          <p v-if="done.invoiceNo && !done.free" class="text-sm">
+            Invoice <span class="font-mono font-medium">{{ done.invoiceNo }}</span>
+          </p>
+          <SiteButton :to="`/events/${slug}`" variant="dark">
+            Back to event page
+          </SiteButton>
         </div>
 
-        <UAlert v-if="serverError" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="serverError" class="mb-6" />
+        <div v-else-if="!ev.isOpen" class="rounded-[2px] border border-ink/16 bg-white p-10">
+          <UEmpty icon="i-lucide-calendar-x" title="Registration is closed" description="This event is no longer accepting registrations." :actions="[{ label: 'Back to event page', to: `/events/${slug}` }]" />
+        </div>
 
-        <UForm :schema="registrationSchema" :state="formState" class="flex flex-col gap-6" @submit="onSubmit" @error="onError">
-          <UFormField label="Participant type" name="ticketTypeId" required>
-            <URadioGroup v-model="state.ticketTypeId" :items="ticketItems" variant="card" class="w-full" />
-          </UFormField>
-
-          <div class="grid gap-5 sm:grid-cols-2">
-            <UFormField label="Full name" name="name" required class="sm:col-span-2" help="As it should appear on your badge and certificate.">
-              <UInput v-model="state.name" autocomplete="name" class="w-full" />
-            </UFormField>
-            <UFormField label="Email" name="email" required>
-              <UInput v-model="state.email" type="email" autocomplete="email" class="w-full" />
-            </UFormField>
-            <UFormField label="Phone" name="phone" required>
-              <UInput v-model="state.phone" type="tel" autocomplete="tel" placeholder="+62 812 3456 7890" class="w-full" />
-            </UFormField>
-            <UFormField label="Organization" name="organization" required>
-              <UInput v-model="state.organization" autocomplete="organization" class="w-full" />
-            </UFormField>
-            <UFormField label="Job title" name="jobTitle" required>
-              <UInput v-model="state.jobTitle" autocomplete="organization-title" class="w-full" />
-            </UFormField>
-            <UFormField label="Country" name="country" required>
-              <USelect v-model="state.country" :items="toItems(COUNTRIES)" class="w-full" />
-            </UFormField>
-            <UFormField label="City" name="city" required>
-              <UInput v-model="state.city" autocomplete="address-level2" class="w-full" />
-            </UFormField>
-            <UFormField label="T-shirt size" name="tshirtSize" hint="Optional">
-              <USelect v-model="state.tshirtSize" :items="TSHIRT_ITEMS" placeholder="Choose a size" class="w-full" />
-            </UFormField>
-            <UFormField label="Meal preference" name="mealPreference" hint="Optional">
-              <UInput v-model="state.mealPreference!" placeholder="For example: halal, vegetarian" class="w-full" />
-            </UFormField>
-            <UFormField label="How did you hear about us?" name="referralSource" hint="Optional" class="sm:col-span-2">
-              <UInput v-model="state.referralSource!" class="w-full" />
-            </UFormField>
+        <div v-else class="rounded-[2px] border border-ink/16 bg-white p-6 sm:p-8 lg:p-11">
+          <div class="mb-8 flex flex-col gap-3">
+            <SiteEyebrow>PARTICIPANT DETAILS</SiteEyebrow>
+            <p class="text-[14px] leading-[1.7] text-prose">
+              All fields are required. We use these details for your name badge and certificate.
+            </p>
           </div>
 
-          <UFormField name="agree">
-            <UCheckbox v-model="agree" label="I confirm these details are correct and agree to be contacted about this event." />
-          </UFormField>
+          <UAlert v-if="serverError" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="serverError" class="mb-6" />
 
-          <UButton type="submit" size="lg" label="Register and pay" :loading="submitting" class="self-start" />
-        </UForm>
-      </UCard>
+          <UForm :schema="registrationSchema" :state="formState" class="flex flex-col gap-6" @submit="onSubmit" @error="onError">
+            <UFormField label="Participant type" name="ticketTypeId" required>
+              <URadioGroup
+                v-model="state.ticketTypeId"
+                :items="ticketItems"
+                variant="card"
+                class="w-full"
+                :ui="{
+                  fieldset: 'grid gap-3 md:grid-cols-3',
+                  item: 'rounded-[2px] border-ink/16 bg-white p-5 has-data-[state=checked]:border-navy has-data-[state=checked]:bg-paper-soft',
+                  label: 'text-[15px] font-extrabold leading-[1.3] text-ink',
+                  description: 'mt-1.5 text-[14px] text-prose'
+                }"
+              />
+            </UFormField>
 
-      <aside class="flex flex-col gap-3 rounded-md border border-default bg-default p-5 shadow-xs lg:sticky lg:top-24">
-        <h2 class="font-semibold text-highlighted">
-          {{ ev.name }}
-        </h2>
-        <p class="flex items-start gap-2 text-sm">
-          <UIcon name="i-lucide-calendar-days" class="mt-0.5 size-4 shrink-0 text-muted" />{{ formatDateRange(ev.startDate, ev.endDate) }}
-        </p>
-        <p class="flex items-start gap-2 text-sm">
-          <UIcon name="i-lucide-map-pin" class="mt-0.5 size-4 shrink-0 text-muted" />{{ ev.venueName }}, {{ ev.city }}
-        </p>
-        <USeparator />
-        <ol class="flex flex-col gap-2 text-sm text-muted">
-          <li>1. Submit this form.</li>
-          <li>2. You are taken to DOKU to pay — the invoice stays payable for 48 hours.</li>
-          <li>3. Receive your e-ticket with a QR code by email.</li>
-        </ol>
-      </aside>
-    </div>
-  </template>
+            <div class="grid gap-5 sm:grid-cols-2">
+              <UFormField label="Full name" name="name" required class="sm:col-span-2" help="As it should appear on your badge and certificate.">
+                <UInput v-model="state.name" autocomplete="name" class="w-full" />
+              </UFormField>
+              <UFormField label="Email" name="email" required>
+                <UInput v-model="state.email" type="email" autocomplete="email" class="w-full" />
+              </UFormField>
+              <UFormField label="Phone" name="phone" required>
+                <UInput v-model="state.phone" type="tel" autocomplete="tel" placeholder="+62 812 3456 7890" class="w-full" />
+              </UFormField>
+              <UFormField label="Organization" name="organization" required>
+                <UInput v-model="state.organization" autocomplete="organization" class="w-full" />
+              </UFormField>
+              <UFormField label="Job title" name="jobTitle" required>
+                <UInput v-model="state.jobTitle" autocomplete="organization-title" class="w-full" />
+              </UFormField>
+              <UFormField label="Country" name="country" required>
+                <USelect v-model="state.country" :items="toItems(COUNTRIES)" class="w-full" />
+              </UFormField>
+              <UFormField label="City" name="city" required>
+                <UInput v-model="state.city" autocomplete="address-level2" class="w-full" />
+              </UFormField>
+            </div>
+
+            <UFormField name="agree">
+              <UCheckbox v-model="agree" label="I confirm these details are correct and agree to be contacted about this event." />
+            </UFormField>
+
+            <UButton type="submit" size="lg" label="Register and pay" :loading="submitting" trailing-icon="i-lucide-arrow-right" class="self-start rounded-[2px] bg-navy px-6 py-4 text-[12px] font-extrabold tracking-[0.067em] text-white hover:bg-navy-deep" />
+          </UForm>
+        </div>
+      </SiteContainer>
+    </section>
+  </div>
 </template>
