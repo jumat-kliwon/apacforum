@@ -7,7 +7,12 @@ export default defineNuxtConfig({
     head: {
       htmlAttrs: { lang: 'en' },
       title: 'APCR',
-      titleTemplate: '%s · APCR'
+      titleTemplate: '%s · APCR',
+      // the globe emblem from the APCR logo
+      link: [
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }
+      ]
     }
   },
   routeRules: {
