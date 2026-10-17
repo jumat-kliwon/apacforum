@@ -6,7 +6,7 @@ import { events, participants, ticketTypes, transactions, users } from '~~/serve
 const query = z.object({ eventId: z.uuid() })
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'dashboard.view')
   const { eventId } = parseQuery(event, query)
 
   const [ev] = await db.select({ id: events.id, timezone: events.timezone }).from(events).where(eq(events.id, eventId))

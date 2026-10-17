@@ -4,7 +4,7 @@ import { setEventStatus } from '~~/server/services/events'
 const schema = z.object({ status: z.enum(['draft', 'published']) })
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'events.manage')
   const id = parseId(event)
   const { status } = await parseBody(event, schema)
   await setEventStatus(id, status)

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TicketTypeForm } from '~~/shared/schemas/event'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'events.manage' })
 
 const eventId = useEventId()
 const notify = useNotify()

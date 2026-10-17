@@ -1,4 +1,5 @@
 import { relations } from 'drizzle-orm'
+import { permissions, rolePermissions, roles } from './access'
 import { articles } from './articles'
 import { accounts, sessions, users } from './auth'
 import { agendaDays, events, partners, speakers, ticketTypes } from './events'
@@ -70,4 +71,13 @@ export const articlesRelations = relations(articles, ({ one }) => ({
 
 export const guestbookEntriesRelations = relations(guestbookEntries, ({ one }) => ({
   event: one(events, { fields: [guestbookEntries.eventId], references: [events.id] })
+}))
+
+export const rolesRelations = relations(roles, ({ many }) => ({
+  permissions: many(rolePermissions)
+}))
+
+export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => ({
+  role: one(roles, { fields: [rolePermissions.roleId], references: [roles.id] }),
+  permission: one(permissions, { fields: [rolePermissions.permissionKey], references: [permissions.key] })
 }))

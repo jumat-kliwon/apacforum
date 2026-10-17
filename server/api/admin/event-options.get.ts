@@ -7,7 +7,7 @@ const query = z.object({ eventId: z.uuid().optional() })
 
 /** Every event (for the event switcher) and ticket type names (for filters; only one event's when `eventId` is given). */
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event)
   const { eventId } = parseQuery(event, query)
   const [evs, tts] = await Promise.all([
     db.select({

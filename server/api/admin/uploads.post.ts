@@ -10,7 +10,7 @@ const schema = z.object({
 
 /** Direct-to-R2 upload URL. The browser then `PUT`s the file to `uploadUrl` and keeps `key` in the form. */
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'news.manage', 'events.manage')
   const { folder, contentType } = await parseBody(event, schema)
   const key = `${folder}/${uuidv7()}.${UPLOAD_TYPES[contentType]}`
   return { key, uploadUrl: presignUpload(key, contentType), publicUrl: publicUrl(key) }

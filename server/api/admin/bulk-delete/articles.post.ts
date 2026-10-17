@@ -1,3 +1,3 @@
 import { deleteArticle } from '~~/server/services/articles'
 
-export default defineEventHandler(event => bulkDelete(event, deleteArticle))
+export default defineEventHandler(event => bulkDelete(event, 'news.manage', deleteArticle))

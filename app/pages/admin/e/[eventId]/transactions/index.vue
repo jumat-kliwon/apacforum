@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import type { DropdownMenuItem, TableColumn } from '@nuxt/ui'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'transactions.manage' })
 
 const eventId = useEventId()
+const { can } = useAdminAccess()
 const list = useListQuery({
   sort: 'date',
   dir: 'desc',
@@ -80,7 +81,7 @@ const rangeText = computed(() => {
 
 <template>
   <AdminPageHeader title="Transactions" description="Ticket payments from registered participants.">
-    <template #actions>
+    <template v-if="can('exports.manage')" #actions>
       <UButton :to="exportUrl()" external download color="neutral" variant="outline" icon="i-lucide-download" label="Export CSV" />
     </template>
   </AdminPageHeader>
@@ -122,7 +123,7 @@ const rangeText = computed(() => {
       description="Their invoices, payment details and status history are removed, paid ones included, so they leave the financial reports. Registrations are kept. A deleted pending invoice can still be paid through its DOKU link, and that payment will then not be recorded."
       @deleted="refresh()"
     >
-      <UButton size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl(selectedIds)" external download />
+      <UButton v-if="can('exports.manage')" size="sm" color="neutral" variant="outline" icon="i-lucide-download" label="Export" :to="exportUrl(selectedIds)" external download />
     </AdminBulkBar>
 
     <UTable v-model:column-visibility="columnVisibility" :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No transactions match these filters." class="-mx-4 sm:-mx-5">
@@ -135,7 +136,7 @@ const rangeText = computed(() => {
         </NuxtLink>
       </template>
       <template #name-cell="{ row }">
-        <NuxtLink v-if="row.original.userId" :to="eventPath(eventId, 'registrations', row.original.userId)" class="font-semibold text-highlighted hover:underline">
+        <NuxtLink v-if="row.original.userId && can('registrations.manage')" :to="eventPath(eventId, 'registrations', row.original.userId)" class="font-semibold text-highlighted hover:underline">
           {{ row.original.participantName }}
         </NuxtLink>
         <span v-else class="font-semibold text-highlighted">{{ row.original.participantName }}</span>

@@ -5,7 +5,7 @@ import { events, participants, ticketTypes, transactions, users } from '~~/serve
 
 /** Participant detail: profile, every event registration (with its e-ticket QR), transaction history. */
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'registrations.manage')
   const id = parseId(event)
   const [user] = await db.select({
     id: users.id, name: users.name, email: users.email, phone: users.phone, organization: users.organization,

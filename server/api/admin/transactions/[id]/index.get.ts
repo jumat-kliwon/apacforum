@@ -3,7 +3,7 @@ import { db } from '~~/server/db'
 import { events, participants, transactions, users } from '~~/server/db/schema'
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requirePermission(event, 'transactions.manage')
   const id = parseId(event)
   const [row] = await db.select({
     trx: transactions,
