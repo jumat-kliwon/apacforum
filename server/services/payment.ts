@@ -1,7 +1,6 @@
 import { and, eq, gt, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { TransactionHistoryEntry } from '../../shared/schemas/transaction'
 import { formatInvoiceNo, formatTicketCode } from '../../shared/utils/numbering'
-import { isEarlyBird, ticketPriceAt } from '../../shared/utils/pricing'
 import { db } from '../db'
 import { jsonParam } from '../db/columns'
 import { events, participants, ticketTypes, transactions, users } from '../db/schema'
@@ -37,10 +36,7 @@ export async function createInvoice(tx: Tx, participantId: string, actor: { id: 
     .where(eq(events.id, row.e.id))
     .returning({ invoiceSeq: events.invoiceSeq })
   const issuedAt = now()
-  // early bird goes by when they registered, so a later admin verification keeps the price
-  const price = ticketPriceAt(row.t, row.p.createdAt)
-  const earlyBird = isEarlyBird(row.t, row.p.createdAt)
-  const free = price === 0
+  const free = row.t.price === 0
 
   const [trx] = await tx.insert(transactions).values({
     invoiceNo: formatInvoiceNo(row.e.code, seq!.invoiceSeq, issuedAt),
@@ -52,12 +48,12 @@ export async function createInvoice(tx: Tx, participantId: string, actor: { id: 
     eventName: row.e.name,
     ticketTypeName: row.t.name,
     status: free ? 'paid' : 'pending',
-    total: price,
+    total: row.t.price,
     expiresAt: free ? null : new Date(issuedAt.getTime() + PAYMENT_WINDOW_HOURS * 3600_000),
     paidAt: free ? issuedAt : null,
     items: {
-      lines: [{ description: `${row.t.name} ticket${earlyBird ? ' (Early bird)' : ''}`, note: row.e.name, qty: 1, unitPrice: price, subtotal: price }],
-      subtotal: price,
+      lines: [{ description: `${row.t.name} ticket`, note: row.e.name, qty: 1, unitPrice: row.t.price, subtotal: row.t.price }],
+      subtotal: row.t.price,
       discount: 0
     },
     history: [entry('created', { description: actor ? `by ${actor.name} after verification` : 'on registration', actor })]

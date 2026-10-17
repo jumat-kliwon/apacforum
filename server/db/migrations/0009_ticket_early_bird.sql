@@ -1,4 +1,3 @@
-ALTER TABLE "ticket_types" ADD COLUMN "early_bird_price" bigint;--> statement-breakpoint
+ALTER TABLE "ticket_types" ADD COLUMN "is_early_bird" boolean DEFAULT false NOT NULL;--> statement-breakpoint
 ALTER TABLE "ticket_types" ADD COLUMN "early_bird_until" timestamp with time zone;--> statement-breakpoint
-ALTER TABLE "ticket_types" ADD CONSTRAINT "ticket_types_early_bird_pair" CHECK (("ticket_types"."early_bird_price" is null) = ("ticket_types"."early_bird_until" is null));--> statement-breakpoint
-ALTER TABLE "ticket_types" ADD CONSTRAINT "ticket_types_early_bird_price" CHECK ("ticket_types"."early_bird_price" is null or ("ticket_types"."early_bird_price" >= 0 and "ticket_types"."early_bird_price" < "ticket_types"."price"));
+ALTER TABLE "ticket_types" ADD CONSTRAINT "ticket_types_early_bird_until" CHECK ("ticket_types"."is_early_bird" = ("ticket_types"."early_bird_until" is not null));

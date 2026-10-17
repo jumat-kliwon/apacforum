@@ -123,8 +123,8 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       <template #price-cell="{ row }">
         <div class="flex flex-col gap-0.5 whitespace-nowrap">
           <span class="tabular-nums">{{ formatRupiah(row.original.price) }}</span>
-          <span v-if="row.original.earlyBirdPrice != null && row.original.earlyBirdUntil" class="text-xs tabular-nums" :class="isEarlyBird(row.original) ? 'text-success' : 'text-muted'">
-            Early bird {{ formatRupiah(row.original.earlyBirdPrice) }} · {{ isEarlyBird(row.original) ? 'until' : 'ended' }} {{ formatDate(row.original.earlyBirdUntil, 'short') }}
+          <span v-if="row.original.isEarlyBird && row.original.earlyBirdUntil" class="text-xs tabular-nums" :class="earlyBirdEnded(row.original) ? 'text-muted' : 'text-success'">
+            Early bird · {{ earlyBirdEnded(row.original) ? 'ended' : 'until' }} {{ formatDate(row.original.earlyBirdUntil, 'short') }}
           </span>
         </div>
       </template>

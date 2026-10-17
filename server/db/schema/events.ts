@@ -91,8 +91,8 @@ export const ticketTypes = pgTable('ticket_types', {
   code: varchar({ length: 6 }).notNull(),
   name: varchar({ length: 120 }).notNull(),
   price: bigint({ mode: 'number' }).notNull(),
-  /** Charged instead of `price` to registrations made up to `earlyBirdUntil`; both null = no early bird. */
-  earlyBirdPrice: bigint({ mode: 'number' }),
+  /** An early-bird ticket can only be bought up to `earlyBirdUntil`. */
+  isEarlyBird: boolean().notNull().default(false),
   earlyBirdUntil: timestamp({ withTimezone: true }),
   paxPerTicket: smallint().notNull().default(1),
   quota: integer().notNull(),
@@ -103,8 +103,7 @@ export const ticketTypes = pgTable('ticket_types', {
 }, t => [
   unique().on(t.eventId, t.code),
   check('ticket_types_price_nonnegative', sql`${t.price} >= 0`),
-  check('ticket_types_early_bird_pair', sql`(${t.earlyBirdPrice} is null) = (${t.earlyBirdUntil} is null)`),
-  check('ticket_types_early_bird_price', sql`${t.earlyBirdPrice} is null or (${t.earlyBirdPrice} >= 0 and ${t.earlyBirdPrice} < ${t.price})`),
+  check('ticket_types_early_bird_until', sql`${t.isEarlyBird} = (${t.earlyBirdUntil} is not null)`),
   check('ticket_types_quota_nonnegative', sql`${t.quota} >= 0`),
   check('ticket_types_pax_positive', sql`${t.paxPerTicket} >= 1`)
 ])

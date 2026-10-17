@@ -15,16 +15,10 @@ const emit = defineEmits<{ submit: [TicketTypeForm] }>()
 
 const state = reactive<TicketTypeFormInput>(props.initial
   ? structuredClone(toRaw(props.initial))
-  : { eventId: props.eventId, code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true, earlyBird: false, earlyBirdPrice: undefined, earlyBirdUntil: undefined })
+  : { eventId: props.eventId, code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true, isEarlyBird: false, earlyBirdUntil: undefined })
 const pricePerPerson = computed(() => {
   const pax = Number(state.paxPerTicket) || 1
   return pax > 1 ? formatRupiah(Math.round((Number(state.price) || 0) / pax)) : null
-})
-const earlyBirdHelp = computed(() => {
-  const price = Number(state.price) || 0
-  const early = Number(state.earlyBirdPrice)
-  if (state.earlyBirdPrice == null || Number.isNaN(early) || early >= price) return 'Must be lower than the regular price.'
-  return `${formatRupiah(price - early)} off (${Math.round(((price - early) / price) * 100)}%)`
 })
 
 function onSubmit(e: FormSubmitEvent<TicketTypeForm>) {
@@ -82,26 +76,17 @@ function onError(e: FormErrorEvent) {
       <div class="flex items-start justify-between gap-4 rounded-md border border-default p-4">
         <div>
           <p class="text-sm font-medium text-highlighted">
-            Early-bird price
+            Early-bird ticket
           </p>
           <p class="text-[13px]/[18px] text-muted">
-            Registrations made up to the end date pay the early-bird price; after that, the regular price.
+            Sold at its own price until the end date, then no longer offered. Pair it with a regular ticket type for later registrations.
           </p>
         </div>
-        <USwitch v-model="state.earlyBird" aria-label="Early-bird price" />
+        <USwitch v-model="state.isEarlyBird" aria-label="Early-bird ticket" />
       </div>
-      <div v-if="state.earlyBird" class="grid gap-4 sm:grid-cols-2">
-        <UFormField label="Early-bird price" name="earlyBirdPrice" required :help="earlyBirdHelp">
-          <UInput v-model.number="state.earlyBirdPrice" type="number" min="0" class="w-full" :ui="{ base: 'ps-13' }">
-            <template #leading>
-              <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">Rp</span>
-            </template>
-          </UInput>
-        </UFormField>
-        <UFormField label="Early bird ends" name="earlyBirdUntil" required help="Ends at 23:59 WIB on this day.">
-          <UInput v-model="state.earlyBirdUntil" type="date" class="w-full" />
-        </UFormField>
-      </div>
+      <UFormField v-if="state.isEarlyBird" label="Early bird ends" name="earlyBirdUntil" required help="Can be bought until 23:59 WIB on this day." class="sm:max-w-xs">
+        <UInput v-model="state.earlyBirdUntil" type="date" class="w-full" />
+      </UFormField>
     </AdminPanel>
 
     <div class="sticky bottom-0 z-10 -mx-4 -mb-10 mt-auto flex flex-wrap items-center gap-3 border-t border-default bg-default px-4 py-4 sm:-mx-8 sm:px-8">

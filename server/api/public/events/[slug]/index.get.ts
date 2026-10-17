@@ -3,7 +3,7 @@ import { db } from '~~/server/db'
 import { agendaDays, events, partners, speakers, ticketTypes } from '~~/server/db/schema'
 import { activeCount } from '~~/server/services/payment'
 import { publicUrl } from '~~/server/services/storage'
-import { isEarlyBird, ticketPriceAt } from '~~/shared/utils/pricing'
+import { earlyBirdEnded } from '~~/shared/utils/earlyBird'
 
 /** Public event page: published events, published speakers and tickets on sale only. */
 export default defineEventHandler(async (event) => {
@@ -17,7 +17,9 @@ export default defineEventHandler(async (event) => {
     db.select().from(partners).where(eq(partners.eventId, ev.id)).orderBy(asc(partners.sortOrder)),
     db.select().from(ticketTypes).where(and(eq(ticketTypes.eventId, ev.id), eq(ticketTypes.isOnSale, true))).orderBy(asc(ticketTypes.sortOrder))
   ])
-  const remaining = await Promise.all(tickets.map(async t => Math.max(0, t.quota - await activeCount(db, t.id))))
+  // an early-bird ticket disappears once its period ends
+  const onSale = tickets.filter(t => !earlyBirdEnded(t))
+  const remaining = await Promise.all(onSale.map(async t => Math.max(0, t.quota - await activeCount(db, t.id))))
 
   return {
     event: {
@@ -29,19 +31,10 @@ export default defineEventHandler(async (event) => {
     agendaDays: days.map(d => ({ id: d.id, label: d.label, date: d.date, theme: d.theme, body: d.body })),
     speakers: sp.map(s => ({ id: s.id, name: s.name, title: s.title, category: s.category, photoUrl: publicUrl(s.photoKey), dayLabel: days.find(d => d.id === s.agendaDayId)?.label ?? null })),
     partners: pa.map(p => ({ id: p.id, name: p.name, category: p.category, websiteUrl: p.websiteUrl, logoUrl: publicUrl(p.logoKey) })),
-    ticketTypes: tickets.map((t, i) => {
-      const earlyBird = isEarlyBird(t)
-      return {
-        id: t.id,
-        name: t.name,
-        /** What registering now costs. */
-        price: ticketPriceAt(t),
-        /** Set while the early-bird price applies: the regular price and when the offer ends. */
-        regularPrice: earlyBird ? t.price : null,
-        earlyBirdUntil: earlyBird ? t.earlyBirdUntil : null,
-        paxPerTicket: t.paxPerTicket,
-        remaining: remaining[i]!
-      }
-    })
+    ticketTypes: onSale.map((t, i) => ({
+      id: t.id, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, remaining: remaining[i]!,
+      /** Set for an early-bird ticket: when it stops being sold. */
+      earlyBirdUntil: t.isEarlyBird ? t.earlyBirdUntil : null
+    }))
   }
 })

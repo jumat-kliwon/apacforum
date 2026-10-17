@@ -35,8 +35,7 @@ export async function loadMailData(participantId: string, d: Db = db): Promise<M
     regNo: row.p.regNo,
     organization: row.u.organization,
     ticketTypeName: row.t.name,
-    // what they were invoiced, which is the early-bird price when it applied
-    ticketPrice: trx?.total ?? row.t.price,
+    ticketPrice: row.t.price,
     ticketCode: row.p.ticketCode,
     rejectionReason: row.p.rejectionReason,
     invoice: trx

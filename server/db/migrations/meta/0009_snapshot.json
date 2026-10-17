@@ -1,5 +1,5 @@
 {
-  "id": "91be9891-dfb6-4af9-a06c-6ee35b2e51f8",
+  "id": "59bfb5c1-54f7-4552-bebf-a47578d65280",
   "prevId": "7180daa2-de63-4d4b-b304-d77c64e18356",
   "version": "7",
   "dialect": "postgresql",
@@ -1317,11 +1317,12 @@
           "primaryKey": false,
           "notNull": true
         },
-        "early_bird_price": {
-          "name": "early_bird_price",
-          "type": "bigint",
+        "is_early_bird": {
+          "name": "is_early_bird",
+          "type": "boolean",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": false
         },
         "early_bird_until": {
           "name": "early_bird_until",
@@ -1411,13 +1412,9 @@
           "name": "ticket_types_price_nonnegative",
           "value": "\"ticket_types\".\"price\" >= 0"
         },
-        "ticket_types_early_bird_pair": {
-          "name": "ticket_types_early_bird_pair",
-          "value": "(\"ticket_types\".\"early_bird_price\" is null) = (\"ticket_types\".\"early_bird_until\" is null)"
-        },
-        "ticket_types_early_bird_price": {
-          "name": "ticket_types_early_bird_price",
-          "value": "\"ticket_types\".\"early_bird_price\" is null or (\"ticket_types\".\"early_bird_price\" >= 0 and \"ticket_types\".\"early_bird_price\" < \"ticket_types\".\"price\")"
+        "ticket_types_early_bird_until": {
+          "name": "ticket_types_early_bird_until",
+          "value": "\"ticket_types\".\"is_early_bird\" = (\"ticket_types\".\"early_bird_until\" is not null)"
         },
         "ticket_types_quota_nonnegative": {
           "name": "ticket_types_quota_nonnegative",
