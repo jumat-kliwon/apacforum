@@ -17,9 +17,7 @@ export default defineEventHandler(async (event) => {
     db.select().from(partners).where(eq(partners.eventId, ev.id)).orderBy(asc(partners.sortOrder)),
     db.select().from(ticketTypes).where(and(eq(ticketTypes.eventId, ev.id), eq(ticketTypes.isOnSale, true))).orderBy(asc(ticketTypes.sortOrder))
   ])
-  // an early-bird ticket disappears once its period ends
-  const onSale = tickets.filter(t => !earlyBirdEnded(t))
-  const remaining = await Promise.all(onSale.map(async t => Math.max(0, t.quota - await activeCount(db, t.id))))
+  const remaining = await Promise.all(tickets.map(async t => Math.max(0, t.quota - await activeCount(db, t.id))))
 
   return {
     event: {
@@ -31,10 +29,12 @@ export default defineEventHandler(async (event) => {
     agendaDays: days.map(d => ({ id: d.id, label: d.label, date: d.date, theme: d.theme, body: d.body })),
     speakers: sp.map(s => ({ id: s.id, name: s.name, title: s.title, category: s.category, photoUrl: publicUrl(s.photoKey), dayLabel: days.find(d => d.id === s.agendaDayId)?.label ?? null })),
     partners: pa.map(p => ({ id: p.id, name: p.name, category: p.category, websiteUrl: p.websiteUrl, logoUrl: publicUrl(p.logoKey) })),
-    ticketTypes: onSale.map((t, i) => ({
+    ticketTypes: tickets.map((t, i) => ({
       id: t.id, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, remaining: remaining[i]!,
       /** Set for an early-bird ticket: when it stops being sold. */
-      earlyBirdUntil: t.isEarlyBird ? t.earlyBirdUntil : null
+      earlyBirdUntil: t.isEarlyBird ? t.earlyBirdUntil : null,
+      /** An ended early-bird ticket stays listed (struck through) but cannot be chosen. */
+      earlyBirdEnded: earlyBirdEnded(t)
     }))
   }
 })

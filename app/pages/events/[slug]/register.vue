@@ -20,10 +20,10 @@ useHead({ title: () => `Register · ${ev.value.name}` })
 const ticketItems = computed(() => data.value!.ticketTypes.map(t => ({
   value: t.id,
   label: t.name,
-  description: t.remaining
-    ? `${formatRupiah(t.price)}${t.paxPerTicket > 1 ? ` / ${t.paxPerTicket} people` : ''}${t.earlyBirdUntil ? ` · Early bird until ${formatDate(t.earlyBirdUntil, 'short')}` : ''}`
-    : 'Sold out',
-  disabled: !t.remaining
+  // the description slot renders the price; this is the accessible fallback
+  description: t.earlyBirdEnded ? 'Early bird ended' : t.remaining ? formatRupiah(t.price) : 'Sold out',
+  disabled: !t.remaining || t.earlyBirdEnded,
+  ticket: t
 })))
 
 type FormState = Omit<Partial<RegistrationInput>, 'country'> & { country?: string }
@@ -129,11 +129,28 @@ function onError(e: FormErrorEvent) {
                 class="w-full"
                 :ui="{
                   fieldset: 'grid gap-3 md:grid-cols-3',
-                  item: 'rounded-[2px] border-ink/16 bg-white p-5 has-data-[state=checked]:border-navy has-data-[state=checked]:bg-paper-soft',
+                  item: 'rounded-[2px] border-ink/16 bg-white p-5 has-data-[state=checked]:border-navy has-data-[state=checked]:bg-paper-soft has-data-disabled:cursor-not-allowed has-data-disabled:bg-paper-soft/60',
                   label: 'text-[15px] font-extrabold leading-[1.3] text-ink',
                   description: 'mt-1.5 text-[14px] text-prose'
                 }"
-              />
+              >
+                <template #description="{ item }">
+                  <span class="flex flex-col gap-2">
+                    <span :class="{ 'text-muted line-through': item.ticket.earlyBirdEnded }" class="tabular-nums">
+                      {{ formatRupiah(item.ticket.price) }}<template v-if="item.ticket.paxPerTicket > 1"> / {{ item.ticket.paxPerTicket }} people</template>
+                    </span>
+                    <UBadge
+                      v-if="item.ticket.earlyBirdUntil"
+                      :color="item.ticket.earlyBirdEnded ? 'neutral' : 'success'"
+                      variant="subtle"
+                      :icon="item.ticket.earlyBirdEnded ? 'i-lucide-timer-off' : 'i-lucide-timer'"
+                      :label="`Early bird ${item.ticket.earlyBirdEnded ? 'ended' : 'until'} ${formatDateTime(item.ticket.earlyBirdUntil)} WIB`"
+                      class="self-start"
+                    />
+                    <span v-if="!item.ticket.remaining && !item.ticket.earlyBirdEnded" class="text-error">Sold out</span>
+                  </span>
+                </template>
+              </URadioGroup>
             </UFormField>
 
             <div class="grid gap-5 sm:grid-cols-2">
