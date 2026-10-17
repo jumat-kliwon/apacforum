@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { TableColumn } from '@nuxt/ui'
 
-definePageMeta({ layout: 'admin', middleware: 'admin' })
+definePageMeta({ layout: 'admin', middleware: 'admin', access: 'staff' })
 
 const notify = useNotify()
 const list = useListQuery({ sort: 'updated', dir: 'desc', filters: { status: undefined } as Record<'status', string | undefined> })

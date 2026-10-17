@@ -6,7 +6,7 @@ import { exportParticipants } from '~~/server/services/lists'
 const query = participantListQuery.extend({ ids: z.string().optional() })
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requireSuperadmin(event)
   const q = parseQuery(event, query)
   const ids = q.ids?.split(',').filter(id => /^[0-9a-f-]{36}$/i.test(id))
   const rows = await exportParticipants(q, ids)

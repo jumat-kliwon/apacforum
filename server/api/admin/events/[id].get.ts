@@ -6,7 +6,7 @@ import { publicUrl } from '~~/server/services/storage'
 
 /** Full event: used by the detail page and the edit form. */
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requireStaff(event)
   const id = parseId(event)
   const [ev] = await db.select().from(events).where(eq(events.id, id))
   if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })

@@ -20,6 +20,15 @@ export function switchEventPath(path: string, query: Record<string, unknown>, ev
   return tab ? `${target}?tab=${encodeURIComponent(tab)}` : target
 }
 
+/**
+ * Where an `admin` goes when it opens a superadmin page: the event's registrations
+ * (instead of its dashboard or transactions), else News & Media.
+ */
+export function deniedPath(path: string) {
+  const eventId = /^\/admin\/e\/([^/]+)/.exec(path)?.[1]
+  return eventId ? eventPath(eventId, 'registrations') : '/admin/news'
+}
+
 export type PageSkeleton = 'list' | 'detail' | 'form' | 'dashboard'
 
 /** Which loading skeleton fits a CMS page, from its path. */

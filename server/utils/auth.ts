@@ -1,10 +1,12 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { admin } from 'better-auth/plugins'
+import { adminAc, userAc } from 'better-auth/plugins/admin/access'
 import { uuidv7 } from '../db/columns'
 import { db, schema } from '../db'
+import { STAFF_ROLES } from '../../shared/utils/access'
 
-export const ROLES = ['admin', 'participant'] as const
+export const ROLES = [...STAFF_ROLES, 'participant'] as const
 export type Role = typeof ROLES[number]
 
 /** Participant profile fields: only set on the server (registration form / CMS). */
@@ -39,6 +41,12 @@ export const auth = betterAuth({
     }
   },
   plugins: [
-    admin({ defaultRole: 'participant', adminRoles: ['admin'] })
+    // the plugin's own endpoints (create user, set role, impersonate, ban…) are for superadmins only:
+    // an `admin` gets no plugin permissions, or it could promote itself
+    admin({
+      defaultRole: 'participant',
+      adminRoles: ['superadmin'],
+      roles: { superadmin: adminAc, admin: userAc, participant: userAc }
+    })
   ]
 })

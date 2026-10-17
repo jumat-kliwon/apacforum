@@ -12,7 +12,7 @@ const query = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requireStaff(event)
   const q = parseQuery(event, query)
   const count = sql<number>`count(${participants.id}) filter (where ${participants.status} not in ('rejected', 'cancelled'))::int`
   const sortCol = { name: events.name, date: events.startDate, place: events.city, count, status: events.status }[q.sort]

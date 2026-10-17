@@ -2,6 +2,8 @@
 import type { NavigationMenuItem } from '@nuxt/ui'
 
 const session = useAdminSession()
+// menus only show what the role may open; the middleware and the API enforce it
+const role = useAdminRole()
 const route = useRoute()
 const router = useRouter()
 // where the admin is going: the menu and breadcrumb follow a click at once, before the page has loaded
@@ -21,16 +23,17 @@ const section = (label: string, icon: string, to: string): NavigationMenuItem =>
 const eventItems = computed<NavigationMenuItem[]>(() => {
   const id = current.value?.id
   if (!id) return []
+  const full = role.value === 'superadmin'
   return [
-    { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: eventPath(id), exact: true },
+    full && { label: 'Dashboard', icon: 'i-lucide-layout-dashboard', to: eventPath(id), exact: true },
     section('Registrations', 'i-lucide-users', eventPath(id, 'registrations')),
-    section('Transactions', 'i-lucide-credit-card', eventPath(id, 'transactions')),
+    full && section('Transactions', 'i-lucide-credit-card', eventPath(id, 'transactions')),
     section('Tickets', 'i-lucide-ticket', eventPath(id, 'tickets')),
     section('Speakers', 'i-lucide-mic', eventPath(id, 'speakers')),
     section('Partners', 'i-lucide-handshake', eventPath(id, 'partners')),
     section('Guestbook', 'i-lucide-book-open-text', eventPath(id, 'guestbook')),
     section('Event settings', 'i-lucide-settings', eventPath(id, 'settings'))
-  ]
+  ].filter(item => !!item)
 })
 // breadcrumb after the event switcher, e.g. "Tickets" on /admin/e/:id/tickets/new
 const SECTION_LABELS: Record<string, string> = {
@@ -41,10 +44,10 @@ const sectionLabel = computed(() => {
   return m ? SECTION_LABELS[m[1] ?? ''] : undefined
 })
 
-const workspaceItems: NavigationMenuItem[] = [
+const workspaceItems = computed<NavigationMenuItem[]>(() => [
   { label: 'News & Media', icon: 'i-lucide-newspaper', to: '/admin/news' },
-  { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }
-]
+  ...(role.value === 'superadmin' ? [{ label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }] : [])
+])
 
 const name = computed(() => session.value.data?.user.name ?? '')
 
@@ -140,7 +143,7 @@ watch(() => route.fullPath, () => { open.value = false })
           <UAvatar :text="initials(name || 'A')" size="md" class="bg-brand-100 text-brand-900" />
           <div class="flex min-w-0 grow flex-col">
             <span class="truncate text-sm font-semibold text-highlighted">{{ name }}</span>
-            <span class="text-xs text-muted">Admin</span>
+            <span class="text-xs text-muted">{{ role === 'superadmin' ? 'Superadmin' : 'Admin' }}</span>
           </div>
           <UButton icon="i-lucide-log-out" color="neutral" variant="ghost" aria-label="Sign out" @click="signOut" />
         </div>

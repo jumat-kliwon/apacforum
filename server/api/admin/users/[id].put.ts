@@ -7,7 +7,7 @@ import { users } from '~~/server/db/schema'
 const schema = profileSchema.extend({ email: z.email('Enter a valid email').trim().toLowerCase() })
 
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requireStaff(event)
   const id = parseId(event)
   const body = await parseBody(event, schema)
   try {

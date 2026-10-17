@@ -5,7 +5,7 @@ import { publicUrl } from '~~/server/services/storage'
 
 /** One article for the edit form. */
 export default defineEventHandler(async (event) => {
-  await requireAdmin(event)
+  await requireStaff(event)
   const id = parseId(event)
   const [row] = await db.select({ article: articles, authorName: users.name }).from(articles)
     .leftJoin(users, eq(users.id, articles.authorId))
