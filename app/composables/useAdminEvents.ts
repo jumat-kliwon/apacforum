@@ -8,19 +8,40 @@ export type AdminEventOption = {
   city: string
 }
 
+// the request in flight: the layout and the page it opens both call load() on the first paint, one request serves both
+let pending: Promise<AdminEventOption[]> | null = null
+
 /**
  * Every event, newest first, for the event switcher and the event routes.
  * Loaded once. Call `load(true)` after an event is created, edited, archived or deleted.
  */
 export function useAdminEvents() {
   const events = useState<AdminEventOption[] | null>('admin-events', () => null)
-  async function load(force = false) {
-    if (events.value && !force) return events.value
-    const res = await $fetch('/api/admin/event-options')
-    events.value = res.events
-    return res.events
+  function load(force = false) {
+    if (events.value && !force) return Promise.resolve(events.value)
+    if (pending) return pending
+    pending = $fetch('/api/admin/event-options')
+      .then((res) => {
+        events.value = res.events
+        return res.events
+      })
+      .finally(() => { pending = null })
+    return pending
   }
   return { events, load }
+}
+
+/**
+ * Where a CMS user starts: the last event opened (else the newest) on the first section it may see,
+ * or without any event section its first workspace page. Used after sign-in and by /admin.
+ */
+export async function adminHomePath(permissions: readonly string[]) {
+  const section = firstEventSection(permissions)
+  if (section === undefined) return landingPath(permissions)
+  const events = await useAdminEvents().load()
+  const last = useLastEventId()
+  const target = events.find(e => e.id === last.value) ?? events[0]
+  return target ? eventPath(target.id, section) : null
 }
 
 /** The event the admin opened last, so /admin can go straight back to it. */

@@ -20,23 +20,33 @@ const route = useRoute()
 async function onSubmit(e: FormSubmitEvent<Schema>) {
   loading.value = true
   error.value = ''
-  const { data, error: err } = await authClient.signIn.email({ email: e.data.email, password: e.data.password })
-  loading.value = false
-  if (err || !data) {
-    error.value = err?.status === 401 ? 'Wrong email or password' : (err?.message ?? 'Could not sign in')
-    return
+  // on success the button keeps spinning until the CMS page replaces this one; navigateTo resolves
+  // before that page has loaded its data, so `loading` is only reset when the sign-in fails
+  const fail = (message: string) => {
+    error.value = message
+    loading.value = false
   }
-  // the role decides what the CMS shows; a role without permissions (e.g. participants) has no access
-  const me = await $fetch<AdminAccess>('/api/admin/me').catch(() => null)
-  if (!me) {
-    await authClient.signOut()
-    error.value = 'This account has no admin access'
-    return
+  try {
+    const { data, error: err } = await authClient.signIn.email({ email: e.data.email, password: e.data.password })
+    if (err || !data) return fail(err?.status === 401 ? 'Wrong email or password' : (err?.message ?? 'Could not sign in'))
+    // the event list the home page needs loads alongside the access check (a role without access gets a 403, swallowed here)
+    useAdminEvents().load().catch(() => {})
+    // the role decides what the CMS shows; a role without permissions (e.g. participants) has no access
+    const me = await $fetch<AdminAccess>('/api/admin/me').catch(() => null)
+    if (!me) {
+      await authClient.signOut()
+      return fail('This account has no admin access')
+    }
+    useAdminAccess().access.value = me
+    useAdminSessionCheckedAt().value = Date.now()
+    // straight to the home page (no stop at /admin), or back to the page that asked to sign in
+    const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin')
+      ? route.query.redirect
+      : (await adminHomePath(me.permissions).catch(() => null)) ?? '/admin'
+    await navigateTo(redirect)
+  } catch (err) {
+    fail(errorMessage(err, 'Could not sign in'))
   }
-  useAdminAccess().access.value = me
-  useAdminSessionCheckedAt().value = Date.now()
-  const redirect = typeof route.query.redirect === 'string' && route.query.redirect.startsWith('/admin') ? route.query.redirect : landingPath(me.permissions)
-  await navigateTo(redirect)
 }
 </script>
 

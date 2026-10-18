@@ -1,19 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'admin', permission: 'any' })
 
-// /admin has no content of its own: open the last event, else the newest one (the list is newest first),
-// on the first section the user may see; without any event section, its first workspace page
+// /admin has no content of its own: it opens the user's home page, and shows this only when there is no event yet
 const { access, can } = useAdminAccess()
-const permissions = access.value!.permissions
-const section = firstEventSection(permissions)
-if (section === undefined) {
-  await navigateTo(landingPath(permissions), { replace: true })
-} else {
-  const events = await useAdminEvents().load()
-  const last = useLastEventId()
-  const target = events.find(e => e.id === last.value) ?? events[0]
-  if (target) await navigateTo(eventPath(target.id, section), { replace: true })
-}
+const home = await adminHomePath(access.value!.permissions)
+if (home) await navigateTo(home, { replace: true })
 </script>
 
 <template>
