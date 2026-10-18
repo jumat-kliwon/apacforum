@@ -25,6 +25,13 @@ export default defineNuxtConfig({
   colorMode: {
     preference: 'light'
   },
+  // ship every icon the app names in the client bundle: no /api/_nuxt_icon round trips after each navigation
+  icon: {
+    clientBundle: {
+      scan: { globInclude: ['app/**/*.{vue,ts}', 'shared/**/*.ts'] },
+      sizeLimitKb: 512
+    }
+  },
   fonts: {
     families: [
       { name: 'Rethink Sans', provider: 'google', weights: [400, 500, 600, 700, 800] },

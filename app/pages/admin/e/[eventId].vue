@@ -12,11 +12,18 @@ const last = useLastEventId()
 
 /**
  * Every page below needs an existing event; remember it so /admin opens it next time.
- * Always reload: another tab or admin may have created or deleted events since this tab cached the list.
+ * An event the cached list knows opens at once while the list refreshes behind it (another tab or admin
+ * may have created or deleted events since); one the list does not know is looked up first.
  */
 async function enter(id: string) {
-  const events = await load(true)
-  if (!events.some(e => e.id === id)) throw createError({ statusCode: 404, statusMessage: 'Event not found', fatal: true })
+  const { events: cached } = useAdminEvents()
+  const known = cached.value?.some(e => e.id === id)
+  if (known) {
+    load(true).catch(() => {})
+  } else {
+    const events = await load(true)
+    if (!events.some(e => e.id === id)) throw createError({ statusCode: 404, statusMessage: 'Event not found', fatal: true })
+  }
   last.value = id
 }
 
