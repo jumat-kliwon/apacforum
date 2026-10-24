@@ -9,6 +9,8 @@ declare module '#app' {
      * `any` = every CMS user. Left out = superadmin only, so a page nobody marked stays closed.
      */
     permission?: Permission | Permission[] | 'any'
+    /** `false` hides the initiator/partner logo row of the public site footer. */
+    footerLogos?: boolean
   }
 }
 

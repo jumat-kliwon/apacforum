@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { FOOTER_BLURB, FOOTER_COLUMNS, FOOTER_LOGOS } from '~/data/site'
 
+const route = useRoute()
+
 function isExternal(to?: string) {
   return !!to && /^https?:\/\//.test(to)
 }
@@ -46,7 +48,7 @@ function isExternal(to?: string) {
           </div>
         </div>
 
-        <div class="flex flex-wrap gap-10 border-t border-ink/16 pt-[31px]">
+        <div v-if="route.meta.footerLogos !== false" class="flex flex-wrap gap-10 border-t border-ink/16 pt-[31px]">
           <div v-for="logo in FOOTER_LOGOS" :key="logo.label" class="flex flex-col gap-[18px]">
             <p class="text-[12px]/[18px] tracking-[0.08em] text-navy">
               {{ logo.label }}

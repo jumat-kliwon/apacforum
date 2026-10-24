@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { INITIATOR, SUMATRA } from '~/data/about'
+import { INITIATOR, SECRETARIAT_ADDRESS, SUMATRA, TEAM } from '~/data/about'
 import { CONNECTIONS, FRAMEWORK, HERO, RISKS, STAKEHOLDERS, WHY_NOW } from '~/data/home'
 import { WHATSAPP_URL } from '~/data/site'
 
@@ -308,6 +308,41 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
             <p class="text-[14px] font-extrabold leading-[1.8] tracking-[0.079em] text-navy">
               {{ INITIATOR.journey[0] }}<br>{{ INITIATOR.journey[1] }}
             </p>
+          </div>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- The APCR team -->
+    <section id="team" class="bg-white py-20 lg:py-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-9">
+          <div class="flex flex-col gap-[22px]">
+            <SiteEyebrow>APCR TEAM</SiteEyebrow>
+            <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
+              THE PEOPLE BEHIND APCR
+            </h2>
+          </div>
+
+          <dl class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div v-for="group in TEAM" :key="group.role" class="flex flex-col gap-3 border-t-2 border-ink/16 pt-5">
+              <dt class="text-[12px] font-extrabold tracking-[0.1em] text-gold">
+                {{ group.role.toUpperCase() }}
+              </dt>
+              <dd v-for="m in group.members" :key="m.name" class="text-[19px] font-extrabold leading-[1.25] tracking-[-0.026em] text-ink">
+                {{ m.name }}
+                <span v-if="m.note" class="text-[14px] font-bold tracking-normal text-prose">({{ m.note }})</span>
+              </dd>
+            </div>
+          </dl>
+
+          <div class="flex flex-col gap-2 border-t border-ink/16 pt-6">
+            <p class="text-[12px] font-extrabold tracking-[0.1em] text-gold">
+              SECRETARIAT ADDRESS
+            </p>
+            <address class="text-[17px] not-italic leading-[1.7] text-prose">
+              {{ SECRETARIAT_ADDRESS }}
+            </address>
           </div>
         </div>
       </SiteContainer>

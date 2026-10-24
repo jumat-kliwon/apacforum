@@ -7,7 +7,7 @@ definePageMeta({ layout: 'site' })
 
 useSeoMeta({
   title: 'Contact',
-  description: 'Contact APCR 2026 — the ASEAN Public Communication & Reputation Forum, 2–4 December 2026 in Medan, North Sumatra, Indonesia — via WhatsApp.',
+  description: 'Contact APCR 2026 — the ASEAN Public Communication & Reputation Forum, 2–4 December 2026 at Auditorium UMSU, Medan, North Sumatra, Indonesia — via WhatsApp.',
   themeColor: '#031735'
 })
 

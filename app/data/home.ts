@@ -7,7 +7,7 @@ export const HERO = {
   eyebrow: 'ASEAN PUBLIC COMMUNICATION & REPUTATION FORUM 2026',
   title: ['BUILDING TRUST.', 'SHAPING REPUTATION.', 'CONNECTING ASEAN.'],
   date: '2–4 December 2026',
-  location: 'Medan, North Sumatra, Indonesia',
+  location: 'Auditorium UMSU, Medan, North Sumatra, Indonesia',
   positioning: 'TRUST IS THE NEW INFRASTRUCTURE OF ASEAN',
   copy: [
     'ASEAN is becoming increasingly connected through business, investment, technology, data, tourism and people. But greater connectivity also creates greater reputational risk.',
