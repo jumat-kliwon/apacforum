@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
  * Uploads an image straight to Cloudflare R2 through a presigned URL.
+ * The image is scaled down and re-encoded in the browser first, so large photos fit the 5 MB limit.
  * `v-model` = object key; `previewUrl` = URL of the image already saved.
  */
 const key = defineModel<string | null | undefined>({ default: null })
@@ -27,18 +28,19 @@ const shown = computed(() => {
 })
 
 async function onChange(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+  const picked = (e.target as HTMLInputElement).files?.[0]
+  if (!picked) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(picked.type)) {
     notify.error({ data: { statusMessage: 'Only JPG, PNG or WebP' } }, 'File type not supported')
-    return
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    notify.error({ data: { statusMessage: '5 MB at most' } }, 'File is too large')
     return
   }
   uploading.value = true
   try {
+    const file = await compressImage(picked, MAX_IMAGE_SIDE[props.variant === 'banner' ? 'banner' : 'square'])
+    if (file.size > 5 * 1024 * 1024) {
+      notify.error({ data: { statusMessage: '5 MB at most, even after compression' } }, 'File is too large')
+      return
+    }
     const res = await $fetch('/api/admin/uploads', { method: 'POST', body: { folder: props.folder, contentType: file.type, size: file.size } })
     const put = await fetch(res.uploadUrl, { method: 'PUT', body: file, headers: { 'Content-Type': file.type } })
     if (!put.ok) throw new Error(`Upload failed (${put.status})`)
