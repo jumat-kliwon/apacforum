@@ -17,7 +17,7 @@ const config = useRuntimeConfig()
 const siteUrl = String(config.public.siteUrl || '').replace(/\/$/, '')
 useSeoMeta({
   title: 'News & Media',
-  description: 'News and updates about APCR 2026, the ASEAN Public Communication & Reputation Forum — 2–4 December 2026, Medan, North Sumatra, Indonesia.',
+  description: 'News and updates about APCR 2026, the ASEAN Public Communication & Reputation Forum — 2–4 December 2026, Auditorium UMSU, Medan, North Sumatra, Indonesia.',
   ogTitle: 'News & Media · APCR',
   ogType: 'website',
   themeColor: '#031735'
@@ -47,7 +47,7 @@ const pages = computed(() => Array.from({ length: totalPages.value }, (_, i) => 
     <SiteHero
       eyebrow="NEWS &amp; MEDIA"
       title="APCR NEWSROOM."
-      blurb="News and updates about APCR 2026 — the ASEAN Public Communication & Reputation Forum, 2–4 December 2026 in Medan, North Sumatra, Indonesia."
+      blurb="News and updates about APCR 2026 — the ASEAN Public Communication & Reputation Forum, 2–4 December 2026 at Auditorium UMSU, Medan, North Sumatra, Indonesia."
       title-class="text-[clamp(38px,5.9vw,70px)] leading-none tracking-[-0.047em]"
     >
       <template #actions>

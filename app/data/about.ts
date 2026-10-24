@@ -1,7 +1,7 @@
 /**
  * Static copy for /about. The copy follows the live landing page at apcrforum.com, which is
  * the single source of truth for public information. Most sections import their copy from
- * `home.ts`; only the two sections the home page writes inline are kept here.
+ * `home.ts`; only the sections the home page does not have are kept here.
  */
 
 export const SUMATRA = {
@@ -19,3 +19,13 @@ export const INITIATOR = {
   expanding: 'Through APCR, PR INDONESIA is expanding that ecosystem:',
   journey: ['FROM NATIONAL COMMUNICATION ECOSYSTEM', 'TO ASEAN COMMUNICATION ECOSYSTEM.']
 }
+
+/** The APCR team, in the order the roles are listed. */
+export const TEAM = [
+  { role: 'Founder / Chairman', members: [{ name: 'Asmono Wikan' }] },
+  { role: 'Executive Director', members: [{ name: 'Ayu Yulia Yang' }] },
+  { role: 'Communication', members: [{ name: 'Fisena Hardiyanto', note: 'Head' }, { name: 'Fikriyah Nur R.' }] },
+  { role: 'Digital Management', members: [{ name: 'Gheraldi Katong', note: 'Head' }] }
+]
+
+export const SECRETARIAT_ADDRESS = 'Rukan Panglima Polim No. 55, Jakarta, Indonesia'

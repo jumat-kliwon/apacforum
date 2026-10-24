@@ -73,8 +73,8 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
                 {{ d }}
               </p>
             </template>
-            <p class="border-t border-ink/16 pt-4 text-[13px] text-prose-dim">
-              Speakers: TBC
+            <p class="border-t border-ink/16 pt-4 text-[13px] leading-[1.6] text-prose-dim">
+              Speakers: {{ RESEARCH_OUTLOOK.session.speakers?.join(' · ') ?? 'TBC' }}
             </p>
           </div>
         </div>
@@ -100,7 +100,7 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
             </p>
           </div>
 
-          <ol class="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
+          <ol v-if="TRUST_FRAMEWORK.session.issues" class="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
             <li v-for="(q, i) in TRUST_FRAMEWORK.session.issues" :key="q" class="flex flex-col gap-3 border-t-2 border-white/24 pt-[22px]">
               <span class="text-[13px] font-extrabold tracking-[0.09em] text-gold-soft">{{ String(i + 1).padStart(2, '0') }}</span>
               <p class="text-[18px] font-extrabold leading-[1.3] tracking-[-0.02em] text-white">
@@ -109,8 +109,8 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
             </li>
           </ol>
 
-          <p class="text-[13px] text-white/60">
-            Speakers: TBC
+          <p class="text-[13px] leading-[1.6] text-white/60">
+            Speakers: {{ TRUST_FRAMEWORK.session.speakers?.join(' · ') ?? 'TBC' }}
           </p>
         </div>
       </SiteContainer>

@@ -68,7 +68,7 @@ export const FOOTER_BLURB = [
   'CONNECTING ASEAN.',
   '',
   '2–4 December 2026',
-  'Medan, North Sumatra, Indonesia',
+  'Auditorium UMSU, Medan, North Sumatra, Indonesia',
   '',
   'Initiated by PR INDONESIA'
 ]

@@ -8,6 +8,8 @@ export interface RundownRow {
   title: string
   details?: string[]
   issues?: string[]
+  /** The "Format / Speakers" column; left out shows TBC. */
+  speakers?: string[]
   /** Section heading that groups the rows below it. */
   group?: boolean
 }
@@ -85,38 +87,46 @@ export const PROGRAMME: ProgrammeDay[] = [
     rows: [
       { time: '08.30–09.00', title: 'ASEAN Knowledge Networking' },
       { time: '09.00–09.05', title: 'Opening MC' },
-      { time: '09.05–09.30', title: 'ACADEMIC KEYNOTE — THE FUTURE OF TRUST IN ASEAN:', details: ['Why Communication, Knowledge and Institutions Matter'] },
-      { time: '09.30–10.30', title: 'ASEAN Knowledge Dialogue #1', details: ['CAN WE STILL TRUST WHAT WE SEE?', 'Public Communication, AI, Disinformation Crisis Reputation, & The Future of Trust'] },
+      {
+        time: '09.05–09.30',
+        title: 'ACADEMIC KEYNOTE — THE FUTURE OF TRUST IN ASEAN:',
+        details: ['Why Communication, Knowledge and Institutions Matter'],
+        speakers: ['Rector of UMSU, Medan.']
+      },
+      {
+        time: '09.30–10.30',
+        title: 'ASEAN Knowledge Dialogue #1',
+        details: ['CAN WE STILL TRUST WHAT WE SEE?', 'Public Communication, AI, Disinformation, Crisis Reputation & The Future of Trust'],
+        speakers: [
+          'Academician from Malaysia / Singapore.',
+          'CEO NoLimit, Aqsath Rasyid Naradhipa.',
+          'Academician from UMSU.',
+          'Mrs Anne Purba, VP Corporate Communication KAI.'
+        ]
+      },
       { time: '10.30–10.45', title: 'Coffee Break' },
       {
         time: '10.45–11.45',
-        title: 'ASEAN Knowledge Dialogue #2',
-        details: ['CAN TRUST BE MEASURED?', 'Towards an ASEAN Framework for Trust & Reputation'],
-        issues: ['What is trust?', 'What drives reputation?', 'Can institutional trust be measured?', 'What should an ASEAN Trust & Reputation framework look like?']
-      },
-      { time: '11.45–13.30', title: 'Academic–Industry Networking Lunch' },
-      {
-        time: '13.30–14.40',
-        title: 'APCR KNOWLEDGE FORUM',
+        title: 'ASEAN Knowledge Dialogue #2 — APCR Knowledge Forum',
         details: [
-          'FROM TRUST DATA TO STRATEGIC DECISIONS.',
-          'Turning Trust & Reputation Intelligence into Institutional and Business Value',
+          'CAN TRUST BE MEASURED?',
+          'Measuring Public Trust, Institutional Reputation & Stakeholder Confidence in ASEAN',
           'Introduction of APCR RESEARCH & OUTLOOK 2027 as an embryo of APCR intellectual property.'
+        ],
+        speakers: [
+          'Academician from USU.',
+          'PR INDONESIA.',
+          'Academician from Malaysia / Thailand.',
+          'VP Corporate Communication PTPN III.'
         ]
       },
+      { time: '11.45–14.00', title: 'Academic–Industry Networking Lunch' },
+      { time: '14.00–16.45', title: 'APCR AWARDS ON TRUST & REPUTATION LEADERSHIP', details: ['Based on data + research + expert panel.'], group: true },
+      { time: '14.00–14.10', title: 'Cultural Opening Performance' },
+      { time: '14.10–14.15', title: 'Welcome Remarks', speakers: ['Founder & CEO PR INDONESIA / Initiator APCR.'] },
+      { time: '14.15–14.30', title: 'Academic Home: Why Trust Matters for ASEAN', speakers: ['Rector of UMSU, Medan.'] },
       {
-        time: '14.40–15.40',
-        title: 'FUTURE ASEAN LEADERS DIALOGUE',
-        details: ['WHO WILL BUILD ASEAN\'S NEXT GENERATION OF TRUST?'],
-        issues: ['Next Generation ASEAN.', 'Communication Leaders.', 'Academic–Industry Collaboration.']
-      },
-      { time: '15.40–16.00', title: 'Coffee Break' },
-      { time: '16.00–17.45', title: 'APCR AWARDS ON TRUST & REPUTATION LEADERSHIP', details: ['Based on data + research + expert panel.'], group: true },
-      { time: '16.00–16.10', title: 'Cultural Opening Performance' },
-      { time: '16.10–16.15', title: 'Welcome Remarks' },
-      { time: '16.15–16.25', title: 'Academic Home: Why Trust Matters for ASEAN' },
-      {
-        time: '16.25–17.45',
+        time: '14.30–16.00',
         title: 'APCR Trust & Reputation Leadership Recognition',
         details: ['Recognition categories:'],
         issues: [
@@ -130,7 +140,7 @@ export const PROGRAMME: ProgrammeDay[] = [
           'Lifetime Contribution to ASEAN Communication & Reputation.'
         ]
       },
-      { time: '17.45–18.00', title: 'Closing: Building the ASEAN Trust Ecosystem' }
+      { time: '16.00–16.15', title: 'Closing: Building the ASEAN Trust Ecosystem' }
     ]
   }
 ]
