@@ -58,11 +58,11 @@ export const TEMPLATE_META: Record<TemplateKey, { group: 'Registration' | 'Payme
   'registration-received': { group: 'Registration', name: 'Registration received', trigger: 'Participant submits the registration form', tone: 'info', registration: 'Pending verification', payment: 'Not invoiced yet' },
   'registration-verified': { group: 'Registration', name: 'Registration + invoice', trigger: 'Participant submits the registration form (or an admin verifies an older pending registration)', tone: 'success', registration: 'Verified', payment: 'Awaiting payment' },
   'registration-rejected': { group: 'Registration', name: 'Registration rejected', trigger: 'Admin rejects the registration', tone: 'danger', registration: 'Rejected', payment: 'Not invoiced' },
-  'payment-reminder': { group: 'Payment', name: 'Payment reminder', trigger: '24 hours before the payment deadline', tone: 'warning', registration: 'Verified', payment: 'Awaiting payment' },
+  'payment-reminder': { group: 'Payment', name: 'Payment reminder', trigger: 'Within the last day before the payment deadline', tone: 'warning', registration: 'Verified', payment: 'Awaiting payment' },
   'payment-success': { group: 'Payment', name: 'Payment received + e-ticket', trigger: 'DOKU confirms the payment', tone: 'success', registration: 'Verified', payment: 'Paid' },
   'invoice-expired': { group: 'Payment', name: 'Invoice expired', trigger: 'Payment deadline passes', tone: 'danger', registration: 'Verified', payment: 'Expired' },
   'refund-processed': { group: 'Payment', name: 'Refund processed', trigger: 'Admin approves a cancellation', tone: 'neutral', registration: 'Cancelled', payment: 'Refunded' },
-  'event-reminder-h3': { group: 'Event', name: '3-day event reminder', trigger: '3 days before the event, paid participants', tone: 'info', registration: 'Verified', payment: 'Paid' },
+  'event-reminder-h3': { group: 'Event', name: '3-day event reminder', trigger: '3 days before the event (or as soon as payment arrives within those 3 days), paid participants', tone: 'info', registration: 'Verified', payment: 'Paid' },
   'event-thank-you': { group: 'Event', name: 'Thank you', trigger: '1 day after the event ends', tone: 'success', registration: 'Verified', payment: 'Paid' }
 }
 
@@ -141,11 +141,11 @@ export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
   }),
 
   'payment-reminder': d => ({
-    subject: `24 hours left: complete your ${d.event.name} payment`,
+    subject: `Reminder: complete your ${d.event.name} payment`,
     preheader: `Invoice ${d.invoice?.no} expires${d.invoice?.expiresAt ? ` ${wib(d.invoice.expiresAt)}` : ' tomorrow'}.`,
     tone: 'warning',
     heading: 'We have not received your payment yet',
-    body: ['Your invoice expires in 24 hours. After that we release your seat to someone else.'],
+    body: [`Your invoice expires${d.invoice?.expiresAt ? ` on ${wib(d.invoice.expiresAt)}` : ' soon'}. After that we release your seat to someone else.`],
     boxTitle: `Invoice ${d.invoice?.no ?? ''}`,
     rows: [
       ['Ticket type', d.ticketTypeName ?? '-'],
@@ -203,10 +203,10 @@ export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
   }),
 
   'event-reminder-h3': d => ({
-    subject: `3 days to go: what to know before ${d.event.name}`,
+    subject: `Coming up: what to know before ${d.event.name}`,
     preheader: 'Venue, dates and what to bring.',
     tone: 'info',
-    heading: `${d.event.name} is 3 days away`,
+    heading: `${d.event.name} is almost here`,
     body: ['Here is what to prepare before you come.'],
     boxTitle: 'Event details',
     rows: [

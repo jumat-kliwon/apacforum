@@ -46,13 +46,16 @@ export async function sendTemplate(key: TemplateKey, data: MailData) {
   return { sent: true as const }
 }
 
-/** Sends without failing the main flow (the status change is already saved). */
+/**
+ * Sends without failing the main flow (the status change is already saved).
+ * `failed` is true when SMTP refused the email, so scheduled jobs can try again on their next run.
+ */
 export async function sendTemplateSafe(key: TemplateKey, data: MailData) {
   try {
-    return await sendTemplate(key, data)
+    return { ...await sendTemplate(key, data), failed: false }
   } catch (err) {
     console.error(`[mail] could not send ${key} to ${data.to.email}`, err)
-    return { sent: false as const }
+    return { sent: false as const, failed: true }
   }
 }
 
