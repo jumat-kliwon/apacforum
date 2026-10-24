@@ -37,7 +37,6 @@ export async function loadMailData(participantId: string, d: Db = db): Promise<M
     ticketTypeName: row.t.name,
     ticketPrice: row.t.price,
     ticketCode: row.p.ticketCode,
-    rejectionReason: row.p.rejectionReason,
     invoice: trx
       ? {
           no: trx.invoiceNo,

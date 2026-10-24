@@ -15,7 +15,7 @@ bun run db:seed               # admin + sample data from the design (wipes event
 bun run dev                   # http://localhost:3000 — CMS at /admin, sign in at /login
 ```
 
-Without `DOKU_*` the payment link is simulated, without `SMTP_URL` emails are only logged, and without `R2_*`
+Without `DOKU_*` the payment link is simulated, without `SMTP_HOST` (or `SMTP_URL`) emails are only logged, and without `R2_*`
 image uploads are disabled — every other flow still works.
 
 ## Scripts

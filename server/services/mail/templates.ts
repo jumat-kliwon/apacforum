@@ -22,7 +22,6 @@ export type MailData = {
     refundAmount?: number | null
   }
   ticketCode?: string | null
-  rejectionReason?: string | null
   remainingSeats?: number | null
 }
 
@@ -42,9 +41,7 @@ export type EmailContent = {
 }
 
 export const TEMPLATE_KEYS = [
-  'registration-received',
   'registration-verified',
-  'registration-rejected',
   'payment-reminder',
   'payment-success',
   'invoice-expired',
@@ -55,14 +52,12 @@ export const TEMPLATE_KEYS = [
 export type TemplateKey = typeof TEMPLATE_KEYS[number]
 
 export const TEMPLATE_META: Record<TemplateKey, { group: 'Registration' | 'Payment' | 'Event', name: string, trigger: string, tone: Tone, registration: string, payment: string }> = {
-  'registration-received': { group: 'Registration', name: 'Registration received', trigger: 'Participant submits the registration form', tone: 'info', registration: 'Pending verification', payment: 'Not invoiced yet' },
-  'registration-verified': { group: 'Registration', name: 'Registration + invoice', trigger: 'Participant submits the registration form (or an admin verifies an older pending registration)', tone: 'success', registration: 'Verified', payment: 'Awaiting payment' },
-  'registration-rejected': { group: 'Registration', name: 'Registration rejected', trigger: 'Admin rejects the registration', tone: 'danger', registration: 'Rejected', payment: 'Not invoiced' },
-  'payment-reminder': { group: 'Payment', name: 'Payment reminder', trigger: '24 hours before the payment deadline', tone: 'warning', registration: 'Verified', payment: 'Awaiting payment' },
+  'registration-verified': { group: 'Registration', name: 'Registration + invoice', trigger: 'Participant submits the registration form (or an admin verifies a pending registration)', tone: 'success', registration: 'Verified', payment: 'Awaiting payment' },
+  'payment-reminder': { group: 'Payment', name: 'Payment reminder', trigger: 'Within the last day before the payment deadline', tone: 'warning', registration: 'Verified', payment: 'Awaiting payment' },
   'payment-success': { group: 'Payment', name: 'Payment received + e-ticket', trigger: 'DOKU confirms the payment', tone: 'success', registration: 'Verified', payment: 'Paid' },
   'invoice-expired': { group: 'Payment', name: 'Invoice expired', trigger: 'Payment deadline passes', tone: 'danger', registration: 'Verified', payment: 'Expired' },
   'refund-processed': { group: 'Payment', name: 'Refund processed', trigger: 'Admin approves a cancellation', tone: 'neutral', registration: 'Cancelled', payment: 'Refunded' },
-  'event-reminder-h3': { group: 'Event', name: '3-day event reminder', trigger: '3 days before the event, paid participants', tone: 'info', registration: 'Verified', payment: 'Paid' },
+  'event-reminder-h3': { group: 'Event', name: '3-day event reminder', trigger: '3 days before the event (or as soon as payment arrives within those 3 days), paid participants', tone: 'info', registration: 'Verified', payment: 'Paid' },
   'event-thank-you': { group: 'Event', name: 'Thank you', trigger: '1 day after the event ends', tone: 'success', registration: 'Verified', payment: 'Paid' }
 }
 
@@ -88,27 +83,6 @@ function calendarUrl(d: MailData) {
 }
 
 export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
-  'registration-received': d => ({
-    subject: `We received your ${d.event.name} registration`,
-    preheader: 'Our team is verifying your details, within 2 working days.',
-    tone: 'info',
-    heading: 'Thanks for registering',
-    body: [
-      `We received your registration for ${d.event.name}. Our team will verify your details within 2 working days.`,
-      'Once verified, we will send the invoice and a payment link to this email.'
-    ],
-    boxTitle: 'Registration summary',
-    rows: [
-      ['Registration no.', d.regNo ?? '-'],
-      ['Name', d.to.name],
-      ['Organization', d.organization ?? '-'],
-      ['Participant type', d.ticketTypeName ?? '-'],
-      ['Event', `${d.event.name} · ${eventDate(d)}`]
-    ],
-    cta: { label: 'View event page', url: eventUrl(d) },
-    note: 'Something wrong in your details? Reply to this email before your registration is verified.'
-  }),
-
   'registration-verified': d => ({
     subject: `Registration received — complete your payment${d.invoice?.expiresAt ? ` by ${formatDateTime(d.invoice.expiresAt)} WIB` : ''}`,
     preheader: `Invoice of ${formatRupiah(d.invoice?.total ?? 0)} for ${d.ticketTypeName}. Pay within 48 hours.`,
@@ -126,26 +100,12 @@ export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
     note: 'You can pay by virtual account, QRIS, bank transfer, e-wallet or credit card.'
   }),
 
-  'registration-rejected': d => ({
-    subject: `An update on your ${d.event.name} registration`,
-    preheader: 'We could not accept your registration. Here is why and what you can do next.',
-    tone: 'danger',
-    heading: 'We could not accept your registration',
-    body: [
-      `Sorry, we could not accept your registration as ${d.ticketTypeName}.`,
-      ...(d.rejectionReason ? [`Reason: ${d.rejectionReason}`] : []),
-      'You can register again with the missing details while seats are still available.'
-    ],
-    cta: { label: 'Register again', url: `${eventUrl(d)}/register` },
-    note: 'No invoice was created for this registration.'
-  }),
-
   'payment-reminder': d => ({
-    subject: `24 hours left: complete your ${d.event.name} payment`,
+    subject: `Reminder: complete your ${d.event.name} payment`,
     preheader: `Invoice ${d.invoice?.no} expires${d.invoice?.expiresAt ? ` ${wib(d.invoice.expiresAt)}` : ' tomorrow'}.`,
     tone: 'warning',
     heading: 'We have not received your payment yet',
-    body: ['Your invoice expires in 24 hours. After that we release your seat to someone else.'],
+    body: [`Your invoice expires${d.invoice?.expiresAt ? ` on ${wib(d.invoice.expiresAt)}` : ' soon'}. After that we release your seat to someone else.`],
     boxTitle: `Invoice ${d.invoice?.no ?? ''}`,
     rows: [
       ['Ticket type', d.ticketTypeName ?? '-'],
@@ -203,10 +163,10 @@ export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
   }),
 
   'event-reminder-h3': d => ({
-    subject: `3 days to go: what to know before ${d.event.name}`,
+    subject: `Coming up: what to know before ${d.event.name}`,
     preheader: 'Venue, dates and what to bring.',
     tone: 'info',
-    heading: `${d.event.name} is 3 days away`,
+    heading: `${d.event.name} is almost here`,
     body: ['Here is what to prepare before you come.'],
     boxTitle: 'Event details',
     rows: [

@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, between, eq, inArray, isNull } from 'drizzle-orm'
 import { db } from '../../db'
 import { events, participants } from '../../db/schema'
 import { loadMailData } from '../../services/context'
@@ -13,9 +13,13 @@ const SENT_AT = {
   'event-thank-you': participants.thankYouSentAt
 } as const
 
-async function notify(dateColumn: typeof events.startDate | typeof events.endDate, date: string, key: keyof typeof SENT_AT) {
+/**
+ * Dates are a range, not a single day, so a missed or late cron run (or a payment made after the
+ * 3-day mark) still gets the email; `sentAt` keeps it to one email per participant.
+ */
+async function notify(dateColumn: typeof events.startDate | typeof events.endDate, from: string, to: string, key: keyof typeof SENT_AT) {
   const sentAt = SENT_AT[key]
-  const eventIds = db.select({ id: events.id }).from(events).where(and(eq(dateColumn, date), eq(events.status, 'published')))
+  const eventIds = db.select({ id: events.id }).from(events).where(and(between(dateColumn, from, to), eq(events.status, 'published')))
   // claim the rows first, so a second run on the same day (cron + manual trigger) sends nothing
   const rows = await db.update(participants)
     .set(key === 'event-reminder-h3' ? { eventReminderSentAt: new Date() } : { thankYouSentAt: new Date() })
@@ -28,7 +32,14 @@ async function notify(dateColumn: typeof events.startDate | typeof events.endDat
     .returning({ id: participants.id })
   for (const r of rows) {
     const data = await loadMailData(r.id)
-    if (data) await sendTemplateSafe(key, data)
+    if (!data) continue
+    const { failed } = await sendTemplateSafe(key, data)
+    // release the claim so the next run tries again
+    if (failed) {
+      await db.update(participants)
+        .set(key === 'event-reminder-h3' ? { eventReminderSentAt: null } : { thankYouSentAt: null })
+        .where(eq(participants.id, r.id))
+    }
   }
   return rows.length
 }
@@ -36,8 +47,9 @@ async function notify(dateColumn: typeof events.startDate | typeof events.endDat
 export default defineTask({
   meta: { name: 'events:notify', description: '3-day reminder and next-day thank-you emails (runs once a day)' },
   async run() {
-    const reminded = await notify(events.startDate, wibDate(3), 'event-reminder-h3')
-    const thanked = await notify(events.endDate, wibDate(-1), 'event-thank-you')
+    // reminder: events starting in 1–3 days; thank-you: events that ended in the last week
+    const reminded = await notify(events.startDate, wibDate(1), wibDate(3), 'event-reminder-h3')
+    const thanked = await notify(events.endDate, wibDate(-7), wibDate(-1), 'event-thank-you')
     return { result: { reminded, thanked } }
   }
 })

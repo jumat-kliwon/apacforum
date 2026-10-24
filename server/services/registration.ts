@@ -145,8 +145,6 @@ export async function rejectParticipant(id: string, reason: string, actor: Actor
     .where(and(eq(participants.id, id), eq(participants.status, 'pending_verification')))
     .returning({ id: participants.id })
   if (!row) throw createError({ statusCode: 409, statusMessage: 'Only registrations pending verification can be rejected' })
-  const data = await loadMailData(id)
-  if (data) await sendTemplateSafe('registration-rejected', data)
 }
 
 /**
@@ -156,6 +154,9 @@ export async function rejectParticipant(id: string, reason: string, actor: Actor
 export async function resendStatusEmail(id: string) {
   const [p] = await db.select().from(participants).where(eq(participants.id, id))
   if (!p) throw createError({ statusCode: 404, statusMessage: 'Participant not found' })
+  if (p.status === 'pending_verification' || p.status === 'rejected') {
+    throw createError({ statusCode: 409, statusMessage: 'There is no email for registrations that are pending verification or rejected' })
+  }
 
   if (p.status === 'verified' && p.paymentStatus === 'pending') {
     const [trx] = await db.select({ id: transactions.id }).from(transactions)
@@ -165,17 +166,13 @@ export async function resendStatusEmail(id: string) {
   const data = await loadMailData(id)
   if (!data) throw createError({ statusCode: 404, statusMessage: 'Participant not found' })
 
-  const key = p.status === 'pending_verification'
-    ? 'registration-received'
-    : p.status === 'rejected'
-      ? 'registration-rejected'
-      : p.paymentStatus === 'paid'
-        ? 'payment-success'
-        : p.paymentStatus === 'pending'
-          ? 'registration-verified'
-          : p.paymentStatus === 'expired'
-            ? 'invoice-expired'
-            : 'refund-processed'
+  const key = p.paymentStatus === 'paid'
+    ? 'payment-success'
+    : p.paymentStatus === 'pending'
+      ? 'registration-verified'
+      : p.paymentStatus === 'expired'
+        ? 'invoice-expired'
+        : 'refund-processed'
   await sendTemplateSafe(key, data)
   return key
 }

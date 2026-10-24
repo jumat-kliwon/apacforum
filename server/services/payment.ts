@@ -9,6 +9,7 @@ import { createCheckout, mapChannel, NOTIFY_PATH, type DokuNotification } from '
 import { sendTemplateSafe } from './mail/send'
 
 export const PAYMENT_WINDOW_HOURS = 48
+const REMINDER_WINDOW_HOURS = 26
 
 const now = () => new Date()
 const entry = (type: TransactionHistoryEntry['type'], extra: Partial<TransactionHistoryEntry> = {}): TransactionHistoryEntry =>
@@ -194,14 +195,17 @@ export async function activeCount(d: typeof db | Tx, ticketTypeId: string) {
   return r?.n ?? 0
 }
 
-/** Reminder 24 hours before the payment deadline, once per invoice. */
+/**
+ * Reminder within the last day before the payment deadline, once per invoice. The window is 26 hours,
+ * so a once-a-day cron (Vercel Hobby fires anywhere within the scheduled hour) never skips an invoice.
+ */
 export async function remindDue() {
   const rows = await db.update(transactions)
     .set({ payment: sql`${transactions.payment} || ${jsonParam({ reminderSentAt: now().toISOString() })}` })
     .where(and(
       eq(transactions.status, 'pending'),
       gt(transactions.expiresAt, now()),
-      lte(transactions.expiresAt, new Date(Date.now() + 24 * 3600_000)),
+      lte(transactions.expiresAt, new Date(Date.now() + REMINDER_WINDOW_HOURS * 3600_000)),
       isNull(sql`${transactions.payment}->>'reminderSentAt'`)
     ))
     .returning({ id: transactions.id, participantId: transactions.participantId })
@@ -209,7 +213,12 @@ export async function remindDue() {
     if (!r.participantId) continue
     await ensureCheckout(r.id).catch(() => null)
     const data = await loadMailData(r.participantId)
-    if (data) await sendTemplateSafe('payment-reminder', data)
+    if (!data) continue
+    const { failed } = await sendTemplateSafe('payment-reminder', data)
+    // release the claim so the next run tries again
+    if (failed) {
+      await db.update(transactions).set({ payment: sql`${transactions.payment} - 'reminderSentAt'` }).where(eq(transactions.id, r.id))
+    }
   }
   return rows.length
 }

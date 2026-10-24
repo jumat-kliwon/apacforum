@@ -6,7 +6,7 @@ const { data: list } = await useFetch('/api/admin/email-templates')
 const route = useRoute()
 const router = useRouter()
 const selected = computed({
-  get: () => (typeof route.query.t === 'string' ? route.query.t : list.value?.[0]?.key) ?? 'registration-received',
+  get: () => (typeof route.query.t === 'string' ? route.query.t : list.value?.[0]?.key) ?? 'registration-verified',
   set: (t: string) => router.replace({ query: { t } })
 })
 const { data: preview, status } = await useFetch(() => `/api/admin/email-templates/${selected.value}`)
