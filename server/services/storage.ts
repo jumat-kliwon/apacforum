@@ -18,7 +18,8 @@ function r2() {
   return client
 }
 
-export const UPLOAD_TYPES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' } as const
+/** The admin converts every image to WebP in the browser before uploading it. */
+export const UPLOAD_TYPES = { 'image/webp': 'webp' } as const
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 /** A signed PUT URL valid for 10 minutes; the browser uploads straight to R2. */
@@ -27,7 +28,7 @@ export function presignUpload(key: string, contentType: keyof typeof UPLOAD_TYPE
 }
 
 /** Keys handed out by `/api/admin/uploads`: `<folder>/<uuid>.<ext>`. */
-const UPLOAD_KEY = /^(events|speakers|partners)\/[0-9a-f-]{36}\.(jpg|png|webp)$/
+const UPLOAD_KEY = /^(events|speakers|partners)\/[0-9a-f-]{36}\.webp$/
 
 /**
  * Checks newly uploaded files before their keys are saved. A presigned PUT cannot cap the file size,
@@ -43,7 +44,7 @@ export async function assertUploads(keys: (string | null | undefined)[]) {
     if (!stat) throw createError({ statusCode: 422, statusMessage: 'An image upload did not finish. Please upload it again.' })
     if (stat.size > MAX_UPLOAD_BYTES || !(stat.type in UPLOAD_TYPES)) {
       await c.delete(key).catch(() => null)
-      throw createError({ statusCode: 422, statusMessage: 'Images must be JPG, PNG or WebP and 5 MB at most' })
+      throw createError({ statusCode: 422, statusMessage: 'Images must be WebP and 5 MB at most' })
     }
   }))
 }
