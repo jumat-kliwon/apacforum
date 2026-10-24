@@ -3,14 +3,25 @@ import QRCode from 'qrcode'
 import { renderEmail, templates, type MailData, type TemplateKey } from './templates'
 
 /**
- * Sends through SMTP (`SMTP_URL`, `MAIL_FROM`). Without `SMTP_URL` emails are only logged,
- * so the flows can still be tried in development.
+ * Sends through SMTP: either `SMTP_HOST` (+ `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`)
+ * or a single `SMTP_URL`. Without either, emails are only logged, so the flows can still be tried
+ * in development.
  */
 let transport: Transporter | null = null
 
 function getTransport() {
-  if (!process.env.SMTP_URL) return null
-  transport ??= nodemailer.createTransport(process.env.SMTP_URL)
+  const env = process.env
+  if (env.SMTP_HOST) {
+    const port = Number(env.SMTP_PORT || 465)
+    transport ??= nodemailer.createTransport({
+      host: env.SMTP_HOST,
+      port,
+      secure: env.SMTP_SECURE ? env.SMTP_SECURE === 'true' : port === 465,
+      auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASS } : undefined
+    })
+  } else if (env.SMTP_URL) {
+    transport ??= nodemailer.createTransport(env.SMTP_URL)
+  }
   return transport
 }
 
@@ -21,7 +32,7 @@ export async function sendTemplate(key: TemplateKey, data: MailData) {
 
   const t = getTransport()
   if (!t) {
-    console.info(`[mail] (not sent, SMTP_URL is empty) ${key} → ${data.to.email}: ${content.subject}`)
+    console.info(`[mail] (not sent, SMTP is not configured) ${key} → ${data.to.email}: ${content.subject}`)
     return { sent: false as const }
   }
   await t.sendMail({
