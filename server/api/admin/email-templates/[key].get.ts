@@ -14,7 +14,6 @@ function sample(): MailData {
     ticketTypeName: 'Indonesia Delegate',
     ticketPrice: 2_500_000,
     ticketCode: 'APCR26-ID-0712',
-    rejectionReason: 'the assignment letter from your institution was not attached.',
     remainingSeats: 88,
     invoice: {
       no: 'INV-APCR-26-01248',

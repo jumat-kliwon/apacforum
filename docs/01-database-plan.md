@@ -238,10 +238,12 @@ Trade-off: values inside `items`/`payment`/`history` cannot be filtered efficien
 ### 3.9 Emails (no table)
 
 Static templates in code (`server/services/mail/templates.ts`):
-`registration-received`, `registration-verified`, `registration-rejected`, `payment-reminder`, `payment-success`,
-`invoice-expired`, `refund-processed`, `event-reminder-h3`, `event-thank-you`.
+`registration-verified`, `payment-reminder`, `payment-success`, `invoice-expired`, `refund-processed`,
+`event-reminder-h3`, `event-thank-you`.
 
-- Content comes from the 9 templates in the design; values are filled from participant/transaction/event data.
+- Registrations are verified automatically, so the design's `registration-received` and `registration-rejected`
+  emails were dropped; rejecting an older pending registration sends no email.
+- Content comes from the templates in the design; values are filled from participant/transaction/event data.
 - The CMS "Email templates" page renders the same templates as a read-only preview.
 - Sending is recorded in the transaction `history` (`invoice_sent`, `ticket_sent`). There is no separate email log; opens are not tracked.
 
@@ -282,7 +284,7 @@ Public form ──► user (created/filled) + participant(verified)
                                                                   + email registration-verified
                (free ticket → transaction paid + ticket_code)    + email payment-success (QR)
 Admin verifies (older pending_verification rows only) ──► same invoice + link + email registration-verified
-Admin rejects ──► rejected (+ rejection_reason)                    + email registration-rejected
+Admin rejects ──► rejected (+ rejection_reason)                    (no email)
 Every 15 min, 24 h before deadline ──►                             email payment-reminder
 DOKU notification SUCCESS ──► transaction paid (history: paid, ticket_sent),
                               participant.payment_status paid, ticket_code set
