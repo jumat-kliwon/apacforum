@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Uploads an image straight to Cloudflare R2 through a presigned URL.
- * The image is scaled down and re-encoded in the browser first, so large photos fit the 5 MB limit.
+ * The image is scaled down and converted to WebP in the browser first, so large photos fit the 5 MB limit.
  * `v-model` = object key; `previewUrl` = URL of the image already saved.
  */
 const key = defineModel<string | null | undefined>({ default: null })

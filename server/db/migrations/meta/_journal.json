@@ -71,6 +71,13 @@
       "when": 1792260908143,
       "tag": "0009_ticket_early_bird",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792820235730,
+      "tag": "0010_images_to_webp",
+      "breakpoints": true
     }
   ]
 }

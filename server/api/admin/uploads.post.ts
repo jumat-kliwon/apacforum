@@ -4,7 +4,7 @@ import { MAX_UPLOAD_BYTES, presignUpload, publicUrl, UPLOAD_TYPES } from '~~/ser
 
 const schema = z.object({
   folder: z.enum(['events', 'speakers', 'partners', 'articles']),
-  contentType: z.enum(Object.keys(UPLOAD_TYPES) as [keyof typeof UPLOAD_TYPES], { error: 'Only JPG, PNG or WebP' }),
+  contentType: z.enum(Object.keys(UPLOAD_TYPES) as [keyof typeof UPLOAD_TYPES], { error: 'Images must be uploaded as WebP' }),
   size: z.number().int().positive().max(MAX_UPLOAD_BYTES, '5 MB at most')
 })
 
