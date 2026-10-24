@@ -57,7 +57,7 @@ const day = computed(() => PROGRAMME.find(d => d.id === activeDay.value)!)
               <th scope="col" class="px-5 py-3">
                 AGENDA
               </th>
-              <th scope="col" class="w-[36%] px-5 py-3">
+              <th scope="col" class="px-5 py-3" :class="day.rows.some(r => r.speakers) ? 'w-[36%]' : 'w-[170px]'">
                 FORMAT / SPEAKERS
               </th>
             </tr>
@@ -92,7 +92,7 @@ const day = computed(() => PROGRAMME.find(d => d.id === activeDay.value)!)
                     {{ s }}
                   </li>
                 </ul>
-                <span v-else-if="!row.group" class="text-prose-dim">–</span>
+                <span v-else-if="!row.group" class="text-prose-dim">TBC</span>
               </td>
             </tr>
           </tbody>
@@ -100,7 +100,7 @@ const day = computed(() => PROGRAMME.find(d => d.id === activeDay.value)!)
       </div>
 
       <p class="text-[13px] text-prose">
-        All speakers are currently being invited.
+        Speakers and institutional participation: TBC.
       </p>
     </div>
   </div>
