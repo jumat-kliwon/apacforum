@@ -16,15 +16,16 @@ function pick<T>(list: T[], match: (item: T) => boolean, what: string): T {
 /** Day 3 — the ASEAN Knowledge, Trust & Reputation Forum. */
 export const KNOWLEDGE_DAY = pick(PROGRAMME, d => d.id === 'day3', 'Day 3')
 
-const forum = pick(KNOWLEDGE_DAY.rows, r => r.title === 'APCR KNOWLEDGE FORUM', 'APCR Knowledge Forum')
+/** Knowledge Dialogue #2 asks whether trust can be measured and introduces the Research & Outlook. */
 const measure = pick(KNOWLEDGE_DAY.rows, r => r.details?.[0] === 'CAN TRUST BE MEASURED?', 'Can trust be measured?')
+const outlookLine = pick(measure.details ?? [], d => d.includes('RESEARCH & OUTLOOK'), 'Research & Outlook introduction')
 
 export const RESEARCH_OUTLOOK = {
   output: pick(OUTPUTS, o => o.title === 'APCR Research & Outlook', 'APCR Research & Outlook output'),
-  session: { ...forum, when: `${KNOWLEDGE_DAY.date} · ${forum.time}` }
+  session: { ...measure, details: [outlookLine], when: `${KNOWLEDGE_DAY.date} · ${measure.time}` }
 }
 
 export const TRUST_FRAMEWORK = {
   output: pick(OUTPUTS, o => o.title === 'ASEAN Trust & Reputation Framework', 'ASEAN Trust & Reputation Framework output'),
-  session: { ...measure, when: `${KNOWLEDGE_DAY.date} · ${measure.time}` }
+  session: { ...measure, details: measure.details?.filter(d => d !== outlookLine), when: `${KNOWLEDGE_DAY.date} · ${measure.time}` }
 }

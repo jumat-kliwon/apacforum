@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LEADERS_DIALOGUE, NEXT_GENERATION, YEAR_ROUND } from '~/data/community'
+import { NEXT_GENERATION, NEXT_GENERATION_AWARD, YEAR_ROUND } from '~/data/community'
 import { ECOSYSTEM, HERO } from '~/data/home'
 import { WHATSAPP_URL } from '~/data/site'
 
@@ -82,7 +82,7 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
               {{ NEXT_GENERATION.title }}
             </SiteEyebrow>
             <h2 class="text-[clamp(27px,3.5vw,42px)] font-extrabold leading-[1.08] tracking-[-0.043em] text-white">
-              {{ LEADERS_DIALOGUE.details?.[0] }}
+              WHO WILL BUILD ASEAN'S NEXT GENERATION OF TRUST?
             </h2>
             <p class="text-[16px] leading-[1.75] text-white/80">
               {{ NEXT_GENERATION.items.join(' • ') }}
@@ -91,19 +91,17 @@ const registerHref = await useRegisterHref('/apcr-2026#registration')
 
           <div class="flex flex-1 flex-col gap-4 border-t-2 border-white/24 pt-6 lg:border-l-2 lg:border-t-0 lg:pl-[26px] lg:pt-1.5">
             <p class="text-[11px] font-extrabold tracking-[0.118em] text-gold-soft">
-              {{ LEADERS_DIALOGUE.when }}
+              {{ NEXT_GENERATION_AWARD.when }}
             </p>
             <h3 class="text-[22px] font-extrabold leading-[1.25] tracking-[-0.027em] text-white">
-              {{ LEADERS_DIALOGUE.title }}
+              {{ NEXT_GENERATION_AWARD.title }}
             </h3>
-            <ul class="flex flex-col gap-2.5">
-              <li v-for="item in LEADERS_DIALOGUE.issues" :key="item" class="flex gap-2.5">
-                <span class="mt-2.5 size-[5px] shrink-0 rounded-full bg-gold" />
-                <span class="text-[15px] leading-[1.65] text-white/80">{{ item }}</span>
-              </li>
-            </ul>
-            <p class="border-t border-white/16 pt-4 text-[13px] text-white/60">
-              Speakers: TBC
+            <p class="text-[15px] leading-[1.65] text-white/80">
+              The APCR Awards on Trust &amp; Reputation Leadership include a category for the next generation:
+            </p>
+            <p class="flex gap-2.5 text-[17px] font-extrabold leading-[1.5] text-gold-soft">
+              <span class="mt-2.5 size-[5px] shrink-0 rounded-full bg-gold" />
+              {{ NEXT_GENERATION_AWARD.category }}
             </p>
           </div>
         </div>

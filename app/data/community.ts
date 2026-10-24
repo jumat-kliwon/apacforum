@@ -26,6 +26,11 @@ export const YEAR_ROUND = [
 export const NEXT_GENERATION = pick(AUDIENCE, a => a.title === 'NEXT GENERATION', 'Next Generation audience')
 
 const day3 = pick(PROGRAMME, d => d.id === 'day3', 'Day 3')
-const leaders = pick(day3.rows, r => r.title === 'FUTURE ASEAN LEADERS DIALOGUE', 'Future ASEAN Leaders Dialogue')
+const recognition = pick(day3.rows, r => r.title === 'APCR Trust & Reputation Leadership Recognition', 'Leadership Recognition')
 
-export const LEADERS_DIALOGUE = { ...leaders, when: `${day3.date} · ${leaders.time}` }
+/** The APCR Awards category that recognises the next generation. */
+export const NEXT_GENERATION_AWARD = {
+  title: recognition.title,
+  category: pick(recognition.issues ?? [], c => c.startsWith('Next Generation'), 'Next Generation award category'),
+  when: `${day3.date} · ${recognition.time}`
+}
