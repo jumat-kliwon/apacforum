@@ -101,8 +101,3 @@ export const FOOTER_COLUMNS: { title: string, links: NavLink[] }[] = [
     ]
   }
 ]
-
-export const FOOTER_LOGOS = [
-  { label: 'INITIATED BY', src: '/landing/pr-indonesia.png', alt: 'PR INDONESIA' },
-  { label: 'PARTNER', src: '/landing/nolimit.png', alt: 'NoLimit' }
-]

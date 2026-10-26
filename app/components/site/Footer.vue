@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { FOOTER_BLURB, FOOTER_COLUMNS, FOOTER_LOGOS } from '~/data/site'
-
-const route = useRoute()
+import { FOOTER_BLURB, FOOTER_COLUMNS } from '~/data/site'
 
 function isExternal(to?: string) {
   return !!to && /^https?:\/\//.test(to)
@@ -45,15 +43,6 @@ function isExternal(to?: string) {
                 <span v-else class="text-[14px]/[21px] text-ink/35" aria-disabled="true">{{ link.label }}</span>
               </li>
             </ul>
-          </div>
-        </div>
-
-        <div v-if="route.meta.footerLogos !== false" class="flex flex-wrap gap-10 border-t border-ink/16 pt-[31px]">
-          <div v-for="logo in FOOTER_LOGOS" :key="logo.label" class="flex flex-col gap-[18px]">
-            <p class="text-[12px]/[18px] tracking-[0.08em] text-navy">
-              {{ logo.label }}
-            </p>
-            <img :src="logo.src" :alt="logo.alt" width="190" height="85" class="h-[85px] w-[190px] object-contain object-center">
           </div>
         </div>
 

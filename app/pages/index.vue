@@ -4,8 +4,7 @@ import {
   RISKS, SCENARIOS, STAKEHOLDERS, WHY_NOW
 } from '~/data/home'
 
-// The home page shows the initiator and the CMS partners itself, so the footer's static logo row stays hidden.
-definePageMeta({ layout: 'site', footerLogos: false })
+definePageMeta({ layout: 'site' })
 
 useSeoMeta({
   title: 'APCR 2026 — ASEAN Public Communication & Reputation Forum',
