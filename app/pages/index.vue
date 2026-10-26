@@ -4,7 +4,7 @@ import {
   RISKS, SCENARIOS, STAKEHOLDERS, WHY_NOW
 } from '~/data/home'
 
-// The home page lists the CMS partners itself, so the footer's static logo row stays hidden.
+// The home page shows the initiator and the CMS partners itself, so the footer's static logo row stays hidden.
 definePageMeta({ layout: 'site', footerLogos: false })
 
 useSeoMeta({
@@ -449,6 +449,33 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
               </p>
             </li>
           </ul>
+        </div>
+      </SiteContainer>
+    </section>
+
+    <!-- About the initiator -->
+    <section id="initiator" class="py-20 lg:py-[84px]">
+      <SiteContainer>
+        <div class="flex flex-col gap-10 lg:flex-row lg:items-center lg:gap-16">
+          <div class="flex h-[200px] items-center justify-center rounded-[2px] border border-ink/16 bg-white px-10 lg:w-[360px] lg:shrink-0">
+            <img src="/landing/pr-indonesia.png" alt="PR INDONESIA" width="150" height="122" loading="lazy" class="max-h-[120px] object-contain">
+          </div>
+
+          <div class="flex flex-1 flex-col gap-[22px]">
+            <SiteEyebrow>ABOUT THE INITIATOR</SiteEyebrow>
+            <h2 class="text-[clamp(27px,3.7vw,44px)] font-extrabold leading-[1.06] tracking-[-0.043em] text-ink">
+              INITIATED BY PR INDONESIA
+            </h2>
+            <p class="text-[17px] leading-[1.78] text-prose">
+              Established in 2015, PR INDONESIA is a communication and reputation ecosystem connecting corporations, government institutions, state-owned enterprises, universities, professional associations and communication leaders across Indonesia.
+            </p>
+            <p class="text-[17px] leading-[1.78] text-prose">
+              Through APCR, PR INDONESIA is expanding that ecosystem:
+            </p>
+            <p class="text-[14px] font-extrabold leading-[1.8] tracking-[0.079em] text-navy">
+              FROM NATIONAL COMMUNICATION ECOSYSTEM<br>TO ASEAN COMMUNICATION ECOSYSTEM.
+            </p>
+          </div>
         </div>
       </SiteContainer>
     </section>
