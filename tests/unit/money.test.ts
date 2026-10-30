@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { convertToIdr, currencyLabel, formatMoney, formatRate, isValidRate, toMajor, toMinor } from '../../shared/utils/money'
+import { convertMinor, convertToIdr, currencyLabel, formatMoney, formatRate, isValidRate, toMajor, toMinor } from '../../shared/utils/money'
 
 describe('toMinor', () => {
   it('reads cents without float errors', () => {
@@ -27,6 +27,21 @@ describe('toMinor', () => {
   it('round-trips with toMajor', () => {
     expect(toMajor(14950, 'USD')).toBe(149.5)
     expect(toMajor(2_500_000, 'IDR')).toBe(2_500_000)
+  })
+})
+
+describe('convertMinor', () => {
+  const rates = { USD: '16250', SGD: '12500' }
+  it('converts a price through rupiah at the current rates', () => {
+    expect(convertMinor(2_500_000, 'IDR', 'USD', rates)).toBe(15385) // 153.846… → US$ 153.85
+    expect(convertMinor(14950, 'USD', 'IDR', rates)).toBe(2_429_375)
+    expect(convertMinor(14950, 'USD', 'SGD', rates)).toBe(19435) // 194.35
+    expect(convertMinor(0, 'IDR', 'USD', rates)).toBe(0)
+    expect(convertMinor(14950, 'USD', 'USD', {})).toBe(14950)
+  })
+
+  it('needs a rate for every foreign currency involved', () => {
+    expect(() => convertMinor(100, 'IDR', 'SGD', { USD: '16250' })).toThrow()
   })
 })
 
