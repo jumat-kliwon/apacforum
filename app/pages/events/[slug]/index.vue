@@ -118,9 +118,14 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
     </section>
 
     <section v-if="data.ticketTypes.length" aria-labelledby="tickets" class="flex flex-col gap-4">
-      <h2 id="tickets" class="text-2xl font-semibold text-highlighted">
-        Tickets
-      </h2>
+      <div class="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="tickets" class="text-2xl font-semibold text-highlighted">
+          Tickets
+        </h2>
+        <p class="text-sm text-muted">
+          Prices in {{ currencyLabel(ev.currency) }}
+        </p>
+      </div>
       <div class="grid gap-4 md:grid-cols-3">
         <article v-for="t in data.ticketTypes" :key="t.id" class="flex flex-col gap-2 rounded-md border border-default bg-default p-5 shadow-xs">
           <h3 class="font-semibold text-highlighted">
@@ -135,13 +140,19 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
             class="self-start"
           />
           <p class="text-2xl font-bold tabular-nums" :class="t.earlyBirdEnded ? 'text-muted line-through' : 'text-highlighted'">
-            {{ formatRupiah(t.price) }}<span v-if="t.paxPerTicket > 1" class="text-sm font-normal text-muted"> / {{ t.paxPerTicket }} people</span>
+            {{ formatMoney(t.price, ev.currency) }}<span v-if="t.paxPerTicket > 1" class="text-sm font-normal text-muted"> / {{ t.paxPerTicket }} people</span>
+          </p>
+          <p v-if="t.priceIdr" class="text-sm tabular-nums text-muted">
+            ≈ {{ formatRupiah(t.priceIdr) }}
           </p>
           <p v-if="!t.earlyBirdEnded" class="text-sm" :class="t.remaining ? 'text-muted' : 'text-error'">
             {{ t.remaining ? `${formatNumber(t.remaining)} seats left` : 'Sold out' }}
           </p>
         </article>
       </div>
+      <p v-if="ev.currency !== 'IDR'" class="text-sm text-muted">
+        Payment is made in Indonesian rupiah (IDR). Rupiah amounts are estimates; the final amount is fixed when your invoice is issued.
+      </p>
       <UButton v-if="ev.isOpen" :to="`/events/${slug}/register`" size="lg" label="Register now" trailing-icon="i-lucide-arrow-right" class="self-start" />
     </section>
   </template>

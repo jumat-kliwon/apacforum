@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   'guestbook.manage': { group: 'Events', label: 'Guestbook', description: 'View and delete the guestbook entries of each event' },
   'transactions.manage': { group: 'Finance', label: 'Transactions & refunds', description: 'View invoices and payments, and refund them' },
   'exports.manage': { group: 'Finance', label: 'CSV exports', description: 'Download participant and transaction lists' },
+  'settings.manage': { group: 'Finance', label: 'Currency rates', description: 'Set the USD and SGD exchange rates used to invoice events in those currencies' },
   'news.manage': { group: 'Content', label: 'News & Media', description: 'Write, publish and delete articles' },
   'email_templates.view': { group: 'Content', label: 'Email templates', description: 'Preview the emails sent to participants' },
   'access.manage': { group: 'Access', label: 'Users & roles', description: 'Create staff accounts, assign roles and edit role permissions' }

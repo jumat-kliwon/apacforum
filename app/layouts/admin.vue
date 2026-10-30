@@ -45,7 +45,8 @@ const sectionLabel = computed(() => {
 
 const workspaceItems = computed<NavigationMenuItem[]>(() => [
   can('news.manage') && { label: 'News & Media', icon: 'i-lucide-newspaper', to: '/admin/news' },
-  can('email_templates.view') && { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' }
+  can('email_templates.view') && { label: 'Email templates', icon: 'i-lucide-mail', to: '/admin/email-templates' },
+  can('settings.manage') && { label: 'Currency rates', icon: 'i-lucide-banknote', to: '/admin/settings/currency' }
 ].filter(item => !!item))
 
 const accessItems = computed<NavigationMenuItem[]>(() => can('access.manage')

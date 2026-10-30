@@ -7,7 +7,7 @@ import { agendaDaySchema, eventFormSchema, type EventForm, type EventFormInput }
  * event's Tickets, Speakers and Partners pages. "Add event" opens each step in order; "Edit event" starts with every step reachable.
  */
 type Previews = { banner?: string | null }
-const props = defineProps<{ initial?: EventFormInput, previews?: Previews, saving?: boolean, eventId?: string }>()
+const props = defineProps<{ initial?: EventFormInput, previews?: Previews, saving?: boolean, eventId?: string, currencyLocked?: boolean }>()
 const emit = defineEmits<{ submit: [EventForm] }>()
 
 const blankDay = () => ({ label: '', date: '', theme: '', body: '' })
@@ -16,9 +16,27 @@ const state = reactive<EventFormInput>(props.initial
   ? { ...structuredClone(toRaw(props.initial)), description: descriptionToHtml(props.initial.description) }
   : {
       name: '', code: '', slug: '', tagline: '', description: '', startDate: '', endDate: '', registrationDeadline: '',
-      venueName: '', venueAddress: '', city: '', capacity: 0, bannerKey: null, registrationOpen: true, isDefault: false, status: 'draft',
+      venueName: '', venueAddress: '', city: '', capacity: 0, currency: 'IDR', bannerKey: null, registrationOpen: true, isDefault: false, status: 'draft',
       agendaDays: [blankDay()]
     })
+const { rateOf } = useCurrencyRates()
+const CURRENCY_ITEMS = [
+  { label: 'IDR — Indonesian rupiah', value: 'IDR' },
+  { label: 'USD — US dollar', value: 'USD' },
+  { label: 'SGD — Singapore dollar', value: 'SGD' }
+]
+const currencyHelp = computed(() => {
+  const cur = state.currency ?? 'IDR'
+  const rate = isForeignCurrency(cur) ? rateOf(cur) : null
+  const charged = rate && isForeignCurrency(cur) ? `Charged in rupiah through DOKU at the current rate, ${formatRate(cur, rate)}.` : null
+  if (props.currencyLocked) return ['Locked while a ticket type has a price. Set those prices to 0 to change it.', charged].filter(Boolean).join(' ')
+  return isForeignCurrency(cur) ? charged ?? undefined : 'Every ticket price of this event is in this currency.'
+})
+const missingRate = computed(() => {
+  const cur = state.currency ?? 'IDR'
+  return isForeignCurrency(cur) && !rateOf(cur) ? cur : null
+})
+
 const previews = reactive<Previews>(props.previews ? structuredClone(toRaw(props.previews)) : { banner: null })
 
 // Suggest the slug and code from the name until they are edited by hand.
@@ -39,7 +57,7 @@ function removeDay(i: number) {
 const STEPS = [
   {
     title: 'General details',
-    fields: ['name', 'code', 'slug', 'tagline', 'description', 'startDate', 'endDate', 'registrationDeadline', 'venueName', 'venueAddress', 'city', 'capacity', 'bannerKey', 'registrationOpen', 'isDefault']
+    fields: ['name', 'code', 'slug', 'tagline', 'description', 'startDate', 'endDate', 'registrationDeadline', 'venueName', 'venueAddress', 'city', 'capacity', 'currency', 'bannerKey', 'registrationOpen', 'isDefault']
   },
   { title: 'Agenda', list: 'agendaDays', itemFields: Object.keys(agendaDaySchema.shape) }
 ] as const
@@ -176,6 +194,18 @@ const DESCRIPTION_TOOLBAR: EditorToolbarItem[][] = [
               </template>
             </UInput>
           </UFormField>
+          <UFormField label="Ticket currency" name="currency" required :help="currencyHelp" class="sm:col-span-2">
+            <USelect v-model="state.currency" :items="CURRENCY_ITEMS" :disabled="currencyLocked" class="w-full" />
+          </UFormField>
+          <UAlert
+            v-if="missingRate"
+            color="warning"
+            variant="subtle"
+            icon="i-lucide-triangle-alert"
+            class="sm:col-span-2"
+            :title="`No ${missingRate} rate set`"
+            description="Registrations are refused until an admin sets the rate under Currency rates."
+          />
           <UFormField label="Venue" name="venueName" required>
             <UInput v-model="state.venueName" placeholder="Venue name" class="w-full" />
           </UFormField>

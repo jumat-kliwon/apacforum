@@ -9,7 +9,9 @@ const selected = computed({
   get: () => (typeof route.query.t === 'string' ? route.query.t : list.value?.[0]?.key) ?? 'registration-verified',
   set: (t: string) => router.replace({ query: { t } })
 })
-const { data: preview, status } = await useFetch(() => `/api/admin/email-templates/${selected.value}`)
+// preview an event priced in USD (charged in rupiah) as well as a rupiah one
+const sampleCurrency = ref<'IDR' | 'USD'>('IDR')
+const { data: preview, status } = await useFetch(() => `/api/admin/email-templates/${selected.value}`, { query: { currency: sampleCurrency } })
 
 const groups = computed(() => (['Registration', 'Payment', 'Event'] as const).map(label => ({
   label,
@@ -59,6 +61,16 @@ const statusColor = (label: string) => {
 
     <section v-if="preview" class="flex flex-col gap-4" aria-live="polite">
       <AdminPanel :title="preview.name">
+        <template #actions>
+          <URadioGroup
+            v-model="sampleCurrency"
+            orientation="horizontal"
+            variant="table"
+            size="sm"
+            aria-label="Sample event currency"
+            :items="[{ label: 'Rupiah event', value: 'IDR' }, { label: 'USD event', value: 'USD' }]"
+          />
+        </template>
         <dl class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-3 text-sm">
           <dt class="text-muted">Trigger</dt>
           <dd class="font-medium text-highlighted">{{ preview.trigger }}</dd>

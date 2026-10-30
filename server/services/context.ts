@@ -36,6 +36,7 @@ export async function loadMailData(participantId: string, d: Db = db): Promise<M
     organization: row.u.organization,
     ticketTypeName: row.t.name,
     ticketPrice: row.t.price,
+    currency: row.e.currency,
     ticketCode: row.p.ticketCode,
     invoice: trx
       ? {
@@ -45,7 +46,8 @@ export async function loadMailData(participantId: string, d: Db = db): Promise<M
           paymentUrl: trx.payment.dokuPaymentUrl ?? null,
           methodLabel: methodLabel(trx.method, trx.payment.channel),
           paidAt: trx.paidAt,
-          refundAmount: trx.payment.refundAmount ?? null
+          refundAmount: trx.payment.refundAmount ?? null,
+          fx: trx.items.fx ?? null
         }
       : undefined
   }

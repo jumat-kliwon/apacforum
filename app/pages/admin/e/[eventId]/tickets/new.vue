@@ -28,5 +28,5 @@ async function create(form: TicketTypeForm) {
     :description="`Each ticket type is a participant type on the ${event?.name ?? 'event'} registration form.`"
     :breadcrumb="[{ label: 'Tickets', to: eventPath(eventId, 'tickets') }, { label: 'Add ticket type' }]"
   />
-  <AdminTicketForm :event-id="eventId" :saving="saving" @submit="create" />
+  <AdminTicketForm :event-id="eventId" :currency="event?.currency ?? 'IDR'" :saving="saving" @submit="create" />
 </template>

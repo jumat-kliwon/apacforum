@@ -1,10 +1,12 @@
 import { and, eq, gt, inArray, isNull, lte, sql } from 'drizzle-orm'
 import type { TransactionHistoryEntry } from '../../shared/schemas/transaction'
+import { convertToIdr, isForeignCurrency } from '../../shared/utils/money'
 import { formatInvoiceNo, formatTicketCode } from '../../shared/utils/numbering'
 import { db } from '../db'
 import { jsonParam } from '../db/columns'
 import { events, participants, ticketTypes, transactions, users } from '../db/schema'
 import { loadMailData, siteUrl, type Tx } from './context'
+import { requireRate } from './currency'
 import { createCheckout, mapChannel, NOTIFY_PATH, type DokuNotification } from './doku'
 import { sendTemplateSafe } from './mail/send'
 
@@ -22,6 +24,8 @@ const appendHistory = (...items: TransactionHistoryEntry[]) =>
 /**
  * Creates the invoice for a new registration (inside the caller's DB transaction).
  * `actor` is null when the public registration form creates it. Free tickets are marked paid straight away.
+ * A USD/SGD price is converted to rupiah at the current rate, which is copied into `items.fx`:
+ * DOKU only takes IDR, and a later rate change must not alter an invoice already sent.
  */
 export async function createInvoice(tx: Tx, participantId: string, actor: { id: string, name: string } | null) {
   const [row] = await tx.select({ p: participants, u: users, e: events, t: ticketTypes })
@@ -38,6 +42,12 @@ export async function createInvoice(tx: Tx, participantId: string, actor: { id: 
     .returning({ invoiceSeq: events.invoiceSeq })
   const issuedAt = now()
   const free = row.t.price === 0
+  const currency = row.e.currency
+  const rate = free ? null : await requireRate(currency, tx)
+  const total = rate && isForeignCurrency(currency) ? convertToIdr(row.t.price, currency, rate) : row.t.price
+  const fx = rate && isForeignCurrency(currency)
+    ? { currency, unitPrice: row.t.price, total: row.t.price, rateIdr: rate, rateAt: issuedAt.toISOString() }
+    : undefined
 
   const [trx] = await tx.insert(transactions).values({
     invoiceNo: formatInvoiceNo(row.e.code, seq!.invoiceSeq, issuedAt),
@@ -49,13 +59,14 @@ export async function createInvoice(tx: Tx, participantId: string, actor: { id: 
     eventName: row.e.name,
     ticketTypeName: row.t.name,
     status: free ? 'paid' : 'pending',
-    total: row.t.price,
+    total,
     expiresAt: free ? null : new Date(issuedAt.getTime() + PAYMENT_WINDOW_HOURS * 3600_000),
     paidAt: free ? issuedAt : null,
     items: {
-      lines: [{ description: `${row.t.name} ticket`, note: row.e.name, qty: 1, unitPrice: row.t.price, subtotal: row.t.price }],
-      subtotal: row.t.price,
-      discount: 0
+      lines: [{ description: `${row.t.name} ticket`, note: row.e.name, qty: 1, unitPrice: total, subtotal: total }],
+      subtotal: total,
+      discount: 0,
+      ...(fx && { fx })
     },
     history: [entry('created', { description: actor ? `by ${actor.name} after verification` : 'on registration', actor })]
   }).returning()

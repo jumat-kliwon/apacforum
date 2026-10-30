@@ -53,7 +53,7 @@ async function toggleSale(r: Row, isOnSale: boolean) {
   try {
     await $fetch(`/api/admin/tickets/${r.id}`, {
       method: 'PUT',
-      body: { eventId: r.eventId, code: r.code, name: r.name, price: r.price, paxPerTicket: r.paxPerTicket, quota: r.quota, isOnSale, ...earlyBirdFormValues(r) }
+      body: { eventId: r.eventId, code: r.code, name: r.name, price: toMajor(r.price, r.currency), paxPerTicket: r.paxPerTicket, quota: r.quota, isOnSale, ...earlyBirdFormValues(r) }
     })
     notify.success(`${r.name} is ${isOnSale ? 'on sale' : 'no longer on sale'}`)
     await refresh()
@@ -122,7 +122,7 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
       </template>
       <template #price-cell="{ row }">
         <div class="flex flex-col gap-0.5 whitespace-nowrap">
-          <span class="tabular-nums">{{ formatRupiah(row.original.price) }}</span>
+          <span class="tabular-nums">{{ formatMoney(row.original.price, row.original.currency) }}</span>
           <span v-if="row.original.isEarlyBird && row.original.earlyBirdUntil" class="text-xs tabular-nums" :class="earlyBirdEnded(row.original) ? 'text-muted' : 'text-success'">
             Early bird · {{ earlyBirdEnded(row.original) ? 'ended' : 'until' }} {{ formatDate(row.original.earlyBirdUntil, 'short') }}
           </span>

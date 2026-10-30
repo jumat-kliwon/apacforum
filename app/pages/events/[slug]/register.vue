@@ -21,7 +21,7 @@ const ticketItems = computed(() => data.value!.ticketTypes.map(t => ({
   value: t.id,
   label: t.name,
   // the description slot renders the price; this is the accessible fallback
-  description: t.earlyBirdEnded ? 'Early bird ended' : t.remaining ? formatRupiah(t.price) : 'Sold out',
+  description: t.earlyBirdEnded ? 'Early bird ended' : t.remaining ? formatMoney(t.price, data.value!.event.currency) : 'Sold out',
   disabled: !t.remaining || t.earlyBirdEnded,
   ticket: t
 })))
@@ -121,7 +121,13 @@ function onError(e: FormErrorEvent) {
           <UAlert v-if="serverError" color="error" variant="subtle" icon="i-lucide-circle-alert" :title="serverError" class="mb-6" />
 
           <UForm :schema="registrationSchema" :state="formState" class="flex flex-col gap-6" @submit="onSubmit" @error="onError">
-            <UFormField label="Participant type" name="ticketTypeId" required>
+            <UFormField
+              label="Participant type"
+              name="ticketTypeId"
+              required
+              :hint="`Prices in ${currencyLabel(data.event.currency)}`"
+              :help="data.event.currency !== 'IDR' ? 'You pay in Indonesian rupiah (IDR), converted at the exchange rate on the day your invoice is issued.' : undefined"
+            >
               <URadioGroup
                 v-model="state.ticketTypeId"
                 :items="ticketItems"
@@ -137,7 +143,7 @@ function onError(e: FormErrorEvent) {
                 <template #description="{ item }">
                   <span class="flex flex-col gap-2">
                     <span :class="{ 'text-muted line-through': item.ticket.earlyBirdEnded }" class="tabular-nums">
-                      {{ formatRupiah(item.ticket.price) }}<template v-if="item.ticket.paxPerTicket > 1"> / {{ item.ticket.paxPerTicket }} people</template>
+                      {{ formatMoney(item.ticket.price, data.event.currency) }}<template v-if="item.ticket.paxPerTicket > 1"> / {{ item.ticket.paxPerTicket }} people</template>
                     </span>
                     <UBadge
                       v-if="item.ticket.earlyBirdUntil"

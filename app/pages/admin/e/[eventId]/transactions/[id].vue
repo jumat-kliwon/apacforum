@@ -120,6 +120,10 @@ async function doRefund() {
             <dt class="border-t border-default pt-2 font-semibold">{{ trx.status === 'paid' || trx.status === 'refunded' ? 'Total paid' : 'Total' }}</dt>
             <dd class="border-t border-default pt-2 text-right font-bold tabular-nums">{{ formatRupiah(trx.total) }}</dd>
           </dl>
+          <p v-if="trx.items.fx" class="ml-auto max-w-xs text-right text-[13px]/[18px] text-muted">
+            Priced at {{ formatMoney(trx.items.fx.total, trx.items.fx.currency) }}, charged in rupiah at
+            {{ formatRate(trx.items.fx.currency, trx.items.fx.rateIdr) }} (rate of {{ formatDateTime(trx.items.fx.rateAt) }}), rounded up to the next rupiah.
+          </p>
         </AdminPanel>
 
         <AdminPanel title="Payment details">

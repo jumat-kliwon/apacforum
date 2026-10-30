@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, ilike, inArray, notInArray, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { EventForm, TicketTypeForm, ticketTypeListQuery } from '../../shared/schemas/event'
+import { toMinor, type Currency } from '../../shared/utils/money'
 import { db } from '../db'
 import { agendaDays, events, partners, participants, speakers, ticketTypes, transactions } from '../db/schema'
 import { deadlineFromDate } from './registration'
@@ -56,6 +57,7 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
     venueAddress: form.venueAddress,
     city: form.city,
     capacity: form.capacity,
+    currency: form.currency,
     bannerKey: form.bannerKey ?? null,
     registrationOpen: form.registrationOpen,
     isDefault: form.isDefault,
@@ -80,6 +82,10 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
         if (!prev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
         if (prev.code !== form.code && prev.registrationSeq > 0) {
           throw createError({ statusCode: 409, statusMessage: 'The event code cannot change once people have registered' })
+        }
+        // prices are stored in minor units of the currency, so switching would re-read 2,500,000 rupiah as US$ 25,000.00
+        if (prev.currency !== form.currency && await hasPaidTicketTypes(tx, id)) {
+          throw createError({ statusCode: 409, statusMessage: 'The currency cannot change while the event has paid ticket types. Set their prices to 0 or remove them first.' })
         }
         if (prev.bannerKey !== values.bannerKey) staleKeys.push(prev.bannerKey)
         await tx.update(events).set({
@@ -111,6 +117,12 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
   }
 }
 
+/** True when a ticket type of the event costs money; its price would be re-read in a new currency. */
+export async function hasPaidTicketTypes(d: Tx | typeof db, eventId: string) {
+  const [row] = await d.select({ n: sql<number>`count(*)::int` }).from(ticketTypes).where(and(eq(ticketTypes.eventId, eventId), sql`${ticketTypes.price} > 0`))
+  return (row?.n ?? 0) > 0
+}
+
 /** A published event must sell at least one ticket type (managed on the Tickets page). */
 async function requireTicketTypes(tx: Tx, eventId: string) {
   const [row] = await tx.select({ n: sql<number>`count(*)::int` }).from(ticketTypes).where(eq(ticketTypes.eventId, eventId))
@@ -121,10 +133,19 @@ async function requireTicketTypes(tx: Tx, eventId: string) {
 
 // ── ticket types (the Tickets page) ──
 
-const ticketValues = (f: Omit<TicketTypeForm, 'eventId'>) => ({
+/** The form's price is in major units; it is stored in minor units of the event's currency. */
+function minorPrice(price: number, currency: Currency) {
+  const minor = toMinor(price, currency)
+  if (minor === null) {
+    throw createError({ statusCode: 422, statusMessage: currency === 'IDR' ? 'Enter the price in whole rupiah' : 'Enter the price with at most 2 decimals' })
+  }
+  return minor
+}
+
+const ticketValues = (f: Omit<TicketTypeForm, 'eventId'>, currency: Currency) => ({
   code: f.code,
   name: f.name,
-  price: f.price,
+  price: minorPrice(f.price, currency),
   isEarlyBird: f.isEarlyBird,
   earlyBirdUntil: f.isEarlyBird && f.earlyBirdUntil ? deadlineFromDate(f.earlyBirdUntil) : null,
   paxPerTicket: f.paxPerTicket,
@@ -135,10 +156,10 @@ const ticketValues = (f: Omit<TicketTypeForm, 'eventId'>) => ({
 export async function createTicketType(form: TicketTypeForm) {
   try {
     return await db.transaction(async (tx) => {
-      const [ev] = await tx.select({ id: events.id }).from(events).where(eq(events.id, form.eventId)).for('update')
+      const [ev] = await tx.select({ id: events.id, currency: events.currency }).from(events).where(eq(events.id, form.eventId)).for('update')
       if (!ev) throw createError({ statusCode: 404, statusMessage: 'Event not found' })
       const [last] = await tx.select({ n: sql<number>`coalesce(max(${ticketTypes.sortOrder}), 0)::int` }).from(ticketTypes).where(eq(ticketTypes.eventId, form.eventId))
-      const [row] = await tx.insert(ticketTypes).values({ ...ticketValues(form), eventId: form.eventId, sortOrder: (last?.n ?? 0) + 1 }).returning({ id: ticketTypes.id })
+      const [row] = await tx.insert(ticketTypes).values({ ...ticketValues(form, ev.currency), eventId: form.eventId, sortOrder: (last?.n ?? 0) + 1 }).returning({ id: ticketTypes.id })
       return row!.id
     })
   } catch (err: unknown) {
@@ -148,11 +169,16 @@ export async function createTicketType(form: TicketTypeForm) {
 
 export async function updateTicketType(id: string, form: TicketTypeForm) {
   try {
-    const [row] = await db.update(ticketTypes).set(ticketValues(form))
-      .where(and(eq(ticketTypes.id, id), eq(ticketTypes.eventId, form.eventId)))
-      .returning({ id: ticketTypes.id })
-    if (!row) throw createError({ statusCode: 404, statusMessage: 'Ticket type not found' })
-    return row.id
+    return await db.transaction(async (tx) => {
+      // lock the event so its currency cannot change between reading it and saving the price
+      const [ev] = await tx.select({ currency: events.currency }).from(events).where(eq(events.id, form.eventId)).for('update')
+      if (!ev) throw createError({ statusCode: 404, statusMessage: 'Ticket type not found' })
+      const [row] = await tx.update(ticketTypes).set(ticketValues(form, ev.currency))
+        .where(and(eq(ticketTypes.id, id), eq(ticketTypes.eventId, form.eventId)))
+        .returning({ id: ticketTypes.id })
+      if (!row) throw createError({ statusCode: 404, statusMessage: 'Ticket type not found' })
+      return row.id
+    })
   } catch (err: unknown) {
     throw translateDbError(err)
   }
@@ -190,7 +216,9 @@ export const ticketTypeSelect = {
   eventStatus: events.status,
   code: ticketTypes.code,
   name: ticketTypes.name,
+  /** Minor units of `currency`. */
   price: ticketTypes.price,
+  currency: events.currency,
   isEarlyBird: ticketTypes.isEarlyBird,
   earlyBirdUntil: ticketTypes.earlyBirdUntil,
   paxPerTicket: ticketTypes.paxPerTicket,
@@ -210,12 +238,14 @@ export async function listTicketTypes(q: z.output<typeof ticketTypeListQuery>) {
     q.status ? eq(ticketTypes.isOnSale, q.status === 'on_sale') : undefined
   )
   const sortCol = { name: ticketTypes.name, event: events.startDate, price: ticketTypes.price, sold: soldCount, status: ticketTypes.isOnSale }[q.sort]
-  const order = q.dir === 'asc' ? asc(sortCol) : desc(sortCol)
+  const dir = q.dir === 'asc' ? asc : desc
+  // prices of different currencies are not comparable: group them by currency first
+  const order = q.sort === 'price' ? [dir(events.currency), dir(sortCol)] : [dir(sortCol)]
   const [rows, [count]] = await Promise.all([
     db.select(ticketTypeSelect).from(ticketTypes)
       .innerJoin(events, eq(events.id, ticketTypes.eventId))
       .where(where)
-      .orderBy(order, asc(events.name), asc(ticketTypes.sortOrder))
+      .orderBy(...order, asc(events.name), asc(ticketTypes.sortOrder))
       .limit(q.pageSize).offset((q.page - 1) * q.pageSize),
     db.select({ total: sql<number>`count(*)::int` }).from(ticketTypes).where(where)
   ])

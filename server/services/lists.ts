@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, gte, ilike, inArray, lt, or, sql, type SQL } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { participantListQuery, transactionListQuery } from '../../shared/schemas/participant'
+import type { TransactionItems } from '../../shared/schemas/transaction'
 import { db } from '../db'
 import { events, participants, ticketTypes, transactions, users } from '../db/schema'
 import { likePattern } from '../utils/validate'
@@ -96,6 +97,8 @@ function transactionWhere(q: TQuery) {
   return and(...conds)
 }
 
+type TransactionFx = NonNullable<TransactionItems['fx']>
+
 const transactionSelect = {
   id: transactions.id,
   invoiceNo: transactions.invoiceNo,
@@ -107,6 +110,8 @@ const transactionSelect = {
   total: transactions.total,
   method: transactions.method,
   channel: sql<string | null>`${transactions.payment}->>'channel'`,
+  /** Original USD/SGD price and rate; null for rupiah events. */
+  fx: sql<TransactionFx | null>`${transactions.items}->'fx'`.mapWith(v => (typeof v === 'string' ? JSON.parse(v) : v) as TransactionFx | null),
   status: transactions.status,
   createdAt: transactions.createdAt,
   paidAt: transactions.paidAt
