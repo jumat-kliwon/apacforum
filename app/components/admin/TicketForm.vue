@@ -56,9 +56,9 @@ function onError(e: FormErrorEvent) {
     <AdminPanel title="Price & quota">
       <div class="grid gap-4 sm:grid-cols-3">
         <UFormField label="Price" name="price" required :help="priceHelp">
-          <UInput v-model.number="state.price" type="number" min="0" :step="currency === 'IDR' ? 1 : 0.01" class="w-full" :ui="{ base: currency === 'IDR' ? 'ps-13' : 'ps-15' }">
+          <UInput v-model.number="state.price" type="number" min="0" :step="currency === 'IDR' ? 1 : 0.01" class="w-full" :ui="{ base: 'ps-15' }">
             <template #leading>
-              <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">{{ currencySymbol(currency) }}</span>
+              <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">{{ currency }}</span>
             </template>
           </UInput>
         </UFormField>

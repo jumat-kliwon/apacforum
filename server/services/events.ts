@@ -117,7 +117,7 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
 
 /**
  * Prices are minor units of the event currency, so switching it converts every ticket price at the current
- * rates (Rp 2,500,000 → US$ 153.85 at 16,250), rounded to the nearest minor unit. 409 when a rate is missing.
+ * rates (IDR 2,500,000 → USD 153.85 at 16,250), rounded to the nearest minor unit. 409 when a rate is missing.
  * Issued invoices are unaffected: they hold their own snapshot.
  */
 async function convertTicketPrices(tx: Tx, eventId: string, from: Currency, to: Currency) {

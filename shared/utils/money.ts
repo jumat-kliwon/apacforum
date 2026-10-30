@@ -10,13 +10,11 @@ export const FOREIGN_CURRENCIES = ['USD', 'SGD'] as const
 export type ForeignCurrency = typeof FOREIGN_CURRENCIES[number]
 
 const EXPONENT: Record<Currency, number> = { IDR: 0, USD: 2, SGD: 2 }
-const SYMBOL: Record<Currency, string> = { IDR: 'Rp', USD: 'US$', SGD: 'S$' }
 const NAME: Record<Currency, string> = { IDR: 'Indonesian rupiah', USD: 'US dollar', SGD: 'Singapore dollar' }
 /** Decimal places of an exchange rate (`currency_rates.rate_idr` is numeric(18, 4)). */
 export const RATE_SCALE = 4
 
 export const currencyExponent = (cur: Currency) => EXPONENT[cur]
-export const currencySymbol = (cur: Currency) => SYMBOL[cur]
 /** `USD (US dollar)` */
 export const currencyLabel = (cur: Currency) => `${cur} (${NAME[cur]})`
 export const isForeignCurrency = (cur: Currency): cur is ForeignCurrency => cur !== 'IDR'
@@ -68,7 +66,7 @@ export function convertToIdr(minor: number, cur: Currency, rateIdr: string | num
 /**
  * A price in another currency through rupiah, rounded to the nearest minor unit, for when an event switches
  * currency. `rates` holds rupiah per unit of each foreign currency involved:
- * Rp 2,500,000 at 16250 → US$ 153.85; US$ 149.50 at 16250 → Rp 2,429,375.
+ * IDR 2,500,000 at 16250 → USD 153.85; USD 149.50 at 16250 → IDR 2,429,375.
  */
 export function convertMinor(minor: number, from: Currency, to: Currency, rates: Partial<Record<ForeignCurrency, string>>) {
   if (from === to) return minor
@@ -83,13 +81,13 @@ export function convertMinor(minor: number, from: Currency, to: Currency, rates:
   return Number((2n * num + den) / (2n * den)) // half up
 }
 
-/** `Rp 2,500,000` · `US$ 149.50` · `S$ 200.00` */
+/** `IDR 2,500,000` · `USD 149.50` · `SGD 200.00` */
 export function formatMoney(minor: number, cur: Currency) {
   const exp = EXPONENT[cur]
   const amount = new Intl.NumberFormat('en-US', { minimumFractionDigits: exp, maximumFractionDigits: exp }).format(toMajor(minor, cur))
-  return `${SYMBOL[cur]} ${amount}`
+  return `${cur} ${amount}`
 }
 
-/** `1 USD = Rp 16,250` */
+/** `1 USD = IDR 16,250` */
 export const formatRate = (cur: ForeignCurrency, rateIdr: string | number) =>
-  `1 ${cur} = Rp ${new Intl.NumberFormat('en-US', { maximumFractionDigits: RATE_SCALE }).format(Number(rateIdr))}`
+  `1 ${cur} = IDR ${new Intl.NumberFormat('en-US', { maximumFractionDigits: RATE_SCALE }).format(Number(rateIdr))}`

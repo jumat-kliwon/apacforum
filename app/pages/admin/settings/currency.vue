@@ -41,9 +41,9 @@ async function save(e: FormSubmitEvent<CurrencyRateForm>) {
     <AdminPanel v-for="r in rates" :key="r.currency" :title="r.currency === 'USD' ? 'US dollar (USD)' : 'Singapore dollar (SGD)'">
       <UForm v-if="drafts[r.currency]" :schema="currencyRateFormSchema" :state="drafts[r.currency]!" class="flex flex-col gap-4" @submit="save">
         <UFormField :label="`Rupiah per 1 ${r.currency}`" name="rateIdr" required help="Up to 4 decimals.">
-          <UInput v-model="drafts[r.currency]!.rateIdr" inputmode="decimal" :placeholder="r.currency === 'USD' ? '16250' : '12500'" class="w-full" :ui="{ base: 'ps-10' }">
+          <UInput v-model="drafts[r.currency]!.rateIdr" inputmode="decimal" :placeholder="r.currency === 'USD' ? '16250' : '12500'" class="w-full" :ui="{ base: 'ps-15' }">
             <template #leading>
-              <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">Rp</span>
+              <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">IDR</span>
             </template>
           </UInput>
         </UFormField>
