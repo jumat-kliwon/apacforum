@@ -44,6 +44,6 @@ export async function getRate(currency: ForeignCurrency, d: Db = db) {
 export async function requireRate(currency: Currency, d: Db = db) {
   if (currency === 'IDR') return null
   const rate = await getRate(currency, d)
-  if (!rate) throw createError({ statusCode: 409, statusMessage: `Payments in ${currency} are not open yet: no exchange rate has been set` })
+  if (!rate) throw createError({ statusCode: 409, statusMessage: `No ${currency} exchange rate has been set yet` })
   return rate
 }

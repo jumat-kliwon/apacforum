@@ -1,7 +1,8 @@
 import { and, asc, desc, eq, ilike, inArray, notInArray, or, sql } from 'drizzle-orm'
 import type { z } from 'zod'
 import type { EventForm, TicketTypeForm, ticketTypeListQuery } from '../../shared/schemas/event'
-import { toMinor, type Currency } from '../../shared/utils/money'
+import { convertMinor, isForeignCurrency, toMinor, type Currency, type ForeignCurrency } from '../../shared/utils/money'
+import { requireRate } from './currency'
 import { db } from '../db'
 import { agendaDays, events, partners, participants, speakers, ticketTypes, transactions } from '../db/schema'
 import { deadlineFromDate } from './registration'
@@ -83,10 +84,7 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
         if (prev.code !== form.code && prev.registrationSeq > 0) {
           throw createError({ statusCode: 409, statusMessage: 'The event code cannot change once people have registered' })
         }
-        // prices are stored in minor units of the currency, so switching would re-read 2,500,000 rupiah as US$ 25,000.00
-        if (prev.currency !== form.currency && await hasPaidTicketTypes(tx, id)) {
-          throw createError({ statusCode: 409, statusMessage: 'The currency cannot change while the event has paid ticket types. Set their prices to 0 or remove them first.' })
-        }
+        if (prev.currency !== form.currency) await convertTicketPrices(tx, id, prev.currency, form.currency)
         if (prev.bannerKey !== values.bannerKey) staleKeys.push(prev.bannerKey)
         await tx.update(events).set({
           ...values,
@@ -117,10 +115,21 @@ export async function saveEvent(form: EventForm, actor: Actor, eventId?: string)
   }
 }
 
-/** True when a ticket type of the event costs money; its price would be re-read in a new currency. */
-export async function hasPaidTicketTypes(d: Tx | typeof db, eventId: string) {
-  const [row] = await d.select({ n: sql<number>`count(*)::int` }).from(ticketTypes).where(and(eq(ticketTypes.eventId, eventId), sql`${ticketTypes.price} > 0`))
-  return (row?.n ?? 0) > 0
+/**
+ * Prices are minor units of the event currency, so switching it converts every ticket price at the current
+ * rates (Rp 2,500,000 → US$ 153.85 at 16,250), rounded to the nearest minor unit. 409 when a rate is missing.
+ * Issued invoices are unaffected: they hold their own snapshot.
+ */
+async function convertTicketPrices(tx: Tx, eventId: string, from: Currency, to: Currency) {
+  const rates: Partial<Record<ForeignCurrency, string>> = {}
+  for (const cur of [from, to]) {
+    if (isForeignCurrency(cur)) rates[cur] = (await requireRate(cur, tx))!
+  }
+  const rows = await tx.select({ id: ticketTypes.id, price: ticketTypes.price }).from(ticketTypes).where(eq(ticketTypes.eventId, eventId)).for('update')
+  for (const t of rows) {
+    if (t.price === 0) continue
+    await tx.update(ticketTypes).set({ price: convertMinor(t.price, from, to, rates) }).where(eq(ticketTypes.id, t.id))
+  }
 }
 
 /** A published event must sell at least one ticket type (managed on the Tickets page). */

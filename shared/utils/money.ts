@@ -65,6 +65,24 @@ export function convertToIdr(minor: number, cur: Currency, rateIdr: string | num
   return Number(idr)
 }
 
+/**
+ * A price in another currency through rupiah, rounded to the nearest minor unit, for when an event switches
+ * currency. `rates` holds rupiah per unit of each foreign currency involved:
+ * Rp 2,500,000 at 16250 → US$ 153.85; US$ 149.50 at 16250 → Rp 2,429,375.
+ */
+export function convertMinor(minor: number, from: Currency, to: Currency, rates: Partial<Record<ForeignCurrency, string>>) {
+  if (from === to) return minor
+  const rateOf = (cur: Currency) => {
+    if (cur === 'IDR') return 10n ** BigInt(RATE_SCALE)
+    const r = parseRate(rates[cur] ?? '')
+    if (r === null) throw new Error(`No exchange rate for ${cur}`)
+    return r
+  }
+  const num = BigInt(minor) * rateOf(from) * 10n ** BigInt(EXPONENT[to])
+  const den = 10n ** BigInt(EXPONENT[from]) * rateOf(to)
+  return Number((2n * num + den) / (2n * den)) // half up
+}
+
 /** `Rp 2,500,000` · `US$ 149.50` · `S$ 200.00` */
 export function formatMoney(minor: number, cur: Currency) {
   const exp = EXPONENT[cur]
