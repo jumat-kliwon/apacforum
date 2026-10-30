@@ -126,7 +126,7 @@ function onError(e: FormErrorEvent) {
               name="ticketTypeId"
               required
               :hint="`Prices in ${currencyLabel(data.event.currency)}`"
-              :help="data.event.currency !== 'IDR' ? 'You pay in Indonesian rupiah (IDR). The rupiah amount is an estimate at today\'s rate and is fixed when your invoice is issued.' : undefined"
+              :help="data.event.currency !== 'IDR' ? 'You pay in Indonesian rupiah (IDR), converted at the exchange rate on the day your invoice is issued.' : undefined"
             >
               <URadioGroup
                 v-model="state.ticketTypeId"
@@ -145,7 +145,6 @@ function onError(e: FormErrorEvent) {
                     <span :class="{ 'text-muted line-through': item.ticket.earlyBirdEnded }" class="tabular-nums">
                       {{ formatMoney(item.ticket.price, data.event.currency) }}<template v-if="item.ticket.paxPerTicket > 1"> / {{ item.ticket.paxPerTicket }} people</template>
                     </span>
-                    <span v-if="item.ticket.priceIdr && !item.ticket.earlyBirdEnded" class="text-[13px] tabular-nums text-muted">≈ {{ formatRupiah(item.ticket.priceIdr) }}</span>
                     <UBadge
                       v-if="item.ticket.earlyBirdUntil"
                       :color="item.ticket.earlyBirdEnded ? 'neutral' : 'success'"
