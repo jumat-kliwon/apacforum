@@ -33,7 +33,7 @@ describe('toMinor', () => {
 describe('convertMinor', () => {
   const rates = { USD: '16250', SGD: '12500' }
   it('converts a price through rupiah at the current rates', () => {
-    expect(convertMinor(2_500_000, 'IDR', 'USD', rates)).toBe(15385) // 153.846… → US$ 153.85
+    expect(convertMinor(2_500_000, 'IDR', 'USD', rates)).toBe(15385) // 153.846… → USD 153.85
     expect(convertMinor(14950, 'USD', 'IDR', rates)).toBe(2_429_375)
     expect(convertMinor(14950, 'USD', 'SGD', rates)).toBe(19435) // 194.35
     expect(convertMinor(0, 'IDR', 'USD', rates)).toBe(0)
@@ -82,9 +82,9 @@ describe('isValidRate', () => {
 
 describe('formatMoney', () => {
   it('formats by currency', () => {
-    expect(formatMoney(2_500_000, 'IDR')).toBe('Rp 2,500,000')
-    expect(formatMoney(14950, 'USD')).toBe('US$ 149.50')
-    expect(formatMoney(20000, 'SGD')).toBe('S$ 200.00')
+    expect(formatMoney(2_500_000, 'IDR')).toBe('IDR 2,500,000')
+    expect(formatMoney(14950, 'USD')).toBe('USD 149.50')
+    expect(formatMoney(20000, 'SGD')).toBe('SGD 200.00')
   })
 
   it('names a currency', () => {
@@ -92,7 +92,7 @@ describe('formatMoney', () => {
   })
 
   it('formats a rate', () => {
-    expect(formatRate('USD', '16250.0000')).toBe('1 USD = Rp 16,250')
-    expect(formatRate('SGD', '12345.6789')).toBe('1 SGD = Rp 12,345.6789')
+    expect(formatRate('USD', '16250.0000')).toBe('1 USD = IDR 16,250')
+    expect(formatRate('SGD', '12345.6789')).toBe('1 SGD = IDR 12,345.6789')
   })
 })

@@ -2,16 +2,16 @@
 const TZ = 'Asia/Jakarta'
 const LOCALE = 'en-GB'
 
-/** `Rp 2,500,000` */
-export const formatRupiah = (n: number) => `Rp ${new Intl.NumberFormat('en-US').format(n)}`
+/** `IDR 2,500,000` */
+export const formatRupiah = (n: number) => `IDR ${new Intl.NumberFormat('en-US').format(n)}`
 
 /** `1,248` */
 export const formatNumber = (n: number) => new Intl.NumberFormat('en-US').format(n)
 
-/** `Rp 4.19B` */
+/** `IDR 4.19B` */
 export function formatRupiahShort(n: number) {
-  if (n >= 1e9) return `Rp ${(n / 1e9).toLocaleString('en-US', { maximumFractionDigits: 2 })}B`
-  if (n >= 1e6) return `Rp ${(n / 1e6).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`
+  if (n >= 1e9) return `IDR ${(n / 1e9).toLocaleString('en-US', { maximumFractionDigits: 2 })}B`
+  if (n >= 1e6) return `IDR ${(n / 1e6).toLocaleString('en-US', { maximumFractionDigits: 1 })}M`
   return formatRupiah(n)
 }
 
