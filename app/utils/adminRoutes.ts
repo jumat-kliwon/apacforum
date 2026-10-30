@@ -39,6 +39,7 @@ export const WORKSPACE_PAGES: [path: string, permission: Permission][] = [
   ['/admin/events', 'events.manage'],
   ['/admin/news', 'news.manage'],
   ['/admin/email-templates', 'email_templates.view'],
+  ['/admin/settings/currency', 'settings.manage'],
   ['/admin/access/users', 'access.manage']
 ]
 
@@ -72,5 +73,6 @@ export function pageSkeleton(path: string): PageSkeleton {
   }
   if (/^\/admin\/(events|news|access\/roles)\/(new|[^/]+\/edit|[0-9a-f-]{36})$/.test(p)) return 'form'
   if (p === '/admin/email-templates') return 'detail'
+  if (p === '/admin/settings/currency') return 'form'
   return 'list'
 }

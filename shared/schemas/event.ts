@@ -1,5 +1,6 @@
 import * as z from 'zod'
 import { PARTNER_CATEGORY, SPEAKER_CATEGORY } from '../utils/labels'
+import { CURRENCIES } from '../utils/money'
 
 const isoDate = z.iso.date({ error: 'Use the YYYY-MM-DD format' })
 const optionalText = (max: number) => z.string().trim().max(max).nullish().transform(v => v || null)
@@ -68,7 +69,8 @@ export const ticketTypeSchema = z.object({
   id: z.uuid().optional(),
   code: z.string().trim().toUpperCase().regex(/^[A-Z0-9]{1,6}$/, '1–6 letters or digits, e.g. ID'),
   name: z.string().trim().min(1, 'Required').max(120),
-  price: z.coerce.number<number>().int().min(0, 'Cannot be negative'),
+  /** In major units of the event's currency (e.g. `149.5` USD); the server stores minor units. */
+  price: z.coerce.number<number>().min(0, 'Cannot be negative').refine(v => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, 'At most 2 decimals'),
   paxPerTicket: z.coerce.number<number>().int().min(1).max(100).default(1),
   quota: z.coerce.number<number>().int().min(0, 'Cannot be negative'),
   isOnSale: z.boolean().default(true),
@@ -92,6 +94,8 @@ export const eventFormSchema = z.object({
   venueAddress: optionalText(500),
   city: z.string().trim().min(1, 'Required').max(120),
   capacity: z.coerce.number<number>().int().min(0, 'Cannot be negative'),
+  /** Currency of every ticket price; locked once the event has a paid ticket type. */
+  currency: z.enum(CURRENCIES).default('IDR'),
   bannerKey: objectKey,
   registrationOpen: z.boolean().default(true),
   /** Saving with this on takes the default from whichever event had it. */

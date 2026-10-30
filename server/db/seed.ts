@@ -105,6 +105,12 @@ await db.transaction(async (tx) => {
     }
   ]).returning()
 
+  // Sample rates so USD/SGD events can be tried locally; existing rates are left as they are.
+  await tx.insert(s.currencyRates).values([
+    { currency: 'USD', rateIdr: '16250', updatedBy: adminRef.id },
+    { currency: 'SGD', rateIdr: '12500', updatedBy: adminRef.id }
+  ]).onConflictDoNothing()
+
   const days = await tx.insert(s.agendaDays).values([
     { eventId: apcr!.id, sortOrder: 1, label: 'SUMATRA', date: '2026-12-02', theme: 'Building Trust from the Regions. Sumatra toward ASEAN Bridge.', body: 'Leadership, city and regional reputation, public institutions, regional state-owned enterprises, destination reputation, public communication.' },
     { eventId: apcr!.id, sortOrder: 2, label: 'ASEAN BUSINESS', date: '2026-12-03', theme: 'Turning Trust into Economic Value.', body: 'ASEAN Cross-Border Business & Leaders Dialogue • Energy & Transition • Financial Inclusion • Infrastructure & Public Transportation • Food Security & Halal Economy • Aviation & Tourism • Sustainable Industry • Telecommunication & Digital • Big Data & AI.' },

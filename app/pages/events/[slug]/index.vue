@@ -135,13 +135,19 @@ const partnerGroups = computed(() => (Object.keys(PARTNER_CATEGORY) as (keyof ty
             class="self-start"
           />
           <p class="text-2xl font-bold tabular-nums" :class="t.earlyBirdEnded ? 'text-muted line-through' : 'text-highlighted'">
-            {{ formatRupiah(t.price) }}<span v-if="t.paxPerTicket > 1" class="text-sm font-normal text-muted"> / {{ t.paxPerTicket }} people</span>
+            {{ formatMoney(t.price, ev.currency) }}<span v-if="t.paxPerTicket > 1" class="text-sm font-normal text-muted"> / {{ t.paxPerTicket }} people</span>
+          </p>
+          <p v-if="t.priceIdr" class="text-sm tabular-nums text-muted">
+            ≈ {{ formatRupiah(t.priceIdr) }}
           </p>
           <p v-if="!t.earlyBirdEnded" class="text-sm" :class="t.remaining ? 'text-muted' : 'text-error'">
             {{ t.remaining ? `${formatNumber(t.remaining)} seats left` : 'Sold out' }}
           </p>
         </article>
       </div>
+      <p v-if="ev.currency !== 'IDR'" class="text-sm text-muted">
+        Payment is made in Indonesian rupiah (IDR). Rupiah amounts are estimates; the final amount is fixed when your invoice is issued.
+      </p>
       <UButton v-if="ev.isOpen" :to="`/events/${slug}/register`" size="lg" label="Register now" trailing-icon="i-lucide-arrow-right" class="self-start" />
     </section>
   </template>

@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const [evs, tts] = await Promise.all([
     db.select({
       id: events.id, code: events.code, name: events.name, status: events.status,
-      startDate: events.startDate, endDate: events.endDate, city: events.city
+      startDate: events.startDate, endDate: events.endDate, city: events.city, currency: events.currency
     }).from(events).orderBy(desc(events.startDate)),
     db.select({ name: ticketTypes.name }).from(ticketTypes)
       .where(eventId ? eq(ticketTypes.eventId, eventId) : undefined)

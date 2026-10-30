@@ -147,6 +147,7 @@ const rangeText = computed(() => {
       </template>
       <template #amount-cell="{ row }">
         <span class="whitespace-nowrap font-medium tabular-nums">{{ formatRupiah(row.original.total) }}</span>
+        <div v-if="row.original.fx" class="whitespace-nowrap text-xs tabular-nums text-muted">{{ formatMoney(row.original.fx.total, row.original.fx.currency) }}</div>
       </template>
       <template #method-cell="{ row }">
         <span class="text-muted">{{ methodText(row.original) }}</span>

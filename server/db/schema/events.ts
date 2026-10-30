@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm'
 import { bigint, boolean, check, date, index, integer, pgTable, smallint, text, timestamp, unique, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { id, timestamps } from '../columns'
 import { users } from './auth'
-import { eventStatus, partnerCategory, publishStatus, speakerCategory } from './enums'
+import { currency, eventStatus, partnerCategory, publishStatus, speakerCategory } from './enums'
 
 export const events = pgTable('events', {
   id: id(),
@@ -26,6 +26,8 @@ export const events = pgTable('events', {
   /** The event the website features; at most one row is true (see `events_single_default`). */
   isDefault: boolean().notNull().default(false),
   timezone: varchar({ length: 64 }).notNull().default('Asia/Jakarta'),
+  /** Currency of every ticket price of the event; foreign ones are converted to IDR when invoicing (`currency_rates`). */
+  currency: currency().notNull().default('IDR'),
   registrationSeq: integer().notNull().default(0),
   invoiceSeq: integer().notNull().default(0),
   createdBy: uuid().references(() => users.id, { onDelete: 'set null' }),
@@ -90,6 +92,7 @@ export const ticketTypes = pgTable('ticket_types', {
   /** Part of the e-ticket code, e.g. `ID` → `APCR26-ID-0712`. */
   code: varchar({ length: 6 }).notNull(),
   name: varchar({ length: 120 }).notNull(),
+  /** Minor units of the event's `currency`: whole rupiah for IDR, cents for USD and SGD. */
   price: bigint({ mode: 'number' }).notNull(),
   /** An early-bird ticket can only be bought up to `earlyBirdUntil`. */
   isEarlyBird: boolean().notNull().default(false),

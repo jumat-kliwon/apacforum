@@ -14,7 +14,7 @@ const initial = computed<EventFormInput | undefined>(() => {
   return {
     name: e.name, code: e.code, slug: e.slug, tagline: e.tagline ?? '', description: e.description,
     startDate: e.startDate, endDate: e.endDate, registrationDeadline: e.registrationDeadlineDate,
-    venueName: e.venueName, venueAddress: e.venueAddress ?? '', city: e.city, capacity: e.capacity,
+    venueName: e.venueName, venueAddress: e.venueAddress ?? '', city: e.city, capacity: e.capacity, currency: e.currency,
     bannerKey: e.bannerKey, registrationOpen: e.registrationOpen, isDefault: e.isDefault, status: e.status === 'published' ? 'published' : 'draft',
     agendaDays: d.agendaDays.map(a => ({ id: a.id, label: a.label, date: a.date, theme: a.theme, body: a.body }))
   }
@@ -47,6 +47,6 @@ async function update(form: EventForm) {
       description="General details and agenda. Ticket types, speakers and partners have their own pages."
       :breadcrumb="[{ label: 'Events', to: '/admin/events' }, { label: data.event.name, to: eventPath(id, 'settings') }, { label: 'Edit' }]"
     />
-    <AdminEventForm :initial="initial" :previews="previews" :event-id="id" :saving="saving" @submit="update" />
+    <AdminEventForm :initial="initial" :previews="previews" :event-id="id" :currency-locked="data.event.currencyLocked" :saving="saving" @submit="update" />
   </template>
 </template>

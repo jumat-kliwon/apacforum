@@ -1,3 +1,5 @@
+import type { Currency } from '~~/shared/utils/money'
+
 export type AdminEventOption = {
   id: string
   code: string
@@ -6,6 +8,7 @@ export type AdminEventOption = {
   startDate: string
   endDate: string
   city: string
+  currency: Currency
 }
 
 // the request in flight: the layout and the page it opens both call load() on the first paint, one request serves both

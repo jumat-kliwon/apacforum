@@ -26,3 +26,6 @@ export const paymentStatus = pgEnum('payment_status', ['none', 'pending', 'paid'
 export const transactionStatus = pgEnum('transaction_status', ['pending', 'paid', 'expired', 'refunded'])
 
 export const paymentMethod = pgEnum('payment_method', ['virtual_account', 'qris', 'credit_card', 'bank_transfer', 'e_wallet'])
+
+/** Currency an event sells its tickets in. Mirrors `CURRENCIES` in `shared/utils/money.ts`. */
+export const currency = pgEnum('currency', ['IDR', 'USD', 'SGD'])

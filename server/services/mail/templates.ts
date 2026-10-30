@@ -2,7 +2,9 @@
  * Static email templates (the 9 templates from the "Participant email templates" design).
  * Each template returns structured content; `renderEmail` wraps it in one shared layout.
  */
+import type { TransactionItems } from '../../../shared/schemas/transaction'
 import { formatDateRange, formatDateTime, formatRupiah } from '../../../shared/utils/format'
+import { formatMoney, formatRate, type Currency } from '../../../shared/utils/money'
 
 export type MailData = {
   to: { name: string, email: string }
@@ -11,7 +13,9 @@ export type MailData = {
   regNo?: string
   organization?: string | null
   ticketTypeName?: string
+  /** Minor units of `currency`. */
   ticketPrice?: number
+  currency?: Currency
   invoice?: {
     no: string
     total: number
@@ -20,6 +24,8 @@ export type MailData = {
     methodLabel?: string | null
     paidAt?: Date | null
     refundAmount?: number | null
+    /** Set when the event is priced in USD/SGD: the original price and the rate it was charged at. */
+    fx?: TransactionItems['fx'] | null
   }
   ticketCode?: string | null
   remainingSeats?: number | null
@@ -82,6 +88,15 @@ function calendarUrl(d: MailData) {
   return `https://calendar.google.com/calendar/render?${params}`
 }
 
+/** Rows explaining a USD/SGD invoice charged in rupiah; empty for rupiah events. */
+function fxRows(d: MailData): [string, string][] {
+  const fx = d.invoice?.fx
+  return fx ? [['Price', formatMoney(fx.total, fx.currency)], ['Exchange rate', formatRate(fx.currency, fx.rateIdr)]] : []
+}
+
+/** The ticket price in the event's currency, before an invoice exists or for a rupiah invoice. */
+const ticketPrice = (d: MailData) => d.ticketPrice != null ? formatMoney(d.ticketPrice, d.currency ?? 'IDR') : formatRupiah(d.invoice?.total ?? 0)
+
 export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
   'registration-verified': d => ({
     subject: `Registration received — complete your payment${d.invoice?.expiresAt ? ` by ${formatDateTime(d.invoice.expiresAt)} WIB` : ''}`,
@@ -92,7 +107,7 @@ export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
     boxTitle: `Invoice ${d.invoice?.no ?? ''}`,
     rows: [
       ['Ticket type', d.ticketTypeName ?? '-'],
-      ['Price', formatRupiah(d.ticketPrice ?? d.invoice?.total ?? 0)],
+      ...(d.invoice?.fx ? fxRows(d) : [['Price', ticketPrice(d)] as [string, string]]),
       ...(d.invoice?.expiresAt ? [['Payment deadline', wib(d.invoice.expiresAt)] as [string, string]] : []),
       ['Total', formatRupiah(d.invoice?.total ?? 0), true]
     ],
@@ -109,6 +124,7 @@ export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
     boxTitle: `Invoice ${d.invoice?.no ?? ''}`,
     rows: [
       ['Ticket type', d.ticketTypeName ?? '-'],
+      ...fxRows(d),
       ...(d.invoice?.expiresAt ? [['Payment deadline', wib(d.invoice.expiresAt)] as [string, string]] : []),
       ['Total', formatRupiah(d.invoice?.total ?? 0), true]
     ],
@@ -126,6 +142,7 @@ export const templates: Record<TemplateKey, (d: MailData) => EmailContent> = {
     rows: [
       ['Invoice no.', d.invoice?.no ?? '-'],
       ['Method', d.invoice?.methodLabel ?? '-'],
+      ...fxRows(d),
       ...(d.invoice?.paidAt ? [['Paid', wib(d.invoice.paidAt)] as [string, string]] : []),
       ['Total', formatRupiah(d.invoice?.total ?? 0), true]
     ],

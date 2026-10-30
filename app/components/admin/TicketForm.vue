@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import type { FormErrorEvent, FormSubmitEvent } from '@nuxt/ui'
 import { ticketTypeFormSchema, type TicketTypeForm, type TicketTypeFormInput } from '~~/shared/schemas/event'
+import type { Currency } from '~~/shared/utils/money'
 
 /** One ticket type of the selected event. Used by "Add ticket type" and "Edit ticket type". */
 const props = defineProps<{
   eventId: string
+  /** The event's currency; the price is entered in its major units (e.g. 149.50 USD). */
+  currency: Currency
   initial?: TicketTypeFormInput
   saving?: boolean
   ticketId?: string
@@ -16,9 +19,16 @@ const emit = defineEmits<{ submit: [TicketTypeForm] }>()
 const state = reactive<TicketTypeFormInput>(props.initial
   ? structuredClone(toRaw(props.initial))
   : { eventId: props.eventId, code: '', name: '', price: 0, paxPerTicket: 1, quota: 0, isOnSale: true, isEarlyBird: false, earlyBirdUntil: undefined })
-const pricePerPerson = computed(() => {
+const { rateOf } = useCurrencyRates()
+const priceHelp = computed(() => {
+  const minor = toMinor(Number(state.price) || 0, props.currency) ?? 0
   const pax = Number(state.paxPerTicket) || 1
-  return pax > 1 ? formatRupiah(Math.round((Number(state.price) || 0) / pax)) : null
+  const parts = [pax > 1 ? `${formatMoney(Math.round(minor / pax), props.currency)} per person` : null]
+  if (isForeignCurrency(props.currency) && minor > 0) {
+    const rate = rateOf(props.currency)
+    parts.push(rate ? `≈ ${formatRupiah(convertToIdr(minor, props.currency, rate))} at today's rate` : `No ${props.currency} rate set yet`)
+  }
+  return parts.filter(Boolean).join(' · ') || 'Use 0 for a free ticket.'
 })
 
 function onSubmit(e: FormSubmitEvent<TicketTypeForm>) {
@@ -45,10 +55,10 @@ function onError(e: FormErrorEvent) {
 
     <AdminPanel title="Price & quota">
       <div class="grid gap-4 sm:grid-cols-3">
-        <UFormField label="Price" name="price" required :help="pricePerPerson ? `${pricePerPerson} per person` : 'Use 0 for a free ticket.'">
-          <UInput v-model.number="state.price" type="number" min="0" class="w-full" :ui="{ base: 'ps-13' }">
+        <UFormField label="Price" name="price" required :help="priceHelp">
+          <UInput v-model.number="state.price" type="number" min="0" :step="currency === 'IDR' ? 1 : 0.01" class="w-full" :ui="{ base: currency === 'IDR' ? 'ps-13' : 'ps-15' }">
             <template #leading>
-              <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">Rp</span>
+              <span class="flex h-full items-center border-r border-default pr-2 text-sm font-medium text-toned">{{ currencySymbol(currency) }}</span>
             </template>
           </UInput>
         </UFormField>

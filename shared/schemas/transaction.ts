@@ -1,6 +1,10 @@
 import * as z from 'zod'
+import { FOREIGN_CURRENCIES } from '../utils/money'
 
-/** Invoice lines — `transactions.items`. Amounts are whole rupiah. */
+/**
+ * Invoice lines — `transactions.items`. Amounts are whole rupiah, as charged through DOKU.
+ * `fx` is set when the event is priced in USD/SGD: the original price and the rate it was converted at.
+ */
 export const transactionItemsSchema = z.object({
   lines: z.array(z.object({
     description: z.string().min(1),
@@ -10,7 +14,16 @@ export const transactionItemsSchema = z.object({
     subtotal: z.number().int().nonnegative()
   })).min(1),
   subtotal: z.number().int().nonnegative(),
-  discount: z.number().int().nonnegative()
+  discount: z.number().int().nonnegative(),
+  fx: z.object({
+    currency: z.enum(FOREIGN_CURRENCIES),
+    /** Minor units (cents). */
+    unitPrice: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+    /** Rupiah per 1 unit, as stored (`"16250.0000"`), kept as text so no precision is lost. */
+    rateIdr: z.string(),
+    rateAt: z.iso.datetime({ offset: true })
+  }).optional()
 })
 
 /** Payment details from DOKU — `transactions.payment`. */

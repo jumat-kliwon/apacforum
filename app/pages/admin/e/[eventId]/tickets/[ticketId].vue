@@ -14,7 +14,7 @@ const missing = computed(() => !!error.value || (data.value && data.value.eventI
 const initial = computed<TicketTypeFormInput | undefined>(() => {
   const t = data.value
   if (!t) return undefined
-  return { eventId: t.eventId, code: t.code, name: t.name, price: t.price, paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale, ...earlyBirdFormValues(t) }
+  return { eventId: t.eventId, code: t.code, name: t.name, price: toMajor(t.price, t.currency), paxPerTicket: t.paxPerTicket, quota: t.quota, isOnSale: t.isOnSale, ...earlyBirdFormValues(t) }
 })
 
 const saving = ref(false)
@@ -45,6 +45,6 @@ async function update(form: TicketTypeForm) {
         {{ formatNumber(data.sold) }} sold · {{ formatNumber(data.registered) }} active {{ data.registered === 1 ? 'registration' : 'registrations' }}
       </template>
     </AdminPageHeader>
-    <AdminTicketForm :event-id="eventId" :initial="initial" :ticket-id="id" :sold="data.sold" :saving="saving" @submit="update" />
+    <AdminTicketForm :event-id="eventId" :currency="data.currency" :initial="initial" :ticket-id="id" :sold="data.sold" :saving="saving" @submit="update" />
   </template>
 </template>

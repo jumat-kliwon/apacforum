@@ -23,10 +23,18 @@ const stats = computed(() => {
   if (!d) return []
   return [
     { label: 'Registered participants', value: `${formatNumber(d.stats.participants)} / ${formatNumber(d.event.capacity)}`, icon: 'i-lucide-users' },
-    { label: 'Revenue', value: formatRupiah(d.stats.revenue), icon: 'i-lucide-wallet' },
+    { label: d.event.currency === 'IDR' ? 'Revenue' : 'Revenue (charged in IDR)', value: formatRupiah(d.stats.revenue), icon: 'i-lucide-wallet' },
     { label: 'Speakers', value: `${d.speakers.length} ${d.speakers.length === 1 ? 'person' : 'people'}`, icon: 'i-lucide-mic' },
     { label: 'Partners', value: `${d.partners.length} ${d.partners.length === 1 ? 'partner' : 'partners'}`, icon: 'i-lucide-handshake' }
   ]
+})
+
+const { rateOf } = useCurrencyRates()
+const currencyInfo = computed(() => {
+  const cur = ev.value?.currency ?? 'IDR'
+  if (!isForeignCurrency(cur)) return 'IDR'
+  const rate = rateOf(cur)
+  return `${cur}, charged in IDR at ${rate ? formatRate(cur, rate) : 'a rate not set yet'}`
 })
 
 const info = computed(() => {
@@ -38,6 +46,7 @@ const info = computed(() => {
     ['Dates', `${formatIsoDateWithDay(e.startDate).split(',')[0]}–${formatIsoDateWithDay(e.endDate)}`],
     ['Venue', [e.venueName, e.venueAddress, e.city].filter(Boolean).join(', ')],
     ['Capacity', `${formatNumber(e.capacity)} participants`],
+    ['Ticket currency', currencyInfo.value],
     ['Registration deadline', `${formatDateTime(e.registrationDeadline)} WIB`],
     ['Event code', e.code],
     ['Slug', `/events/${e.slug}`],
@@ -291,7 +300,7 @@ async function archive() {
               <span class="ml-2 font-mono text-xs text-muted">{{ row.original.code }}</span>
             </template>
             <template #price-cell="{ row }">
-              <span class="tabular-nums">{{ formatRupiah(row.original.price) }}{{ row.original.paxPerTicket > 1 ? ` / ${row.original.paxPerTicket} people` : '' }}</span>
+              <span class="tabular-nums">{{ formatMoney(row.original.price, data.event.currency) }}{{ row.original.paxPerTicket > 1 ? ` / ${row.original.paxPerTicket} people` : '' }}</span>
             </template>
             <template #sold-cell="{ row }">
               <div class="flex min-w-48 items-center gap-3">
