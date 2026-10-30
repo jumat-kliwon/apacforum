@@ -40,6 +40,11 @@ describe('ticketTypeFormSchema early bird', () => {
     expect(paths({ isEarlyBird: false, earlyBirdUntil: '' })).toEqual([])
   })
 
+  it('accepts its own output, which the form posts to the server', () => {
+    expect(paths({ isEarlyBird: false, earlyBirdUntil: null })).toEqual([])
+    expect(paths({ isEarlyBird: true, earlyBirdUntil: null })).toEqual(['earlyBirdUntil'])
+  })
+
   it('needs an end date when on', () => {
     expect(paths({ isEarlyBird: true })).toEqual(['earlyBirdUntil'])
     expect(paths({ isEarlyBird: true, earlyBirdUntil: '' })).toEqual(['earlyBirdUntil'])
