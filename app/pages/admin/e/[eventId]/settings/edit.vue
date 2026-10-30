@@ -47,6 +47,6 @@ async function update(form: EventForm) {
       description="General details and agenda. Ticket types, speakers and partners have their own pages."
       :breadcrumb="[{ label: 'Events', to: '/admin/events' }, { label: data.event.name, to: eventPath(id, 'settings') }, { label: 'Edit' }]"
     />
-    <AdminEventForm :initial="initial" :previews="previews" :event-id="id" :currency-locked="data.event.currencyLocked" :saving="saving" @submit="update" />
+    <AdminEventForm :initial="initial" :previews="previews" :event-id="id" :has-paid-tickets="data.event.hasPaidTickets" :saving="saving" @submit="update" />
   </template>
 </template>

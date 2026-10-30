@@ -56,10 +56,6 @@ async function save(e: FormSubmitEvent<CurrencyRateForm>) {
           :title="`No ${r.currency} rate yet`"
           :description="r.events ? `Registrations for ${r.events} ${r.events === 1 ? 'event' : 'events'} in ${r.currency} are refused until a rate is set.` : `Events priced in ${r.currency} cannot take payments until a rate is set.`"
         />
-        <p v-else class="text-[13px]/[18px] text-muted">
-          {{ formatRate(r.currency, r.rateIdr) }} · updated {{ formatDateTime(r.updatedAt!) }}{{ r.updatedBy ? ` by ${r.updatedBy}` : '' }}
-          · used by {{ r.events }} {{ r.events === 1 ? 'event' : 'events' }}
-        </p>
         <p class="text-[13px]/[18px] text-muted">
           A new rate applies to invoices issued from now on. Unpaid invoices keep the rate they were issued with.
         </p>

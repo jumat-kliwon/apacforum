@@ -29,8 +29,8 @@ export default defineEventHandler(async (event) => {
       // the form uses a date; registration closes at 23:59 WIB
       registrationDeadlineDate: new Date(ev.registrationDeadline.getTime() + 7 * 3600_000).toISOString().slice(0, 10),
       bannerUrl: publicUrl(ev.bannerKey),
-      /** The currency select is disabled while a ticket type costs money (see `saveEvent`). */
-      currencyLocked: tickets.some(t => t.price > 0),
+      /** Paid ticket prices are converted when the currency changes; the form warns about it. */
+      hasPaidTickets: tickets.some(t => t.price > 0),
       scannerPath: scannerPath(ev.id)
     },
     agendaDays: days,

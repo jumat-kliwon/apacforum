@@ -7,7 +7,7 @@ import { agendaDaySchema, eventFormSchema, type EventForm, type EventFormInput }
  * event's Tickets, Speakers and Partners pages. "Add event" opens each step in order; "Edit event" starts with every step reachable.
  */
 type Previews = { banner?: string | null }
-const props = defineProps<{ initial?: EventFormInput, previews?: Previews, saving?: boolean, eventId?: string, currencyLocked?: boolean }>()
+const props = defineProps<{ initial?: EventFormInput, previews?: Previews, saving?: boolean, eventId?: string, hasPaidTickets?: boolean }>()
 const emit = defineEmits<{ submit: [EventForm] }>()
 
 const blankDay = () => ({ label: '', date: '', theme: '', body: '' })
@@ -29,9 +29,10 @@ const currencyHelp = computed(() => {
   const cur = state.currency ?? 'IDR'
   const rate = isForeignCurrency(cur) ? rateOf(cur) : null
   const charged = rate && isForeignCurrency(cur) ? `Charged in rupiah through DOKU at the current rate, ${formatRate(cur, rate)}.` : null
-  if (props.currencyLocked) return ['Locked while a ticket type has a price. Set those prices to 0 to change it.', charged].filter(Boolean).join(' ')
   return isForeignCurrency(cur) ? charged ?? undefined : 'Every ticket price of this event is in this currency.'
 })
+// saving converts the ticket prices at the current rates, so they deserve a look afterwards
+const currencyChanged = computed(() => !!props.initial && props.hasPaidTickets && state.currency !== props.initial.currency)
 const missingRate = computed(() => {
   const cur = state.currency ?? 'IDR'
   return isForeignCurrency(cur) && !rateOf(cur) ? cur : null
@@ -195,8 +196,17 @@ const DESCRIPTION_TOOLBAR: EditorToolbarItem[][] = [
             </UInput>
           </UFormField>
           <UFormField label="Ticket currency" name="currency" required :help="currencyHelp" class="sm:col-span-2">
-            <USelect v-model="state.currency" :items="CURRENCY_ITEMS" :disabled="currencyLocked" class="w-full" />
+            <USelect v-model="state.currency" :items="CURRENCY_ITEMS" class="w-full" />
           </UFormField>
+          <UAlert
+            v-if="currencyChanged"
+            color="warning"
+            variant="subtle"
+            icon="i-lucide-triangle-alert"
+            class="sm:col-span-2"
+            title="Ticket prices will be converted"
+            :description="`Saving converts every ticket price from ${initial!.currency} to ${state.currency} at the current rates (see Currency rates). Review the prices on the Tickets page afterwards.`"
+          />
           <UAlert
             v-if="missingRate"
             color="warning"
