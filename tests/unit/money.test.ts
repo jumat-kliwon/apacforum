@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { convertToIdr, formatMoney, formatRate, isValidRate, toMajor, toMinor } from '../../shared/utils/money'
+import { convertToIdr, currencyLabel, formatMoney, formatRate, isValidRate, toMajor, toMinor } from '../../shared/utils/money'
 
 describe('toMinor', () => {
   it('reads cents without float errors', () => {
@@ -70,6 +70,10 @@ describe('formatMoney', () => {
     expect(formatMoney(2_500_000, 'IDR')).toBe('Rp 2,500,000')
     expect(formatMoney(14950, 'USD')).toBe('US$ 149.50')
     expect(formatMoney(20000, 'SGD')).toBe('S$ 200.00')
+  })
+
+  it('names a currency', () => {
+    expect(currencyLabel('USD')).toBe('USD (US dollar)')
   })
 
   it('formats a rate', () => {

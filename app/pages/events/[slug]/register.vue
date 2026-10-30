@@ -125,6 +125,7 @@ function onError(e: FormErrorEvent) {
               label="Participant type"
               name="ticketTypeId"
               required
+              :hint="`Prices in ${currencyLabel(data.event.currency)}`"
               :help="data.event.currency !== 'IDR' ? 'You pay in Indonesian rupiah (IDR). The rupiah amount is an estimate at today\'s rate and is fixed when your invoice is issued.' : undefined"
             >
               <URadioGroup

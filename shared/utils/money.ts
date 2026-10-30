@@ -11,11 +11,14 @@ export type ForeignCurrency = typeof FOREIGN_CURRENCIES[number]
 
 const EXPONENT: Record<Currency, number> = { IDR: 0, USD: 2, SGD: 2 }
 const SYMBOL: Record<Currency, string> = { IDR: 'Rp', USD: 'US$', SGD: 'S$' }
+const NAME: Record<Currency, string> = { IDR: 'Indonesian rupiah', USD: 'US dollar', SGD: 'Singapore dollar' }
 /** Decimal places of an exchange rate (`currency_rates.rate_idr` is numeric(18, 4)). */
 export const RATE_SCALE = 4
 
 export const currencyExponent = (cur: Currency) => EXPONENT[cur]
 export const currencySymbol = (cur: Currency) => SYMBOL[cur]
+/** `USD (US dollar)` */
+export const currencyLabel = (cur: Currency) => `${cur} (${NAME[cur]})`
 export const isForeignCurrency = (cur: Currency): cur is ForeignCurrency => cur !== 'IDR'
 
 /**
