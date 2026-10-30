@@ -77,7 +77,7 @@ export const ticketTypeSchema = z.object({
   /** An early-bird ticket needs `earlyBirdUntil`; off clears it. */
   isEarlyBird: z.boolean().default(false),
   /** A date; the ticket can be bought until 23:59 WIB on that day. */
-  earlyBirdUntil: isoDate.optional().or(z.literal('')).transform(v => v || null)
+  earlyBirdUntil: isoDate.nullish().or(z.literal('')).transform(v => v || null)
 })
 
 export const eventFormSchema = z.object({

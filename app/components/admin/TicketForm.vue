@@ -95,7 +95,7 @@ function onError(e: FormErrorEvent) {
         <USwitch v-model="state.isEarlyBird" aria-label="Early-bird ticket" />
       </div>
       <UFormField v-if="state.isEarlyBird" label="Early bird ends" name="earlyBirdUntil" required help="Can be bought until 23:59 WIB on this day." class="sm:max-w-xs">
-        <UInput v-model="state.earlyBirdUntil" type="date" class="w-full" />
+        <UInput :model-value="state.earlyBirdUntil ?? undefined" type="date" class="w-full" @update:model-value="state.earlyBirdUntil = $event" />
       </UFormField>
     </AdminPanel>
 
