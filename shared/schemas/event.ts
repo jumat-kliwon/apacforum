@@ -126,6 +126,14 @@ export const ticketTypeFormSchema = ticketTypeSchema.omit({ id: true }).extend({
 export type TicketTypeFormInput = z.input<typeof ticketTypeFormSchema>
 export type TicketTypeForm = z.output<typeof ticketTypeFormSchema>
 
+/** The Reorder page of Speakers, Partners or Tickets: every id of the event, in the new order (first = 0). */
+export const reorderSchema = z.object({
+  eventId: z.uuid(),
+  ids: z.array(z.uuid()).min(1).max(1000).refine(ids => new Set(ids).size === ids.length, 'Duplicate ids')
+})
+
+export type ReorderForm = z.output<typeof reorderSchema>
+
 export const ticketTypeListQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().refine(n => [10, 25, 50, 100].includes(n)).default(10),
@@ -133,5 +141,5 @@ export const ticketTypeListQuery = z.object({
   q: z.string().trim().max(100).optional(),
   eventId: z.uuid().optional(),
   status: z.enum(['on_sale', 'off_sale']).optional(),
-  sort: z.enum(['name', 'event', 'price', 'sold', 'status']).default('event')
+  sort: z.enum(['order', 'name', 'event', 'price', 'sold', 'status']).default('order')
 })

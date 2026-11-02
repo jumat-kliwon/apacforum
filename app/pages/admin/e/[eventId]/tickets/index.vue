@@ -7,7 +7,7 @@ const eventId = useEventId()
 const notify = useNotify()
 const { event } = useCurrentEvent()
 const list = useListQuery({
-  sort: 'name',
+  sort: 'order',
   dir: 'asc',
   filters: { status: undefined } as Record<'status', string | undefined>
 })
@@ -87,6 +87,7 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
 <template>
   <AdminPageHeader title="Tickets" :description="`Ticket types become the participant types on the ${event?.name ?? 'event'} registration form.`">
     <template #actions>
+      <UButton :to="eventPath(eventId, 'tickets', 'reorder')" color="neutral" variant="outline" icon="i-lucide-arrow-up-down" label="Reorder" />
       <UButton :to="newHref" icon="i-lucide-plus" label="Add ticket type" />
     </template>
   </AdminPageHeader>

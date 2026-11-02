@@ -68,7 +68,7 @@ export async function listPartners(q: z.output<typeof partnerListQuery>) {
     db.select(partnerSelect).from(partners)
       .innerJoin(events, eq(events.id, partners.eventId))
       .where(where)
-      .orderBy(order, asc(partners.sortOrder))
+      .orderBy(order, asc(partners.sortOrder), asc(partners.name))
       .limit(q.pageSize).offset((q.page - 1) * q.pageSize),
     db.select({ total: sql<number>`count(*)::int` }).from(partners).where(where)
   ])

@@ -88,6 +88,7 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
 <template>
   <AdminPageHeader title="Partners" :description="`Partners appear by category on the ${event?.name ?? 'event'} page. Turn on Home page to also show one on the website's home page.`">
     <template #actions>
+      <UButton :to="eventPath(eventId, 'partners', 'reorder')" color="neutral" variant="outline" icon="i-lucide-arrow-up-down" label="Reorder" />
       <UButton :to="newHref" icon="i-lucide-plus" label="Add partner" />
     </template>
   </AdminPageHeader>

@@ -233,6 +233,7 @@ export const ticketTypeSelect = {
   paxPerTicket: ticketTypes.paxPerTicket,
   quota: ticketTypes.quota,
   isOnSale: ticketTypes.isOnSale,
+  sortOrder: ticketTypes.sortOrder,
   createdAt: ticketTypes.createdAt,
   updatedAt: ticketTypes.updatedAt,
   sold: soldCount,
@@ -246,7 +247,7 @@ export async function listTicketTypes(q: z.output<typeof ticketTypeListQuery>) {
     q.eventId ? eq(ticketTypes.eventId, q.eventId) : undefined,
     q.status ? eq(ticketTypes.isOnSale, q.status === 'on_sale') : undefined
   )
-  const sortCol = { name: ticketTypes.name, event: events.startDate, price: ticketTypes.price, sold: soldCount, status: ticketTypes.isOnSale }[q.sort]
+  const sortCol = { order: ticketTypes.sortOrder, name: ticketTypes.name, event: events.startDate, price: ticketTypes.price, sold: soldCount, status: ticketTypes.isOnSale }[q.sort]
   const dir = q.dir === 'asc' ? asc : desc
   // prices of different currencies are not comparable: group them by currency first
   const order = q.sort === 'price' ? [dir(events.currency), dir(sortCol)] : [dir(sortCol)]
@@ -254,7 +255,7 @@ export async function listTicketTypes(q: z.output<typeof ticketTypeListQuery>) {
     db.select(ticketTypeSelect).from(ticketTypes)
       .innerJoin(events, eq(events.id, ticketTypes.eventId))
       .where(where)
-      .orderBy(...order, asc(events.name), asc(ticketTypes.sortOrder))
+      .orderBy(...order, asc(events.name), asc(ticketTypes.sortOrder), asc(ticketTypes.name))
       .limit(q.pageSize).offset((q.page - 1) * q.pageSize),
     db.select({ total: sql<number>`count(*)::int` }).from(ticketTypes).where(where)
   ])

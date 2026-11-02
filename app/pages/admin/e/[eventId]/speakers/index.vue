@@ -89,6 +89,7 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
 <template>
   <AdminPageHeader title="Speakers" :description="`Published speakers appear on the ${event?.name ?? 'event'} page. Drafts stay hidden.`">
     <template #actions>
+      <UButton :to="eventPath(eventId, 'speakers', 'reorder')" color="neutral" variant="outline" icon="i-lucide-arrow-up-down" label="Reorder" />
       <UButton :to="newHref" icon="i-lucide-plus" label="Add speaker" />
     </template>
   </AdminPageHeader>

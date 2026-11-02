@@ -84,7 +84,7 @@ export async function listSpeakers(q: z.output<typeof speakerListQuery>) {
       .innerJoin(events, eq(events.id, speakers.eventId))
       .leftJoin(agendaDays, eq(agendaDays.id, speakers.agendaDayId))
       .where(where)
-      .orderBy(order, asc(speakers.sortOrder))
+      .orderBy(order, asc(speakers.sortOrder), asc(speakers.name))
       .limit(q.pageSize).offset((q.page - 1) * q.pageSize),
     db.select({ total: sql<number>`count(*)::int` }).from(speakers).where(where)
   ])

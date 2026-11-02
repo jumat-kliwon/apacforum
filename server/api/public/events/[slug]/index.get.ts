@@ -15,9 +15,9 @@ export default defineEventHandler(async (event) => {
 
   const [days, sp, pa, tickets] = await Promise.all([
     db.select().from(agendaDays).where(eq(agendaDays.eventId, ev.id)).orderBy(asc(agendaDays.sortOrder)),
-    db.select().from(speakers).where(and(eq(speakers.eventId, ev.id), eq(speakers.status, 'published'))).orderBy(asc(speakers.sortOrder)),
-    db.select().from(partners).where(eq(partners.eventId, ev.id)).orderBy(asc(partners.sortOrder)),
-    db.select().from(ticketTypes).where(and(eq(ticketTypes.eventId, ev.id), eq(ticketTypes.isOnSale, true))).orderBy(asc(ticketTypes.sortOrder))
+    db.select().from(speakers).where(and(eq(speakers.eventId, ev.id), eq(speakers.status, 'published'))).orderBy(asc(speakers.sortOrder), asc(speakers.name)),
+    db.select().from(partners).where(eq(partners.eventId, ev.id)).orderBy(asc(partners.sortOrder), asc(partners.name)),
+    db.select().from(ticketTypes).where(and(eq(ticketTypes.eventId, ev.id), eq(ticketTypes.isOnSale, true))).orderBy(asc(ticketTypes.sortOrder), asc(ticketTypes.name))
   ])
   const remaining = await Promise.all(tickets.map(async t => Math.max(0, t.quota - await activeCount(db, t.id))))
   const currency = ev.currency
