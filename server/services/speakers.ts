@@ -46,13 +46,6 @@ export async function updateSpeaker(id: string, form: SpeakerForm) {
   return id
 }
 
-/** Manual ordering: the "Order" column on the Speakers page. */
-export async function setSpeakerOrder(id: string, sortOrder: number) {
-  const [row] = await db.update(speakers).set({ sortOrder }).where(eq(speakers.id, id)).returning({ id: speakers.id })
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'Speaker not found' })
-  return row.id
-}
-
 export async function deleteSpeaker(id: string) {
   const [row] = await db.delete(speakers).where(eq(speakers.id, id)).returning({ photoKey: speakers.photoKey })
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Speaker not found' })

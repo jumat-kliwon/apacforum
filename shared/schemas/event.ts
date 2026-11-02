@@ -126,12 +126,13 @@ export const ticketTypeFormSchema = ticketTypeSchema.omit({ id: true }).extend({
 export type TicketTypeFormInput = z.input<typeof ticketTypeFormSchema>
 export type TicketTypeForm = z.output<typeof ticketTypeFormSchema>
 
-/** Manual position in a list (Speakers, Partners, Tickets): lower comes first, ties by name. */
-export const sortOrderSchema = z.object({
-  sortOrder: z.coerce.number<number>({ error: 'Enter a number' }).int('Use a whole number').min(0, 'Cannot be negative').max(9999, 'At most 9999')
+/** The Reorder page of Speakers, Partners or Tickets: every id of the event, in the new order (first = 0). */
+export const reorderSchema = z.object({
+  eventId: z.uuid(),
+  ids: z.array(z.uuid()).min(1).max(1000).refine(ids => new Set(ids).size === ids.length, 'Duplicate ids')
 })
 
-export type SortOrderForm = z.output<typeof sortOrderSchema>
+export type ReorderForm = z.output<typeof reorderSchema>
 
 export const ticketTypeListQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),

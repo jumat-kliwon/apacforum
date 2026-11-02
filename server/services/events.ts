@@ -193,13 +193,6 @@ export async function updateTicketType(id: string, form: TicketTypeForm) {
   }
 }
 
-/** Manual ordering: the "Order" column on the Tickets page and the order on the registration form. */
-export async function setTicketTypeOrder(id: string, sortOrder: number) {
-  const [row] = await db.update(ticketTypes).set({ sortOrder }).where(eq(ticketTypes.id, id)).returning({ id: ticketTypes.id })
-  if (!row) throw createError({ statusCode: 404, statusMessage: 'Ticket type not found' })
-  return row.id
-}
-
 export async function deleteTicketType(id: string) {
   try {
     await db.transaction(async (tx) => {
