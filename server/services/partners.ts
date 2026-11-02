@@ -34,6 +34,13 @@ export async function updatePartner(id: string, form: PartnerForm) {
   return id
 }
 
+/** Manual ordering: the "Order" column on the Partners page. */
+export async function setPartnerOrder(id: string, sortOrder: number) {
+  const [row] = await db.update(partners).set({ sortOrder }).where(eq(partners.id, id)).returning({ id: partners.id })
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'Partner not found' })
+  return row.id
+}
+
 export async function deletePartner(id: string) {
   const [row] = await db.delete(partners).where(eq(partners.id, id)).returning({ logoKey: partners.logoKey })
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Partner not found' })
@@ -68,7 +75,7 @@ export async function listPartners(q: z.output<typeof partnerListQuery>) {
     db.select(partnerSelect).from(partners)
       .innerJoin(events, eq(events.id, partners.eventId))
       .where(where)
-      .orderBy(order, asc(partners.sortOrder))
+      .orderBy(order, asc(partners.sortOrder), asc(partners.name))
       .limit(q.pageSize).offset((q.page - 1) * q.pageSize),
     db.select({ total: sql<number>`count(*)::int` }).from(partners).where(where)
   ])

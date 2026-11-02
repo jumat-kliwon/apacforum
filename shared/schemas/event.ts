@@ -126,6 +126,13 @@ export const ticketTypeFormSchema = ticketTypeSchema.omit({ id: true }).extend({
 export type TicketTypeFormInput = z.input<typeof ticketTypeFormSchema>
 export type TicketTypeForm = z.output<typeof ticketTypeFormSchema>
 
+/** Manual position in a list (Speakers, Partners, Tickets): lower comes first, ties by name. */
+export const sortOrderSchema = z.object({
+  sortOrder: z.coerce.number<number>({ error: 'Enter a number' }).int('Use a whole number').min(0, 'Cannot be negative').max(9999, 'At most 9999')
+})
+
+export type SortOrderForm = z.output<typeof sortOrderSchema>
+
 export const ticketTypeListQuery = z.object({
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().refine(n => [10, 25, 50, 100].includes(n)).default(10),
@@ -133,5 +140,5 @@ export const ticketTypeListQuery = z.object({
   q: z.string().trim().max(100).optional(),
   eventId: z.uuid().optional(),
   status: z.enum(['on_sale', 'off_sale']).optional(),
-  sort: z.enum(['name', 'event', 'price', 'sold', 'status']).default('event')
+  sort: z.enum(['order', 'name', 'event', 'price', 'sold', 'status']).default('order')
 })

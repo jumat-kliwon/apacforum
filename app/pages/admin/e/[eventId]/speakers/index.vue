@@ -31,6 +31,7 @@ const rows = computed(() => data.value?.rows ?? [])
 const { ids: selectedIds, column: selectColumn } = useRowSelection(rows, { all: 'Select all speakers on this page', row: r => `Select ${r.name}` })
 const columns: TableColumn<Row>[] = [
   selectColumn,
+  { id: 'order', header: sortHeader('order', 'Order') },
   { id: 'name', header: sortHeader('name', 'Speaker') },
   { id: 'category', header: sortHeader('category', 'Category') },
   { id: 'session', header: sortHeader('session', 'Session') },
@@ -112,7 +113,10 @@ const deleteOpen = computed({ get: () => !!target.value, set: (v) => { if (!v) t
 
     <UTable :data="tableSkeleton ? [] : rows" :columns="columns" :loading="status === 'pending'" :ui="{ loading: 'p-0' }" empty="No speakers yet." class="-mx-4 sm:-mx-5">
       <template #loading>
-        <AdminSkeletonRows :rows="6" :columns="5" />
+        <AdminSkeletonRows :rows="6" :columns="6" />
+      </template>
+      <template #order-cell="{ row }">
+        <AdminOrderInput :url="`/api/admin/speakers/${row.original.id}/order`" :value="row.original.sortOrder" :name="row.original.name" @saved="refresh()" />
       </template>
       <template #name-cell="{ row }">
         <div class="flex items-center gap-3">

@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     .leftJoin(participants, eq(participants.ticketTypeId, ticketTypes.id))
     .where(eq(ticketTypes.eventId, ev.id))
     .groupBy(ticketTypes.id)
-    .orderBy(ticketTypes.sortOrder)
+    .orderBy(ticketTypes.sortOrder, ticketTypes.name)
 
   const payRows = await db.select({ status: transactions.status, n: sql<number>`count(*)::int` })
     .from(transactions).where(eq(transactions.eventId, ev.id)).groupBy(transactions.status)

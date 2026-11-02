@@ -46,6 +46,13 @@ export async function updateSpeaker(id: string, form: SpeakerForm) {
   return id
 }
 
+/** Manual ordering: the "Order" column on the Speakers page. */
+export async function setSpeakerOrder(id: string, sortOrder: number) {
+  const [row] = await db.update(speakers).set({ sortOrder }).where(eq(speakers.id, id)).returning({ id: speakers.id })
+  if (!row) throw createError({ statusCode: 404, statusMessage: 'Speaker not found' })
+  return row.id
+}
+
 export async function deleteSpeaker(id: string) {
   const [row] = await db.delete(speakers).where(eq(speakers.id, id)).returning({ photoKey: speakers.photoKey })
   if (!row) throw createError({ statusCode: 404, statusMessage: 'Speaker not found' })
@@ -84,7 +91,7 @@ export async function listSpeakers(q: z.output<typeof speakerListQuery>) {
       .innerJoin(events, eq(events.id, speakers.eventId))
       .leftJoin(agendaDays, eq(agendaDays.id, speakers.agendaDayId))
       .where(where)
-      .orderBy(order, asc(speakers.sortOrder))
+      .orderBy(order, asc(speakers.sortOrder), asc(speakers.name))
       .limit(q.pageSize).offset((q.page - 1) * q.pageSize),
     db.select({ total: sql<number>`count(*)::int` }).from(speakers).where(where)
   ])
